@@ -886,6 +886,36 @@ class Backoffice extends CI_Controller
 		$this->template->kaki('tbase/kaki', 'mimin/template/footer');
 	}
 
+	/**
+	 * Menampilkan data penetasan
+	 */
+	public function penetasan()
+	{
+		// Cek session sesuai __construct
+		if ($this->session->userdata('isLog') == FALSE) {
+			redirect(base_url());
+		}
+		if ($this->session->userdata('isId') == "") {
+			redirect(base_url());
+		}
+		if ($this->session->userdata('isUname') == "") {
+			redirect(base_url());
+		}
+		if ($this->session->userdata('isPass') == "") {
+			redirect(base_url());
+		}
+		if ($this->session->userdata('isLevel') !== 'mimin') {
+			redirect(base_url());
+		}
+
+		// Siapkan data untuk dikirim ke view
+		$data['title'] = "Data Penetasan";
+		// Ambil data penetasan dari model
+		$data['penetasan'] = $this->m_min->get_penetasan();
+		// Memuat file view dan mengirimkan data
+		$this->load->view('mimin/page/penetasan', $data);
+	}
+
 	public function in_pembesaran()
 	{
 		$table 		= 'v_pembesaran';

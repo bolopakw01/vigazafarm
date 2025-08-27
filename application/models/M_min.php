@@ -1,3 +1,13 @@
+	// ------------------------------- PENETASAN -------------------------------
+
+	/**
+	 * Mengambil seluruh data penetasan
+	 * @return array
+	 */
+	public function get_penetasan()
+	{
+		return $this->db->get('penetasan')->result();
+	}
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
