@@ -1,13 +1,3 @@
-	// ------------------------------- PENETASAN -------------------------------
-
-	/**
-	 * Mengambil seluruh data penetasan
-	 * @return array
-	 */
-	public function get_penetasan()
-	{
-		return $this->db->get('penetasan')->result();
-	}
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
@@ -17,21 +7,93 @@ class M_min extends CI_Model
 	public function __construct()
 	{
 		parent::__construct();
-		if ($this->session->userdata('isLog') == FALSE) {
+		
+		// Comment out authentication check for login process
+		// $this->check_authentication();
+	}
+
+	/**
+	 * Enhanced authentication check with role-based support
+	 */
+	private function check_authentication()
+	{
+		// Check if user is logged in (legacy or new system)
+		$is_logged_legacy = $this->session->userdata('isLog') == TRUE;
+		$is_logged_new = $this->session->userdata('user_logged_in') == TRUE;
+		
+		if (!$is_logged_legacy && !$is_logged_new) {
 			redirect(base_url());
 		}
-		if ($this->session->userdata('isId') == "") {
-			redirect(base_url());
+		
+		// Legacy system compatibility
+		if ($is_logged_legacy) {
+			$required_fields = ['isId', 'isUname', 'isPass', 'isLevel'];
+			foreach ($required_fields as $field) {
+				if (empty($this->session->userdata($field))) {
+					redirect(base_url());
+				}
+			}
+			
+			// Check if user has admin privileges in legacy system
+			if ($this->session->userdata('isLevel') !== 'mimin') {
+				redirect(base_url());
+			}
 		}
-		if ($this->session->userdata('isUname') == "") {
-			redirect(base_url());
+		
+		// New system compatibility
+		if ($is_logged_new) {
+			$user_id = $this->session->userdata('user_id');
+			$user_role = $this->session->userdata('user_role');
+			
+			if (empty($user_id) || empty($user_role)) {
+				redirect(base_url());
+			}
+			
+			// Check if user has required privileges (admin or manager)
+			if (!in_array($user_role, ['admin', 'manager'])) {
+				redirect(base_url());
+			}
 		}
-		if ($this->session->userdata('isPass') == "") {
-			redirect(base_url());
+	}
+
+	/**
+	 * Check if user has specific permission
+	 */
+	public function has_permission($permission)
+	{
+		$user_role = $this->session->userdata('user_role');
+		
+		// If legacy system, assume admin permissions
+		if ($this->session->userdata('isLevel') === 'mimin') {
+			return true;
 		}
-		if ($this->session->userdata('isLevel') !== 'mimin') {
-			redirect(base_url());
-		}
+		
+		// Permission matrix for new system
+		$permissions = [
+			'admin' => [
+				'kandang_create', 'kandang_read', 'kandang_update', 'kandang_delete',
+				'penetasan_create', 'penetasan_read', 'penetasan_update', 'penetasan_delete',
+				'pembesaran_create', 'pembesaran_read', 'pembesaran_update', 'pembesaran_delete',
+				'produksi_create', 'produksi_read', 'produksi_update', 'produksi_delete',
+				'karyawan_create', 'karyawan_read', 'karyawan_update', 'karyawan_delete',
+				'laporan_read', 'laporan_export', 'settings_update', 'user_management'
+			],
+			'manager' => [
+				'kandang_read', 'kandang_update',
+				'penetasan_create', 'penetasan_read', 'penetasan_update',
+				'pembesaran_create', 'pembesaran_read', 'pembesaran_update',
+				'produksi_create', 'produksi_read', 'produksi_update',
+				'karyawan_read', 'laporan_read', 'laporan_export'
+			],
+			'operator' => [
+				'kandang_read',
+				'penetasan_read', 'penetasan_update',
+				'pembesaran_read', 'pembesaran_update',
+				'produksi_read', 'produksi_update'
+			]
+		];
+		
+		return in_array($permission, $permissions[$user_role] ?? []);
 	}
 
 	/* ========================================= CEK ========================================= */
@@ -70,44 +132,47 @@ class M_min extends CI_Model
 
 	function log_today()
 	{
-		$today = date('Y-m-d');
-		$query = "select * from log join simimin on simimin.minid=log.id_user where log.tanggal='$today' order by log.id_log desc";
-		return $this->db->query($query);
+		// Sementara return empty result karena tabel log belum ada
+		// Bisa diganti dengan workflow_logs nanti
+		return $this->db->query("SELECT 0 as count WHERE 1=0");
 	}
 
 	public function log()
 	{
-		$this->db->select('*');
-		$this->db->from('log');
-		$this->db->join('simimin', 'simimin.minid=log.id_user');
-		$this->db->order_by('log.id_log', 'DESC');
-		return $this->db->get();
+		// Sementara return empty result karena tabel log belum ada
+		// Bisa diganti dengan workflow_logs nanti
+		return $this->db->query("SELECT 0 as count WHERE 1=0");
 	}
 
 	public function jml_penghuni()
 	{
-		$this->db->select('id_mnl_siswa');
-		$this->db->from('mnl_siswa');
-		$query =  $this->db->get();
-		return $hasil = $query->num_rows();
+		// Count total ayam yang sedang dipelihara (dari kos_produksi yang aktif)
+		$this->db->select_sum('jumlah_ayam_saat_ini');
+		$this->db->from('kos_produksi');
+		$this->db->where('status', 'aktif');
+		$query = $this->db->get();
+		$result = $query->row();
+		return $result->jumlah_ayam_saat_ini ? $result->jumlah_ayam_saat_ini : 0;
 	}
 
 	public function jml_bb()
 	{
-		$this->db->select('id_mnl_siswa');
-		$this->db->from('mnl_pembayaran');
-		$this->db->where('status', 'belum');
-		$query =  $this->db->get();
-		return $hasil = $query->num_rows();
+		// Count kandang yang maintenance (butuh perhatian)
+		$this->db->select('id_kandang');
+		$this->db->from('kos_kandang');
+		$this->db->where('status', 'maintenance');
+		$query = $this->db->get();
+		return $query->num_rows();
 	}
 
 	public function jml_br()
 	{
-		$this->db->select('id_mnl_siswa');
-		$this->db->from('mnl_siswa');
-		$this->db->where('status', 'belum');
-		$query =  $this->db->get();
-		return $hasil = $query->num_rows();
+		// Count proses penetasan yang masih berjalan
+		$this->db->select('id_penetasan');
+		$this->db->from('kos_penetasan');
+		$this->db->where('status', 'proses');
+		$query = $this->db->get();
+		return $query->num_rows();
 	}
 
 	// ------------------------------- MASTER - KANDANG -------------------------------
@@ -115,9 +180,33 @@ class M_min extends CI_Model
 	public function rd_kandang()
 	{
 		$this->db->order_by('nama');
-		// $this->db->join('kos_jenis_kamar', 'kos_jenis_kamar.id_jenis_kamar=kos_kamar.id_jenis_kamar');
-		$this->db->where('hapus', 0);
-		return $this->db->get('v_kandang')->result();
+		$this->db->where('status !=', 'deleted');
+		return $this->db->get('kos_kandang')->result();
+	}
+
+	// ------------------------------- MASTER - KARYAWAN -------------------------------
+
+	public function rd_karyawan()
+	{
+		$this->db->order_by('nama');
+		$this->db->where('status !=', 'resign');
+		return $this->db->get('kos_karyawan')->result();
+	}
+
+	public function cek_karyawan($nip)
+	{
+		$this->db->select('*');
+		$this->db->from('kos_karyawan');
+		$this->db->where('nip', $nip);
+		return $this->db->get();
+	}
+
+	public function cek_email_karyawan($email)
+	{
+		$this->db->select('*');
+		$this->db->from('kos_karyawan');
+		$this->db->where('email', $email);
+		return $this->db->get();
 	}
 
 	// ------------------------------- OPERASIONAL - PEMBESARAN -------------------------------
@@ -290,7 +379,7 @@ class M_min extends CI_Model
 	function edit_admin($id)
 	{
 		$this->db->select('*');
-		$this->db->where('minid', $id);
+		$this->db->where('id', $id); // Update dari 'minid' ke 'id'
 		return $this->db->get('simimin');
 	}
 
@@ -327,8 +416,9 @@ class M_min extends CI_Model
 
 	function get_last_id($table)
 	{
-		$this->db->select_max('id_mnl_siswa');
-		$this->db->order_by('id_mnl_siswa', 'DESC');
+		// Get last ID for any table dynamically
+		$this->db->select('*');
+		$this->db->order_by('created_at', 'DESC');
 		$this->db->limit(1);
 		return $this->db->get($table);
 	}
@@ -353,6 +443,7 @@ class M_min extends CI_Model
 
 	// ------------------------------- PEMBAYARAN - PEMBAYARAN -------------------------------
 
+	// Method ini tidak digunakan untuk sistem peternakan
 	// public function copy_data_penghuni()
 	// {
 	// 	$query = $this->db->query("INSERT INTO mnl_tmp_pembayaran (id_mnl_siswa, id_mnl_spp) SELECT id_mnl_siswa, id_mnl_spp FROM mnl_siswa");
@@ -361,11 +452,8 @@ class M_min extends CI_Model
 
 	public function copy_data_penghuni()
 	{
-		$query = $this->db->query("INSERT INTO mnl_tmp_pembayaran (id_mnl_siswa, id_mnl_spp) SELECT id_mnl_siswa, id_mnl_spp
-		FROM mnl_siswa
-		WHERE NOT EXISTS 
-		(SELECT id_mnl_siswa FROM mnl_pembayaran WHERE mnl_pembayaran.id_mnl_siswa = mnl_siswa.id_mnl_siswa AND mnl_pembayaran.bulan = '" . date('m') . "')");
-		return $query;
+		// Method tidak digunakan untuk sistem peternakan - dikosongkan
+		return true;
 	}
 
 	// public function data_tambah()
@@ -375,79 +463,50 @@ class M_min extends CI_Model
 
 	public function truncate_tmp_pembayaran()
 	{
-		return $this->db->truncate('mnl_tmp_pembayaran');
+		// return $this->db->truncate('mnl_tmp_pembayaran');
+		return true;
 	}
 
 	public function copy_data_pembayaran()
 	{
-		$query = $this->db->query("INSERT INTO `mnl_pembayaran` (`id_mnl_siswa`,`id_mnl_spp`,`bulan`,`tahun`,`status`) SELECT `id_mnl_siswa`,`id_mnl_spp`,`bulan`,`tahun`,`status` FROM `mnl_tmp_pembayaran`");
-		return $query;
+		// Method tidak digunakan untuk sistem peternakan
+		return true;
 	}
 
 	public function cek_pembayaran()
 	{
-		$this->db->select('*');
-		$this->db->from('mnl_pembayaran');
-		$this->db->where('bulan', date('m'));
-		$this->db->where('tahun', date('Y'));
-		$query =  $this->db->get();
-		$hasil = $query->row();
-		return $hasil;
+		// Method tidak digunakan untuk sistem peternakan
+		return null;
 	}
 
 	public function bukti_tf($id)
 	{
-		$this->db->select('*');
-		$this->db->from('mnl_pembayaran');
-		$this->db->where('id_mnl_siswa', $id);
-		return  $this->db->get();
+		// Method tidak digunakan untuk sistem peternakan
+		return null;
 	}
 
 	public function rd_pembayaran_all()
 	{
-		$this->db->select('mnl_pembayaran.*, mnl_kelas.*, mnl_lokasi.*, mnl_siswa.id_mnl_siswa, mnl_siswa.id_mnl_kelas, mnl_siswa.id_mnl_lokasi, mnl_siswa.nama, mnl_spp.id_mnl_spp, mnl_spp.nominal');
-		$this->db->join('mnl_siswa', 'mnl_siswa.id_mnl_siswa=mnl_pembayaran.id_mnl_siswa');
-		$this->db->join('mnl_kelas', 'mnl_kelas.id_mnl_kelas=mnl_siswa.id_mnl_kelas');
-		$this->db->join('mnl_lokasi', 'mnl_lokasi.id_mnl_lokasi=mnl_siswa.id_mnl_lokasi');
-		$this->db->join('mnl_spp', 'mnl_spp.id_mnl_spp=mnl_pembayaran.id_mnl_spp');
-		$this->db->order_by('mnl_pembayaran.bulan');
-		return $this->db->get('mnl_pembayaran')->result();
+		// Method tidak digunakan untuk sistem peternakan
+		return array();
 	}
 
 	public function rd_pembayaran_ba()
 	{
-		$this->db->select('mnl_pembayaran.*, mnl_kelas.*, mnl_lokasi.*, mnl_siswa.id_mnl_siswa, mnl_siswa.id_mnl_kelas, mnl_siswa.id_mnl_lokasi, mnl_siswa.nama, mnl_spp.id_mnl_spp, mnl_spp.nominal');
-		$this->db->join('mnl_siswa', 'mnl_siswa.id_mnl_siswa=mnl_pembayaran.id_mnl_siswa');
-		$this->db->join('mnl_kelas', 'mnl_kelas.id_mnl_kelas=mnl_siswa.id_mnl_kelas');
-		$this->db->join('mnl_lokasi', 'mnl_lokasi.id_mnl_lokasi=mnl_siswa.id_mnl_lokasi');
-		$this->db->join('mnl_spp', 'mnl_spp.id_mnl_spp=mnl_pembayaran.id_mnl_spp');
-		$this->db->where('mnl_pembayaran.status', 'proses');
-		$this->db->order_by('mnl_pembayaran.bulan');
-		return $this->db->get('mnl_pembayaran')->result();
+		// Method tidak digunakan untuk sistem peternakan
+		return array();
 	}
 
 	public function rd_pembayaran_bb()
 	{
-		$this->db->select('mnl_pembayaran.*, mnl_kelas.*, mnl_lokasi.*, mnl_siswa.id_mnl_siswa, mnl_siswa.id_mnl_kelas, mnl_siswa.id_mnl_lokasi, mnl_siswa.nama, mnl_spp.id_mnl_spp, mnl_spp.nominal');
-		$this->db->join('mnl_siswa', 'mnl_siswa.id_mnl_siswa=mnl_pembayaran.id_mnl_siswa');
-		$this->db->join('mnl_kelas', 'mnl_kelas.id_mnl_kelas=mnl_siswa.id_mnl_kelas');
-		$this->db->join('mnl_lokasi', 'mnl_lokasi.id_mnl_lokasi=mnl_siswa.id_mnl_lokasi');
-		$this->db->join('mnl_spp', 'mnl_spp.id_mnl_spp=mnl_pembayaran.id_mnl_spp');
-		$this->db->where('mnl_pembayaran.status', 'belum');
-		$this->db->order_by('mnl_pembayaran.bulan');
-		return $this->db->get('mnl_pembayaran')->result();
+		// Method tidak digunakan untuk sistem peternakan  
+		return array();
 	}
 
 	public function rd_pembayaran_sb()
 	{
-		$this->db->select('mnl_pembayaran.*, mnl_kelas.*, mnl_lokasi.*, mnl_siswa.id_mnl_siswa, mnl_siswa.id_mnl_kelas, mnl_siswa.id_mnl_lokasi, mnl_siswa.nama, mnl_spp.id_mnl_spp, mnl_spp.nominal');
-		$this->db->join('mnl_siswa', 'mnl_siswa.id_mnl_siswa=mnl_pembayaran.id_mnl_siswa');
-		$this->db->join('mnl_kelas', 'mnl_kelas.id_mnl_kelas=mnl_siswa.id_mnl_kelas');
-		$this->db->join('mnl_lokasi', 'mnl_lokasi.id_mnl_lokasi=mnl_siswa.id_mnl_lokasi');
-		$this->db->join('mnl_spp', 'mnl_spp.id_mnl_spp=mnl_pembayaran.id_mnl_spp');
-		$this->db->where('mnl_pembayaran.status', 'sudah');
-		$this->db->order_by('mnl_pembayaran.bulan');
-		return $this->db->get('mnl_pembayaran')->result();
+		// Method tidak digunakan untuk sistem peternakan
+		return array();
 	}
 
 	public function rd_pembayaran_regist_all()

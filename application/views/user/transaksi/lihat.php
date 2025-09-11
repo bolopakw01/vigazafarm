@@ -1,1 +1,0 @@
-<img src="<?php echo base_url('assets/back/images/regist/' . $hasil->bukti . ''); ?>" class="img-responsive" width="100%" height="auto" />

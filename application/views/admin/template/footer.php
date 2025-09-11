@@ -1,175 +1,47 @@
-</div><!-- container fluid -->
+ <!-- Start main footer -->
+ <div class="section-body">
+     <footer class="footer">
+         <div class="container-fluid">
+             <div class="row">
+                 <div class="col-md-6 col-sm-12">
+                     Copyright © 2019 <a href="https://themeforest.net/user/puffintheme/portfolio">PuffinTheme</a>.
+                 </div>
+                 <div class="col-md-6 col-sm-12 text-md-right">
+                     <ul class="list-inline mb-0">
+                         <li class="list-inline-item"><a href="../doc/index.html">Documentation</a></li>
+                         <li class="list-inline-item"><a href="javascript:void(0)">FAQ</a></li>
+                         <li class="list-inline-item"><a href="javascript:void(0)" class="btn btn-outline-primary btn-sm">Buy Now</a></li>
+                     </ul>
+                 </div>
+             </div>
+         </div>
+     </footer>
+ </div>
+ </div>
+ </div>
 
-</div> <!-- Page content Wrapper -->
+ <!-- Start Main project js, jQuery, Bootstrap -->
+ <script src="<?= base_url('assets/'); ?>bundles/lib.vendor.bundle.js"></script>
 
-</div> <!-- content -->
+ <!-- Start all plugin js -->
+ <script src="<?= base_url('assets/'); ?>bundles/counterup.bundle.js"></script>
+ <script src="<?= base_url('assets/'); ?>bundles/apexcharts.bundle.js"></script>
+ <script src="<?= base_url('assets/'); ?>bundles/summernote.bundle.js"></script>
+ <script src="<?= base_url('assets/'); ?>plugins/bootstrap-datepicker/js/bootstrap-datepicker.min.js"></script>
+ <script src="<?= base_url('assets/'); ?>bundles/dataTables.bundle.js"></script>
+ <script src="<?= base_url('assets/'); ?>back/plugins/sweet-alert2/sweetalert2.all.min.js"></script>
+ <script src="<?= base_url('assets/'); ?>bundles/flot.bundle.js"></script>
+ <script src="<?= base_url('assets/'); ?>plugins/flot-charts/flot.time.js"></script>
+ <script src="<?= base_url('assets/'); ?>plugins/flot-charts/flot.selection.js"></script>
 
-<footer class="footer">
-    © Copyright 2022 MATARAM
-</footer>
+ <!-- Start project main js  and page js -->
+ <script src="<?= base_url('assets/'); ?>js/core.js"></script>
+ <script src="<?= base_url('assets/'); ?>js/page/index.js"></script>
+ <script src="<?= base_url('assets/'); ?>js/page/summernote.js"></script>
+ <script src="<?= base_url('assets/'); ?>js/page/dialogs.js"></script>
+ <script src="<?= base_url('assets/'); ?>js/table/datatable.js"></script>
+ <script src="<?= base_url('assets/'); ?>js/social.js"></script>
 
-</div>
-<!-- End Right content here -->
+ </body>
 
-</div>
-<!-- END wrapper -->
-
-<script>
-    function nonaktif() {
-        job = confirm("Anda yakin menonaktifkan data ini ?");
-        if (job != true) {
-            return false;
-        }
-    }
-
-    function aktif() {
-        job = confirm("Anda yakin mengaktifkan data ini ?");
-        if (job != true) {
-            return false;
-        }
-    }
-
-    function belum() {
-        job = confirm("Anda yakin siswa ini belum bayar biaya registrasi ?");
-        if (job != true) {
-            return false;
-        }
-    }
-
-    function sudah() {
-        job = confirm("Anda yakin siswa ini sudah bayar biaya registrasi ?");
-        if (job != true) {
-            return false;
-        }
-    }
-
-    function doConfirm() {
-        job = confirm("Anda yakin menghapus data ini ?");
-        if (job != true) {
-            return false;
-        }
-    }
-
-    function mendesak() {
-        job = confirm("Anda yakin merubah data ini menjadi donasi mendesak ?");
-        if (job != true) {
-            return false;
-        }
-    }
-
-    function publish() {
-        job = confirm("Anda yakin menerbitkan data ini ke publik ?");
-        if (job != true) {
-            return false;
-        }
-    }
-
-    function nopublish() {
-        job = confirm("Anda yakin sembunyikan data ini dari publik ?");
-        if (job != true) {
-            return false;
-        }
-    }
-
-    function proses() {
-        job = confirm("Anda yakin transaksi ini sudah berhasil ?");
-        if (job != true) {
-            return false;
-        }
-    }
-
-    function update_data() {
-        alert("Silakan update gambar terlebih dahulu !");
-    }
-</script>
-
-<script src="<?php echo base_url('assets/back/js/rupiah.js'); ?>"></script>
-<script src="<?php echo base_url('assets/back/'); ?>js/bootstrap.bundle.min.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>js/modernizr.min.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>js/detect.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>js/fastclick.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>js/jquery.slimscroll.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>js/jquery.blockUI.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>js/waves.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>js/jquery.nicescroll.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>js/jquery.scrollTo.min.js"></script>
-
-<!--Morris Chart-->
-<script src="<?php echo base_url('assets/back/'); ?>plugins/morris/morris.min.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>plugins/raphael/raphael.min.js"></script>
-
-<!-- Plugins js -->
-<script src="<?php echo base_url('assets/back/'); ?>plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.min.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>plugins/bootstrap-datepicker/js/bootstrap-datepicker.min.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>plugins/bootstrap-maxlength/bootstrap-maxlength.min.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>plugins/bootstrap-touchspin/js/jquery.bootstrap-touchspin.min.js"></script>
-
-<!-- Required datatable js -->
-<script src="<?php echo base_url('assets/back/'); ?>plugins/datatables/jquery.dataTables.min.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>plugins/datatables/dataTables.bootstrap4.min.js"></script>
-<!-- Buttons examples -->
-<script src="<?php echo base_url('assets/back/'); ?>plugins/datatables/dataTables.buttons.min.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>plugins/datatables/buttons.bootstrap4.min.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>plugins/datatables/jszip.min.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>plugins/datatables/pdfmake.min.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>plugins/datatables/vfs_fonts.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>plugins/datatables/buttons.html5.min.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>plugins/datatables/buttons.print.min.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>plugins/datatables/buttons.colVis.min.js"></script>
-<!-- Responsive examples -->
-<script src="<?php echo base_url('assets/back/'); ?>plugins/datatables/dataTables.responsive.min.js"></script>
-<script src="<?php echo base_url('assets/back/'); ?>plugins/datatables/responsive.bootstrap4.min.js"></script>
-
-<!-- Datatable init js -->
-<script src="<?php echo base_url('assets/back/'); ?>pages/datatables.init.js"></script>
-
-<!-- Plugins Init js -->
-<script src="<?php echo base_url('assets/back/'); ?>pages/form-advanced.js"></script>
-
-<!-- dashboard js -->
-<script src="<?php echo base_url('assets/back/'); ?>pages/dashboard.int.js"></script>
-
-<!-- App js -->
-<script src="<?php echo base_url('assets/back/'); ?>js/app.js"></script>
-
-<script>
-    setTimeout(function() {
-        $('#gone').hide('fast');
-    }, 5000);
-
-    $('#datatabless').dataTable({
-        "bSort": false,
-        "lengthChange": false,
-        "searching": false
-    });
-
-    // $('#kelas').select2({
-    //     placeholder: 'Pilih Kelas'
-    // });
-    // $('#lokasi').select2({
-    //     placeholder: 'Pilih Lokasi'
-    // });
-
-    $(".select2").select2();
-    $('.select2').css('width', '100%');
-
-    // $(function() {
-    // $('.select2').css('width', '100%');
-    // $(".select2").select2();
-    // $(".select2").select2({
-    //     dropdownParent: $('#largeModal')
-    // });
-
-    // $('.select3').css('width', '100%');
-    // $(".select3").select2();
-
-    // $('.select4').css('width', '100%');
-    // $(".select4").select2();
-    // });
-</script>
-
-
-
-</body>
-
-</html>
+ </html>
