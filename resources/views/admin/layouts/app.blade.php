@@ -36,7 +36,7 @@
             flex-direction: column;
         }
 
-        .sidebar.open ~ .home-section {
+        .bolopa-sidebar.open ~ .home-section {
             left: 250px;
             width: calc(100% - 250px);
         }
@@ -52,7 +52,7 @@
                 width: calc(100% - 78px);
             }
 
-            .sidebar.open ~ .home-section {
+            .bolopa-sidebar.open ~ .home-section {
                 left: 250px;
                 width: calc(100% - 250px);
             }
@@ -71,9 +71,9 @@
         <div class="page-content">
             @yield('content')
         </div>
-
-        @include('admin.partials.footer')
     </section>
+
+    @include('admin.partials.footer')
 
     @stack('scripts')
 </body>
