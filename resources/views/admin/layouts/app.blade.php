@@ -71,9 +71,9 @@
         <div class="page-content">
             @yield('content')
         </div>
-    </section>
 
-    @include('admin.partials.footer')
+        @include('admin.partials.footer')
+    </section>
 
     @stack('scripts')
 </body>
