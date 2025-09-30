@@ -563,9 +563,7 @@ function loadActiveMenuState() {
   // Determine which menu should be active based on route
   let activeMenu = 'operasional'; // default
 
-  if (currentRoute === 'dashboard') {
-    activeMenu = 'operasional'; // dashboard shows operasional by default
-  } else if (currentRoute === 'admin.kandang' || currentRoute === 'admin.karyawan') {
+  if (currentRoute === 'admin.kandang' || currentRoute === 'admin.karyawan') {
     activeMenu = 'master';
   } else if (currentRoute === 'admin.penetasan' || currentRoute === 'admin.pembesaran' || currentRoute === 'admin.produksi') {
     activeMenu = 'operasional';
