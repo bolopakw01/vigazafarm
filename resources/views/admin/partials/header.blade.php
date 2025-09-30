@@ -452,7 +452,7 @@
       link.addEventListener('click', (e) => {
         e.preventDefault();
         const category = e.target.textContent.toLowerCase();
-        const sidebar = document.querySelector('.bolopa-sidebar');
+        const sidebar = document.querySelector('.bolopa-sidebar-vigazafarm');
         const miniMenus = document.querySelectorAll('.mini-menu');
         miniMenus.forEach(menu => menu.classList.remove('active'));
         if (category === 'master') {

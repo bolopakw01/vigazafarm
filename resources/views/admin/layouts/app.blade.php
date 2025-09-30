@@ -37,7 +37,7 @@
             flex-direction: column;
         }
 
-        .bolopa-sidebar.open ~ .home-section {
+        .bolopa-sidebar-vigazafarm.open ~ .home-section {
             left: 250px;
             width: calc(100% - 250px);
         }
@@ -53,7 +53,7 @@
                 width: calc(100% - 78px);
             }
 
-            .bolopa-sidebar.open ~ .home-section {
+            .bolopa-sidebar-vigazafarm.open ~ .home-section {
                 left: 250px;
                 width: calc(100% - 250px);
             }

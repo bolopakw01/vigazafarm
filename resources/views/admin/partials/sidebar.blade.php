@@ -1,4 +1,4 @@
-<div class="bolopa-sidebar">
+<div class="bolopa-sidebar-vigazafarm">
     <div class="logo-details">
         <img src="{{ asset('bolopa/img/icon/vigazafarm logo.svg') }}" alt="Vigazafarm" class="logo-img" />
         <div class="logo_name">Vigazafarm</div>
@@ -94,7 +94,7 @@
   box-sizing: border-box;
   font-family: "Poppins" , sans-serif;
 }
-.bolopa-sidebar{
+.bolopa-sidebar-vigazafarm{
   position: fixed;
   left: 0;
   top: 0;
@@ -105,16 +105,16 @@
   z-index: 99;
   transition: all 0.5s ease;
 }
-.bolopa-sidebar.open{
+.bolopa-sidebar-vigazafarm.open{
   width: 250px;
 }
-.bolopa-sidebar .logo-details{
+.bolopa-sidebar-vigazafarm .logo-details{
   height: 60px;
   display: flex;
   align-items: center;
   position: relative;
 }
-.bolopa-sidebar .logo-details::after{
+.bolopa-sidebar-vigazafarm .logo-details::after{
   content: "";
   position: absolute;
   left: 0;
@@ -138,33 +138,33 @@
 }
 
 /* always animate the glow (both hidden and shown states) for continuous effect */
-.bolopa-sidebar .logo-details::after{
+.bolopa-sidebar-vigazafarm .logo-details::after{
   animation: glowLine 6s linear infinite;
 }
 
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
-  .bolopa-sidebar .logo-details::after{ animation: none; }
+  .bolopa-sidebar-vigazafarm .logo-details::after{ animation: none; }
 }
-.bolopa-sidebar .logo-details .logo-img{
+.bolopa-sidebar-vigazafarm .logo-details .logo-img{
   height: 36px;
   width: auto;
   margin-right: 8px;
   opacity: 0;
   transition: all 0.5s ease;
 }
-.bolopa-sidebar .logo-details .logo_name{
+.bolopa-sidebar-vigazafarm .logo-details .logo_name{
   color: #fff;
   font-size: 20px;
   font-weight: 600;
   opacity: 0;
   transition: all 0.5s ease;
 }
-.bolopa-sidebar.open .logo-details .logo_name,
-.bolopa-sidebar.open .logo-details .logo-img{
+.bolopa-sidebar-vigazafarm.open .logo-details .logo_name,
+.bolopa-sidebar-vigazafarm.open .logo-details .logo-img{
   opacity: 1;
 }
-.bolopa-sidebar .logo-details #btn{
+.bolopa-sidebar-vigazafarm .logo-details #btn{
   position: absolute;
   top: 50%;
   right: 6px;
@@ -178,7 +178,7 @@
   transition: transform 0.2s ease, opacity 0.3s ease;
   filter: invert(100%) sepia(100%) saturate(1%) hue-rotate(51deg) brightness(101%) contrast(102%);
 }
-.bolopa-sidebar i{
+.bolopa-sidebar-vigazafarm i{
   color: #fff;
   height: 60px;
   min-width: 50px;
@@ -187,13 +187,13 @@
   line-height: 60px;
 }
 /* dashboard icon removed */
-.bolopa-sidebar .nav-list{
+.bolopa-sidebar-vigazafarm .nav-list{
   margin-top: 20px;
   height: 100%;
 }
 
 /* mini horizontal menus just under the logo separator */
-.bolopa-sidebar li.mini-menus{
+.bolopa-sidebar-vigazafarm li.mini-menus{
   width: 100%;
   display: flex;
   justify-content: center; /* center the group horizontally */
@@ -201,7 +201,7 @@
   gap: 6px; /* make icons closer together */
   padding: 4px 0 8px; /* vertical spacing so icons sit under the separator */
 }
-.bolopa-sidebar li.mini-menus .mini-menu{
+.bolopa-sidebar-vigazafarm li.mini-menus .mini-menu{
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -212,7 +212,7 @@
   text-decoration: none;
   transition: background 160ms ease, transform 160ms ease;
 }
-.bolopa-sidebar li.mini-menus .mini-menu img{
+.bolopa-sidebar-vigazafarm li.mini-menus .mini-menu img{
   height: 16px;
   width: auto;
   display: block;
@@ -220,17 +220,17 @@
 }
 
 /* when sidebar is closed: hide labels and ensure icons are perfectly centered */
-.bolopa-sidebar:not(.open) li.mini-menus .mini-menu{
+.bolopa-sidebar-vigazafarm:not(.open) li.mini-menus .mini-menu{
   width: 32px;
   padding: 0;
 }
-.bolopa-sidebar:not(.open) li.mini-menus .mini-menu .mini-label{
+.bolopa-sidebar-vigazafarm:not(.open) li.mini-menus .mini-menu .mini-label{
   display: none;
 }
-.bolopa-sidebar:not(.open) li.mini-menus .mini-menu img{
+.bolopa-sidebar-vigazafarm:not(.open) li.mini-menus .mini-menu img{
   margin: 0 auto;
 }
-.bolopa-sidebar li.mini-menus .mini-menu .mini-label{
+.bolopa-sidebar-vigazafarm li.mini-menus .mini-menu .mini-label{
   margin-left: 8px;
   color: #fff;
   font-size: 14px;
@@ -257,29 +257,29 @@
   border-radius: 6px;
 }
 
-.bolopa-sidebar.open li.mini-menus .mini-menu{
+.bolopa-sidebar-vigazafarm.open li.mini-menus .mini-menu{
   width: auto;
   padding: 4px 6px; /* reduce horizontal padding so icon and text sit closer */
 }
-.bolopa-sidebar.open li.mini-menus .mini-menu .mini-label{
+.bolopa-sidebar-vigazafarm.open li.mini-menus .mini-menu .mini-label{
   margin-left: 4px; /* tighter gap between icon and text */
   opacity: 1;
   max-width: 160px;
 }
 
 /* hover/active feedback for mini-menu */
-.bolopa-sidebar li.mini-menus .mini-menu:hover{
+.bolopa-sidebar-vigazafarm li.mini-menus .mini-menu:hover{
   background: rgba(255,255,255,0.04);
   transform: scale(1.08);
 }
-.bolopa-sidebar li.mini-menus .mini-menu:active{
+.bolopa-sidebar-vigazafarm li.mini-menus .mini-menu:active{
   transform: scale(0.98);
 }
 
 /* keep animations off for users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .bolopa-sidebar li.mini-menus .mini-menu,
-  .bolopa-sidebar li.mini-menus .mini-menu img{
+  .bolopa-sidebar-vigazafarm li.mini-menus .mini-menu,
+  .bolopa-sidebar-vigazafarm li.mini-menus .mini-menu img{
     transition: none;
     transform: none;
   }
@@ -287,12 +287,12 @@
 
 /* small nudges to correct visual centering */
 
-.bolopa-sidebar li{
+.bolopa-sidebar-vigazafarm li{
   position: relative;
   margin: 8px 0;
   list-style: none;
 }
-.bolopa-sidebar li .tooltip{
+.bolopa-sidebar-vigazafarm li .tooltip{
   position: absolute;
   top: -20px;
   left: calc(100% + 15px);
@@ -308,18 +308,18 @@
   pointer-events: none;
   transition: 0s;
 }
-.bolopa-sidebar li:hover .tooltip{
+.bolopa-sidebar-vigazafarm li:hover .tooltip{
   opacity: 1;
   pointer-events: auto;
   transition: all 0.4s ease;
   top: 50%;
   transform: translateY(-50%);
 }
-.bolopa-sidebar.open li .tooltip{
+.bolopa-sidebar-vigazafarm.open li .tooltip{
   display: none;
 }
 /* search-related styles removed */
-.bolopa-sidebar li a{
+.bolopa-sidebar-vigazafarm li a{
   display: flex;
   height: 100%;
   width: 100%;
@@ -329,14 +329,14 @@
   transition: all 0.4s ease;
   background: #11101D;
 }
-.bolopa-sidebar .menu-link{
+.bolopa-sidebar-vigazafarm .menu-link{
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
   transition: background 160ms ease, transform 160ms ease;
 }
-.bolopa-sidebar .menu-icon{
+.bolopa-sidebar-vigazafarm .menu-icon{
   height: 24px;
   width: auto;
   display: block;
@@ -345,22 +345,22 @@
 }
 
 /* section label / decorative line under Dashboard */
-.bolopa-sidebar li.section-label{
+.bolopa-sidebar-vigazafarm li.section-label{
   display: block;
   padding: 6px 12px;
 }
-.bolopa-sidebar li.section-label .section-decor{
+.bolopa-sidebar-vigazafarm li.section-label .section-decor{
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.bolopa-sidebar li.section-label .section-text{
+.bolopa-sidebar-vigazafarm li.section-label .section-text{
   color: rgba(255,255,255,0.72); /* muted white */
   font-size: 13px;
   opacity: 0.92;
   font-weight: 500;
 }
-.bolopa-sidebar li.section-label .section-line{
+.bolopa-sidebar-vigazafarm li.section-label .section-line{
   flex: 1;
   height: 2px;
   background: rgba(255,255,255,0.08);
@@ -368,13 +368,13 @@
 }
 
 /* when sidebar is closed: hide text and show only the line centered */
-.bolopa-sidebar:not(.open) li.section-label .section-text{
+.bolopa-sidebar-vigazafarm:not(.open) li.section-label .section-text{
   display: none;
 }
-.bolopa-sidebar:not(.open) li.section-label .section-decor{
+.bolopa-sidebar-vigazafarm:not(.open) li.section-label .section-decor{
   justify-content: center;
 }
-.bolopa-sidebar:not(.open) li.section-label .section-line{
+.bolopa-sidebar-vigazafarm:not(.open) li.section-label .section-line{
   width: 24px;
   flex: none;
   height: 2px;
@@ -382,27 +382,39 @@
 }
 
 /* hover feedback for menu-link: color change only (no scale) */
-.bolopa-sidebar .menu-link:hover{
+.bolopa-sidebar-vigazafarm .menu-link:hover{
   background: rgba(255,255,255,0.03);
 }
-.bolopa-sidebar .menu-link:hover .menu-icon{
+.bolopa-sidebar-vigazafarm .menu-link:hover .menu-icon{
   /* icons are white by default (via base filter); on hover make them appear dark */
   filter: invert(0%) sepia(0%) saturate(100%) brightness(0.9) contrast(1);
 }
-.bolopa-sidebar .menu-link:active .menu-icon{
+.bolopa-sidebar-vigazafarm .menu-link:active .menu-icon{
   filter: invert(0%) sepia(0%) saturate(100%) brightness(0.85) contrast(1);
 }
 
-.bolopa-sidebar .menu-link,
-  .bolopa-sidebar .menu-icon{
+/* active menu link styling */
+.bolopa-sidebar-vigazafarm .menu-link.active{
+  background: rgba(72, 187, 120, 0);
+  border-radius: 12px;
+}
+.bolopa-sidebar-vigazafarm .menu-link.active .links_name{
+  color: #48BB78;
+}
+.bolopa-sidebar-vigazafarm .menu-link.active .menu-icon{
+  filter: invert(36%) sepia(73%) saturate(476%) hue-rotate(81deg) brightness(95%) contrast(92%);
+}
+
+.bolopa-sidebar-vigazafarm .menu-link,
+  .bolopa-sidebar-vigazafarm .menu-icon{
     transition: none;
     transform: none;
   }
 }
-.bolopa-sidebar li a:hover{
+.bolopa-sidebar-vigazafarm li a:hover{
   background: #FFF;
 }
-.bolopa-sidebar li a .links_name{
+.bolopa-sidebar-vigazafarm li a .links_name{
   color: #fff;
   font-size: 16px;
   font-weight: 500;
@@ -411,37 +423,37 @@
   pointer-events: none;
   transition: 0.4s;
 }
-.bolopa-sidebar.open li a .links_name{
+.bolopa-sidebar-vigazafarm.open li a .links_name{
   opacity: 1;
   pointer-events: auto;
 }
-.bolopa-sidebar li a:hover .links_name,
-.bolopa-sidebar li a:hover i{
+.bolopa-sidebar-vigazafarm li a:hover .links_name,
+.bolopa-sidebar-vigazafarm li a:hover i{
   transition: all 0.5s ease;
   color: #11101D;
 }
 
 /* override for .menu-link hover: prefer color/tint change rather than dark-on-white inversion */
-.bolopa-sidebar .menu-link:hover .links_name{
+.bolopa-sidebar-vigazafarm .menu-link:hover .links_name{
   color: #48BB78; /* green on hover */
   transition: color 260ms ease;
 }
-.bolopa-sidebar .menu-link:hover .menu-icon{
+.bolopa-sidebar-vigazafarm .menu-link:hover .menu-icon{
   /* tint SVG icon to green (approximate via CSS filter) */
   filter: invert(36%) sepia(73%) saturate(476%) hue-rotate(81deg) brightness(95%) contrast(92%);
   transition: filter 260ms ease;
 }
-.bolopa-sidebar .menu-link:active .menu-icon{
+.bolopa-sidebar-vigazafarm .menu-link:active .menu-icon{
   /* slightly darker green when active */
   filter: invert(30%) sepia(75%) saturate(520%) hue-rotate(82deg) brightness(88%) contrast(90%);
 }
-.bolopa-sidebar li i{
+.bolopa-sidebar-vigazafarm li i{
   height: 50px;
   line-height: 50px;
   font-size: 18px;
   border-radius: 12px;
 }
-.bolopa-sidebar li.profile{
+.bolopa-sidebar-vigazafarm li.profile{
   position: fixed;
   height: 60px;
   width: 78px;
@@ -452,15 +464,15 @@
   transition: all 0.5s ease;
   overflow: hidden;
 }
-.bolopa-sidebar.open li.profile{
+.bolopa-sidebar-vigazafarm.open li.profile{
   width: 250px;
 }
-.bolopa-sidebar li .profile-details{
+.bolopa-sidebar-vigazafarm li .profile-details{
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
 }
-.bolopa-sidebar li img{
+.bolopa-sidebar-vigazafarm li img{
   height: 45px;
   width: 45px;
   object-fit: cover;
@@ -469,7 +481,7 @@
 }
 
 /* text-based circular avatar for profile */
-.bolopa-sidebar .profile .profile-avatar{
+.bolopa-sidebar-vigazafarm .profile .profile-avatar{
   height: 45px;
   width: 45px;
   display: inline-flex;
@@ -482,17 +494,17 @@
   margin-right: 8px;
   font-size: 18px;
 }
-.bolopa-sidebar li.profile .name,
-.bolopa-sidebar li.profile .job{
+.bolopa-sidebar-vigazafarm li.profile .name,
+.bolopa-sidebar-vigazafarm li.profile .job{
   font-size: 15px;
   font-weight: 400;
   color: #fff;
   white-space: nowrap;
 }
-.bolopa-sidebar li.profile .job{
+.bolopa-sidebar-vigazafarm li.profile .job{
   font-size: 12px;
 }
-.bolopa-sidebar .profile #log_out{
+.bolopa-sidebar-vigazafarm .profile #log_out{
   position: absolute;
   top: 50%;
   right: -5px;
@@ -507,7 +519,7 @@
   justify-content: center;
   padding: 0;
 }
-.bolopa-sidebar .logout-icon{
+.bolopa-sidebar-vigazafarm .logout-icon{
   height: 30px;
   width: auto;
   display: inline-block;
@@ -515,18 +527,18 @@
   transition: transform 0.25s ease;
   transform-origin: center;
 }
-.bolopa-sidebar.open .profile #log_out{
+.bolopa-sidebar-vigazafarm.open .profile #log_out{
   width: 50px;
   background: none;
 }
 
-.bolopa-sidebar.open .logout-icon{
+.bolopa-sidebar-vigazafarm.open .logout-icon{
   transform: scaleX(-1);
 }
 </style>
 
 <script>
-let sidebar = document.querySelector(".bolopa-sidebar");
+let sidebar = document.querySelector(".bolopa-sidebar-vigazafarm");
 let closeBtn = document.querySelector("#btn");
 let navList = document.querySelector('.nav-list');
 let miniButtons = document.querySelectorAll('.mini-menu');
