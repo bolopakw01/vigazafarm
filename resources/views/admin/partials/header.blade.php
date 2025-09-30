@@ -1,6 +1,6 @@
-<header class="bolopa-header">
-  <div class="bolopa-header-top">
-    <div class="bolopa-header-left">
+<header class="bolopa-header-vigazafarm-header">
+  <div class="bolopa-header-vigazafarm-header-top">
+    <div class="bolopa-header-vigazafarm-header-left">
       @php
           $currentRoute = request()->route()->getName();
           $breadcrumbs = [];
@@ -21,44 +21,44 @@
           }
       @endphp
 
-      <div class="bolopa-breadcrumb">
+      <div class="bolopa-header-vigazafarm-breadcrumb">
         @foreach($breadcrumbs as $index => $crumb)
           @if($index === count($breadcrumbs) - 1)
-            <span class="bolopa-active">{{ $crumb['label'] }}</span>
+            <span class="bolopa-header-vigazafarm-active">{{ $crumb['label'] }}</span>
           @elseif(isset($crumb['link']) && $crumb['link'] !== null)
             <a href="{{ $crumb['link'] }}" class="{{ $crumb['class'] ?? 'breadcrumb-link' }}">{{ $crumb['label'] }}</a>
           @else
-            <span class="bolopa-category">{{ $crumb['label'] }}</span>
+            <span class="bolopa-header-vigazafarm-category">{{ $crumb['label'] }}</span>
           @endif
-          @if($index < count($breadcrumbs) - 1 && $index > 0) <span class="bolopa-separator">/</span> @endif
+          @if($index < count($breadcrumbs) - 1 && $index > 0) <span class="bolopa-header-vigazafarm-separator">/</span> @endif
         @endforeach
       </div>
 
-      <div class="bolopa-status-text">
-        <div class="bolopa-status-text-dot"></div>
+      <div class="bolopa-header-vigazafarm-status-text">
+        <div class="bolopa-header-vigazafarm-status-text-dot"></div>
         <span>Online</span>
       </div>
     </div>
 
-    <div class="bolopa-info">
-      <div class="bolopa-date-time">
+    <div class="bolopa-header-vigazafarm-info">
+      <div class="bolopa-header-vigazafarm-date-time">
         <span id="date"></span> | <span id="clock"></span>
       </div>
-      <div class="bolopa-status">
-        <div class="bolopa-status-dot"></div>
+      <div class="bolopa-header-vigazafarm-status">
+        <div class="bolopa-header-vigazafarm-status-dot"></div>
         Online
       </div>
-      <div class="bolopa-user" id="userMenu">
-        <div class="bolopa-user-avatar">{{ strtoupper(substr(auth()->user()->nama ?? 'A', 0, 1)) }}</div>
-        <div class="bolopa-user-info">
+      <div class="bolopa-header-vigazafarm-user" id="userMenu">
+        <div class="bolopa-header-vigazafarm-user-avatar">{{ strtoupper(substr(auth()->user()->nama ?? 'A', 0, 1)) }}</div>
+        <div class="bolopa-header-vigazafarm-user-info">
           <span>{{ explode(' ', auth()->user()->nama)[0] ?? 'Admin' }}</span>
-          <span class="bolopa-role">{{ auth()->user()->peran === 'owner' ? 'owner' : 'operator' }}</span>
+          <span class="bolopa-header-vigazafarm-role">{{ auth()->user()->peran === 'owner' ? 'owner' : 'operator' }}</span>
         </div>
 
         <!-- Dropdown -->
-        <div class="bolopa-dropdown" id="dropdownMenu">
+        <div class="bolopa-header-vigazafarm-dropdown" id="dropdownMenu">
           <a href="{{ route('profile.edit') }}">👤 Profile</a>
-          <a href="#" class="bolopa-logout" onclick="event.preventDefault(); document.getElementById('header-logout-form').submit();">🚪 Logout</a>
+          <a href="#" class="bolopa-header-vigazafarm-logout" onclick="event.preventDefault(); document.getElementById('header-logout-form').submit();">🚪 Logout</a>
           <form id="header-logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
             @csrf
           </form>
@@ -69,16 +69,16 @@
   </div>
 
   <!-- Hamburger (mobile) -->
-  <button class="bolopa-hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
-    <svg class="bolopa-hamburger-icon" width="24" height="24" viewBox="0 0 24 24">
+  <button class="bolopa-header-vigazafarm-hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+    <svg class="bolopa-header-vigazafarm-hamburger-icon" width="24" height="24" viewBox="0 0 24 24">
       <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5L12 12L19 5M12 12H12M5 19L12 12L19 19">
         <animate fill="freeze" attributeName="d" dur="0.4s" values="M5 5L12 12L19 5M12 12H12M5 19L12 12L19 19;M5 5L12 5L19 5M5 12H19M5 19L12 19L19 19"/>
       </path>
     </svg>
   </button>
 
-  <nav class="bolopa-mobile-menu" id="mobileMenu" aria-hidden="true" inert>
-    <button class="bolopa-close" id="mobileClose" aria-label="Close menu">
+  <nav class="bolopa-header-vigazafarm-mobile-menu" id="mobileMenu" aria-hidden="true" inert>
+    <button class="bolopa-header-vigazafarm-close" id="mobileClose" aria-label="Close menu">
       <svg width="20" height="20" viewBox="0 0 24 24">
         <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5L12 5L19 5M5 12H19M5 19L12 19L19 19">
           <animate fill="freeze" attributeName="d" dur="0.4s" values="M5 5L12 5L19 5M5 12H19M5 19L12 19L19 19;M5 5L12 12L19 5M12 12H12M5 19L12 12L19 19"/>
@@ -86,15 +86,15 @@
       </svg>
     </button>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-      <div class="bolopa-user-avatar" style="width:46px;height:46px;font-size:18px;">{{ strtoupper(substr(auth()->user()->nama ?? 'A', 0, 1)) }}</div>
+      <div class="bolopa-header-vigazafarm-user-avatar" style="width:46px;height:46px;font-size:18px;">{{ strtoupper(substr(auth()->user()->nama ?? 'A', 0, 1)) }}</div>
       <div style="display:flex;flex-direction:column;">
         <strong>{{ explode(' ', auth()->user()->nama)[0] ?? 'Admin' }}</strong>
-        <small class="bolopa-role">{{ auth()->user()->peran === 'owner' ? 'owner' : 'operator' }}</small>
+        <small class="bolopa-header-vigazafarm-role">{{ auth()->user()->peran === 'owner' ? 'owner' : 'operator' }}</small>
       </div>
     </div>
-    <div class="bolopa-menu-links">
+    <div class="bolopa-header-vigazafarm-menu-links">
       <a href="{{ route('profile.edit') }}">👤 Profile</a>
-      <a href="#" class="bolopa-logout" onclick="event.preventDefault(); document.getElementById('header-logout-form').submit();">🚪 Logout</a>
+      <a href="#" class="bolopa-header-vigazafarm-logout" onclick="event.preventDefault(); document.getElementById('header-logout-form').submit();">🚪 Logout</a>
     </div>
     <div style="flex:1"></div>
     <div style="font-size:13px;color:#666;border-top:1px solid #eee;padding-top:10px;">
@@ -103,7 +103,7 @@
   </nav>
 
   <style>
-    .bolopa-header {
+    .bolopa-header-vigazafarm-header {
       background: #fff;
       padding: 12px 24px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.08);
@@ -113,14 +113,14 @@
       z-index: 1000;
     }
 
-    .bolopa-header-top {
+    .bolopa-header-vigazafarm-header-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
     /* Left - Breadcrumb */
-    .bolopa-breadcrumb {
+    .bolopa-header-vigazafarm-breadcrumb {
       display: flex;
       align-items: center;
       gap: 6px;
@@ -128,25 +128,25 @@
       color: #555;
     }
 
-    .bolopa-breadcrumb span:first-child {
+    .bolopa-header-vigazafarm-breadcrumb span:first-child {
       display: flex;
       align-items: center;
       justify-content: center;
       width: 16px; /* Fixed width for consistent alignment */
     }
 
-    .bolopa-breadcrumb span.bolopa-active {
+    .bolopa-header-vigazafarm-breadcrumb span.bolopa-header-vigazafarm-active {
       font-weight: 600;
       color: #2563eb;
     }
 
-    .bolopa-breadcrumb a, .bolopa-category {
+    .bolopa-header-vigazafarm-breadcrumb a, .bolopa-header-vigazafarm-category {
       color: #777;
       text-decoration: none;
     }
 
     /* Right - Info */
-    .bolopa-info {
+    .bolopa-header-vigazafarm-info {
       display: flex;
       align-items: center;
       gap: 20px;
@@ -154,7 +154,7 @@
       color: #555;
     }
 
-    .bolopa-status {
+    .bolopa-header-vigazafarm-status {
       display: flex;
       align-items: center;
       gap: 6px;
@@ -162,7 +162,7 @@
       font-weight: 500;
     }
 
-    .bolopa-status-dot {
+    .bolopa-header-vigazafarm-status-dot {
       width: 8px;
       height: 8px;
       background: #16a34a;
@@ -171,7 +171,7 @@
     }
 
     /* User */
-    .bolopa-user {
+    .bolopa-header-vigazafarm-user {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -179,7 +179,7 @@
       position: relative;
     }
 
-    .bolopa-user-avatar {
+    .bolopa-header-vigazafarm-user-avatar {
       width: 36px;
       height: 36px;
       background: #3b82f6;
@@ -191,20 +191,20 @@
       font-weight: bold;
     }
 
-    .bolopa-user-info {
+    .bolopa-header-vigazafarm-user-info {
       display: flex;
       flex-direction: column;
       font-size: 13px;
       line-height: 1.2;
     }
 
-    .bolopa-user-info .bolopa-role {
+    .bolopa-header-vigazafarm-user-info .bolopa-header-vigazafarm-role {
       font-size: 12px;
       color: #777;
     }
 
     /* Dropdown */
-    .bolopa-dropdown {
+    .bolopa-header-vigazafarm-dropdown {
       display: none;
       position: absolute;
       top: 48px;
@@ -217,7 +217,7 @@
       z-index: 100;
     }
 
-    .bolopa-dropdown a {
+    .bolopa-header-vigazafarm-dropdown a {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -228,16 +228,16 @@
       transition: background 0.2s;
     }
 
-    .bolopa-dropdown a:hover {
+    .bolopa-header-vigazafarm-dropdown a:hover {
       background: #f1f5f9;
     }
 
-    .bolopa-dropdown a.bolopa-logout {
+    .bolopa-header-vigazafarm-dropdown a.bolopa-header-vigazafarm-logout {
       color: #ef4444;
       font-weight: 500;
     }
 
-    .bolopa-dropdown.bolopa-show {
+    .bolopa-header-vigazafarm-dropdown.bolopa-header-vigazafarm-show {
       display: block;
       animation: fadeIn 0.2s ease-in-out;
     }
@@ -248,7 +248,7 @@
     }
 
     /* Hamburger (mobile) */
-    .bolopa-hamburger {
+    .bolopa-header-vigazafarm-hamburger {
       display: none;
       width: 42px;
       height: 42px;
@@ -262,16 +262,16 @@
       transition: color 0.2s ease;
     }
 
-    .bolopa-hamburger:hover {
+    .bolopa-header-vigazafarm-hamburger:hover {
       color: #2563eb;
     }
 
-    .bolopa-hamburger-icon {
+    .bolopa-header-vigazafarm-hamburger-icon {
       transition: transform 0.2s ease;
     }
 
     /* Mobile slide-in menu */
-    .bolopa-mobile-menu {
+    .bolopa-header-vigazafarm-mobile-menu {
       position: fixed;
       top: 0;
       right: 0;
@@ -288,9 +288,9 @@
       gap: 12px;
     }
 
-    .bolopa-mobile-menu.bolopa-open { transform: translateX(0); }
+    .bolopa-header-vigazafarm-mobile-menu.bolopa-header-vigazafarm-open { transform: translateX(0); }
 
-    .bolopa-mobile-menu .bolopa-close {
+    .bolopa-header-vigazafarm-mobile-menu .bolopa-header-vigazafarm-close {
       align-self: flex-end;
       background: transparent;
       border: none;
@@ -300,11 +300,11 @@
       transition: color 0.2s ease;
     }
 
-    .bolopa-mobile-menu .bolopa-close:hover {
+    .bolopa-header-vigazafarm-mobile-menu .bolopa-header-vigazafarm-close:hover {
       color: #2563eb;
     }
 
-    .bolopa-mobile-menu .bolopa-menu-links a {
+    .bolopa-header-vigazafarm-mobile-menu .bolopa-header-vigazafarm-menu-links a {
       display: block;
       padding: 12px 10px;
       color: #333;
@@ -312,10 +312,10 @@
       border-radius: 8px;
     }
 
-    .bolopa-mobile-menu .bolopa-menu-links a.bolopa-logout { color: #ef4444; font-weight: 600; }
+    .bolopa-header-vigazafarm-mobile-menu .bolopa-header-vigazafarm-menu-links a.bolopa-header-vigazafarm-logout { color: #ef4444; font-weight: 600; }
 
     /* Status text below breadcrumb */
-    .bolopa-status-text {
+    .bolopa-header-vigazafarm-status-text {
       display: none;
       align-items: center;
       gap: 6px;
@@ -326,7 +326,7 @@
       padding-left: 3px; /* Align dot with home icon center */
     }
 
-    .bolopa-status-text-dot {
+    .bolopa-header-vigazafarm-status-text-dot {
       width: 10px;
       height: 10px;
       background: #16a34a;
@@ -343,23 +343,23 @@
 
     @media (max-width: 1024px) {
       /* Tablet styles */
-      .bolopa-header { padding: 10px 20px; }
-      .bolopa-breadcrumb { gap: 5px; font-size: 13px; }
-      .bolopa-info { gap: 15px; }
-      .bolopa-user-info { display: none; }
-      .bolopa-user-avatar { width: 32px; height: 32px; }
-      .bolopa-mobile-menu { width: 320px; padding: 24px; }
+      .bolopa-header-vigazafarm-header { padding: 10px 20px; }
+      .bolopa-header-vigazafarm-breadcrumb { gap: 5px; font-size: 13px; }
+      .bolopa-header-vigazafarm-info { gap: 15px; }
+      .bolopa-header-vigazafarm-user-info { display: none; }
+      .bolopa-header-vigazafarm-user-avatar { width: 32px; height: 32px; }
+      .bolopa-header-vigazafarm-mobile-menu { width: 320px; padding: 24px; }
     }
 
     @media (max-width: 768px) {
       /* Mobile styles */
-      .bolopa-header { padding: 10px 16px; }
-      .bolopa-info { display: none; }
-      .bolopa-hamburger { display: inline-flex; position: absolute; top: 10px; right: 16px; }
-      .bolopa-breadcrumb { gap: 4px; font-size: 13px; }
-      .bolopa-breadcrumb > *:not(:first-child):not(.bolopa-active) { display: none; }
-      .bolopa-status-text { display: flex; }
-      .bolopa-mobile-menu { width: 280px; padding: 20px; }
+      .bolopa-header-vigazafarm-header { padding: 10px 16px; }
+      .bolopa-header-vigazafarm-info { display: none; }
+      .bolopa-header-vigazafarm-hamburger { display: inline-flex; position: absolute; top: 10px; right: 16px; }
+      .bolopa-header-vigazafarm-breadcrumb { gap: 4px; font-size: 13px; }
+      .bolopa-header-vigazafarm-breadcrumb > *:not(:first-child):not(.bolopa-header-vigazafarm-active) { display: none; }
+      .bolopa-header-vigazafarm-status-text { display: flex; }
+      .bolopa-header-vigazafarm-mobile-menu { width: 280px; padding: 20px; }
     }
   </style>
 
@@ -379,7 +379,7 @@
     const dropdownMenu = document.getElementById("dropdownMenu");
 
     userMenu.addEventListener("click", () => {
-      dropdownMenu.classList.toggle("bolopa-show");
+      dropdownMenu.classList.toggle("bolopa-header-vigazafarm-show");
     });
 
     // Mobile menu toggles
@@ -388,8 +388,8 @@
     const mobileClose = document.getElementById('mobileClose');
 
     function openMobile() {
-      mobileMenu.classList.add('bolopa-open');
-      hamburger.classList.add('bolopa-open');
+      mobileMenu.classList.add('bolopa-header-vigazafarm-open');
+      hamburger.classList.add('bolopa-header-vigazafarm-open');
       hamburger.setAttribute('aria-expanded', 'true');
       mobileMenu.setAttribute('aria-hidden', 'false');
       mobileMenu.removeAttribute('inert');
@@ -404,8 +404,8 @@
     }
 
     function closeMobile() {
-      mobileMenu.classList.remove('bolopa-open');
-      hamburger.classList.remove('bolopa-open');
+      mobileMenu.classList.remove('bolopa-header-vigazafarm-open');
+      hamburger.classList.remove('bolopa-header-vigazafarm-open');
       hamburger.setAttribute('aria-expanded', 'false');
       // Blur any focused element in the menu before hiding
       if (mobileMenu.contains(document.activeElement)) {
@@ -423,7 +423,7 @@
 
     hamburger.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (mobileMenu.classList.contains('bolopa-open')) closeMobile(); else openMobile();
+      if (mobileMenu.classList.contains('bolopa-header-vigazafarm-open')) closeMobile(); else openMobile();
     });
 
     mobileClose.addEventListener('click', closeMobile);
@@ -443,7 +443,7 @@
     // Klik di luar dropdown untuk menutup
     document.addEventListener("click", (e) => {
       if (!userMenu.contains(e.target)) {
-        dropdownMenu.classList.remove("bolopa-show");
+        dropdownMenu.classList.remove("bolopa-header-vigazafarm-show");
       }
     });
 
