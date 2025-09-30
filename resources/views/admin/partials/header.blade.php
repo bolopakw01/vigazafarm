@@ -99,7 +99,6 @@
     <div style="flex:1"></div>
     <div style="font-size:13px;color:#666;border-top:1px solid #eee;padding-top:10px;">
       <div id="mobileDate"></div>
-      <div id="mobileClock"></div>
     </div>
   </nav>
 
@@ -219,8 +218,10 @@
     }
 
     .bolopa-dropdown a {
-      display: block;
-      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 8px;
       font-size: 14px;
       color: #333;
       text-decoration: none;
@@ -400,7 +401,6 @@
       }
       // set mobile date/time
       document.getElementById('mobileDate').textContent = document.getElementById('date').textContent;
-      document.getElementById('mobileClock').textContent = document.getElementById('clock').textContent;
     }
 
     function closeMobile() {
