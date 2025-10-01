@@ -11,6 +11,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     @stack('styles')
     <style>
+        :root {
+            --bolopa-header-height: 72px; /* approximate header height (matches header padding + content) */
+            --bolopa-footer-height: 48px; /* approximate footer height */
+        }
         * {
             margin: 0;
             padding: 0;
@@ -28,13 +32,17 @@
         .home-section {
             position: relative;
             background: #E4E9F7;
+            /* make the home-section fill the viewport so header/footer can stay put */
             flex: 1;
+            height: 100vh;
             left: 78px;
             width: calc(100% - 78px);
             transition: all 0.5s ease;
             z-index: 2;
             display: flex;
             flex-direction: column;
+            /* prevent page itself from scrolling so the inner page-content can scroll */
+            overflow: hidden;
         }
 
         .bolopa-sidebar-vigazafarm.open ~ .home-section {
@@ -43,8 +51,15 @@
         }
 
         .page-content {
+            /* this area will handle scrolling so header/footer remain visible */
             flex: 1;
             padding: 20px;
+            overflow: auto;
+            /* allow the flex child to shrink below its content for correct scrolling */
+            min-height: 0;
+            /* ensure content is not hidden behind sticky header/footer */
+            padding-top: calc(var(--bolopa-header-height) + 8px);
+            padding-bottom: calc(var(--bolopa-footer-height) + 12px);
         }
 
         @media (max-width: 420px) {

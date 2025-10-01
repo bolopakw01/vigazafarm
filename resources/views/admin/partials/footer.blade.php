@@ -10,8 +10,12 @@
     background: #1d1b31;
     color: #f1f5f9;
     text-align: center;
-    padding: 16px;
+    padding: 16px 16px;
     font-size: 14px;
+    /* keep footer visible at bottom of the home-section */
+    position: sticky;
+    bottom: 0;
+  z-index: 50;
   }
 
   .bolopa-footer a {

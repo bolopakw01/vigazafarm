@@ -24,6 +24,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/karyawan', [AdminController::class, 'karyawan'])->name('admin.karyawan');
     Route::get('/admin/pembesaran', [AdminController::class, 'pembesaran'])->name('admin.pembesaran');
     Route::get('/admin/penetasan', [AdminController::class, 'penetasan'])->name('admin.penetasan');
+    // resource-like routes for penetasan actions used by the UI
+    Route::get('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'show'])->name('admin.penetasan.show');
+    Route::get('/admin/penetasan/{penetasan}/edit', [App\Http\Controllers\PenetasanController::class, 'edit'])->name('admin.penetasan.edit');
+    Route::patch('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'update'])->name('admin.penetasan.update');
+    Route::delete('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'destroy'])->name('admin.penetasan.destroy');
     Route::get('/admin/produksi', [AdminController::class, 'produksi'])->name('admin.produksi');
 });
 

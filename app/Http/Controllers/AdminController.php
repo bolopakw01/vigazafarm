@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Penetasan;
 
 class AdminController extends Controller
 {
@@ -23,7 +24,8 @@ class AdminController extends Controller
 
     public function penetasan()
     {
-        return view('admin.pages.penetasan.index-penetasan');
+        $penetasan = Penetasan::paginate(10); // atau all() jika tidak pakai pagination
+        return view('admin.pages.penetasan.index-penetasan', compact('penetasan'));
     }
 
     public function produksi()

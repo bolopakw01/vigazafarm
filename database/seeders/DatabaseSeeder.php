@@ -15,5 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         // Call AdminUserSeeder to create admin users
         $this->call(AdminUserSeeder::class);
+        // Seed penetasan dummy data
+        $this->call(PenetasanSeeder::class);
     }
 }
