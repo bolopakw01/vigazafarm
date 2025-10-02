@@ -15,6 +15,12 @@ class DatabaseSeeder extends Seeder
     {
         // Call AdminUserSeeder to create admin users
         $this->call(AdminUserSeeder::class);
+        
+        // Seed data master untuk DSS
+        $this->call(KandangSeeder::class);
+        $this->call(StokPakanSeeder::class);
+        $this->call(ParameterStandarSeeder::class);
+        
         // Seed penetasan dummy data
         $this->call(PenetasanSeeder::class);
     }

@@ -19,15 +19,25 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Admin routes
-    Route::get('/admin/kandang', [AdminController::class, 'kandang'])->name('admin.kandang');
-    Route::get('/admin/karyawan', [AdminController::class, 'karyawan'])->name('admin.karyawan');
+    // Admin Dashboard (All authenticated users)
+    Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+
+    // Master routes (Owner only)
+    Route::middleware('owner')->group(function () {
+        Route::get('/admin/kandang', [AdminController::class, 'kandang'])->name('admin.kandang');
+        Route::get('/admin/karyawan', [AdminController::class, 'karyawan'])->name('admin.karyawan');
+    });
+
+    // Operational routes (All authenticated users)
     Route::get('/admin/pembesaran', [AdminController::class, 'pembesaran'])->name('admin.pembesaran');
     Route::get('/admin/penetasan', [AdminController::class, 'penetasan'])->name('admin.penetasan');
     // resource-like routes for penetasan actions used by the UI
+    Route::get('/admin/penetasan/create', [App\Http\Controllers\PenetasanController::class, 'create'])->name('admin.penetasan.create');
+    Route::post('/admin/penetasan', [App\Http\Controllers\PenetasanController::class, 'store'])->name('admin.penetasan.store');
     Route::get('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'show'])->name('admin.penetasan.show');
     Route::get('/admin/penetasan/{penetasan}/edit', [App\Http\Controllers\PenetasanController::class, 'edit'])->name('admin.penetasan.edit');
     Route::patch('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'update'])->name('admin.penetasan.update');
+    Route::patch('/admin/penetasan/{penetasan}/status', [App\Http\Controllers\PenetasanController::class, 'updateStatus'])->name('admin.penetasan.updateStatus');
     Route::delete('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'destroy'])->name('admin.penetasan.destroy');
     Route::get('/admin/produksi', [AdminController::class, 'produksi'])->name('admin.produksi');
 });

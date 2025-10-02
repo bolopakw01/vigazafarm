@@ -4,15 +4,30 @@
       @php
           $currentRoute = request()->route()->getName();
           $breadcrumbs = [];
+          $userRole = auth()->user()->peran ?? 'operator';
 
           $breadcrumbMap = [
               'dashboard' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => null]],
+              'admin.dashboard' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => null], ['label' => 'Dashboard', 'link' => null]],
               'admin.kandang' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Kandang', 'link' => null]],
               'admin.karyawan' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Karyawan', 'link' => null]],
-              'admin.penetasan' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Operasional', 'link' => '#', 'class' => 'category-link'], ['label' => 'Penetasan', 'link' => null]],
-              'admin.pembesaran' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Operasional', 'link' => '#', 'class' => 'category-link'], ['label' => 'Pembesaran', 'link' => null]],
-              'admin.produksi' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Operasional', 'link' => '#', 'class' => 'category-link'], ['label' => 'Produksi', 'link' => null]],
+              'admin.penetasan' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Penetasan', 'link' => null]],
+              'admin.penetasan.create' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Penetasan', 'link' => route('admin.penetasan'), 'class' => 'breadcrumb-link'], ['label' => 'Tambah Data', 'link' => null]],
+              'admin.penetasan.edit' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Penetasan', 'link' => route('admin.penetasan'), 'class' => 'breadcrumb-link'], ['label' => 'Edit Data', 'link' => null]],
+              'admin.pembesaran' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Pembesaran', 'link' => null]],
+              'admin.produksi' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Produksi', 'link' => null]],
           ];
+
+          // Untuk owner, tambahkan "Operasional" di breadcrumb operasional menu
+          if ($userRole === 'owner') {
+              $operationalRoutes = ['admin.penetasan', 'admin.penetasan.create', 'admin.penetasan.edit', 'admin.pembesaran', 'admin.produksi'];
+              if (in_array($currentRoute, $operationalRoutes) && isset($breadcrumbMap[$currentRoute])) {
+                  // Insert "Operasional" setelah "Backoffice"
+                  $temp = $breadcrumbMap[$currentRoute];
+                  array_splice($temp, 2, 0, [['label' => 'Operasional', 'link' => '#', 'class' => 'category-link']]);
+                  $breadcrumbMap[$currentRoute] = $temp;
+              }
+          }
 
           if (isset($breadcrumbMap[$currentRoute])) {
               $breadcrumbs = $breadcrumbMap[$currentRoute];

@@ -12,11 +12,12 @@ class DashboardController extends Controller
             return redirect('/mimin');
         }
 
-        if (Auth::user()->peran === 'owner') {
-            return view('admin.dashboard-admin');
-        } else {
-            // Untuk operator, mungkin redirect ke halaman lain atau tampilkan pesan
-            return view('dashboard'); // Atau redirect ke route tertentu
+        // Redirect operator ke admin dashboard
+        if (Auth::user()->peran === 'operator') {
+            return redirect()->route('admin.dashboard');
         }
+
+        // Owner ke dashboard utama
+        return view('admin.dashboard-admin');
     }
 }

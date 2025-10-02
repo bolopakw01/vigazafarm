@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Console\Scheduling\Schedule;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -11,7 +12,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'owner' => \App\Http\Middleware\EnsureUserIsOwner::class,
+        ]);
+    })
+    ->withSchedule(function (Schedule $schedule): void {
+        // Update status penetasan setiap hari pada jam 00:01
+        $schedule->command('penetasan:update-status')->dailyAt('00:01');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -30,10 +30,16 @@ class AuthenticatedSessionController extends Controller
 
                 $request->session()->regenerate();
 
+                // Determine redirect URL based on role
+                $redirectUrl = 'http://localhost/vigazafarm/public/dashboard';
+                if (Auth::user()->peran === 'operator') {
+                    $redirectUrl = 'http://localhost/vigazafarm/public/admin/dashboard';
+                }
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Login berhasil! Selamat datang ' . explode(' ', Auth::user()->nama)[0],
-                    'redirect' => 'http://localhost/vigazafarm/public/dashboard'
+                    'redirect' => $redirectUrl
                 ]);
             } catch (\Illuminate\Validation\ValidationException $e) {
                 return response()->json([
@@ -47,6 +53,11 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+
+        // Redirect operator to admin dashboard
+        if (Auth::user()->peran === 'operator') {
+            return redirect()->route('admin.dashboard');
+        }
 
         return redirect()->intended(route('dashboard', absolute: false));
     }

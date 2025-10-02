@@ -7,6 +7,11 @@ use App\Models\Penetasan;
 
 class AdminController extends Controller
 {
+    public function dashboard()
+    {
+        return view('admin.dashboard-admin');
+    }
+
     public function kandang()
     {
         return view('admin.pages.kandang.index-kandang');
@@ -22,9 +27,42 @@ class AdminController extends Controller
         return view('admin.pages.pembesaran.index-pembesaran');
     }
 
-    public function penetasan()
+    public function penetasan(Request $request)
     {
-        $penetasan = Penetasan::paginate(10); // atau all() jika tidak pakai pagination
+        $perPage = $request->get('per_page', 5);
+        $search = $request->get('search', '');
+
+        $query = Penetasan::with('kandang');
+
+        // Search functionality
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('jumlah_telur', 'like', "%{$search}%")
+                  ->orWhere('jumlah_menetas', 'like', "%{$search}%")
+                  ->orWhere('jumlah_doc', 'like', "%{$search}%")
+                  ->orWhere('tanggal_simpan_telur', 'like', "%{$search}%")
+                  ->orWhere('tanggal_menetas', 'like', "%{$search}%")
+                  ->orWhereHas('kandang', function($q) use ($search) {
+                      $q->where('nama_kandang', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Handle "Semua" option
+        if ($perPage === 'all') {
+            $penetasan = $query->orderBy('dibuat_pada', 'desc')->get();
+            // Create a mock paginator for "all" records
+            $penetasan = new \Illuminate\Pagination\LengthAwarePaginator(
+                $penetasan,
+                $penetasan->count(),
+                $penetasan->count(),
+                1,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
+        } else {
+            $penetasan = $query->orderBy('dibuat_pada', 'desc')->paginate($perPage);
+        }
+        
         return view('admin.pages.penetasan.index-penetasan', compact('penetasan'));
     }
 

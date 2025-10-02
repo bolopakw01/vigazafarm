@@ -5,7 +5,8 @@
         <img id="btn" src="{{ asset('bolopa/img/icon/line-md--menu-fold-right.svg') }}" alt="menu" />
     </div>
     <ul class="nav-list" data-active="operasional">
-        <!-- mini horizontal menu: Operational & Master -->
+        <!-- mini horizontal menu: Operational & Master (Owner Only) -->
+        @if(auth()->user()->peran === 'owner')
         <li class="mini-menus">
             <a href="#" class="mini-menu active" title="Operasional" data-target="operasional">
                 <img src="{{ asset('bolopa/img/icon/line-md--home-md.svg') }}" alt="Operasional" />
@@ -16,19 +17,22 @@
                 <span class="mini-label">Master</span>
             </a>
         </li>
+        @endif
         <li>
-            <a href="{{ route('dashboard') }}" class="menu-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+            <a href="{{ route('admin.dashboard') }}" class="menu-link {{ request()->routeIs('admin.dashboard') || request()->routeIs('dashboard') ? 'active' : '' }}">
                 <img src="{{ asset('bolopa/img/icon/ic--outline-dashboard.svg') }}" alt="Dashboard" class="menu-icon" />
                 <span class="links_name">Dashboard</span>
             </a>
             <span class="tooltip">Dashboard</span>
         </li>
+        @if(auth()->user()->peran === 'owner')
         <li class="section-label">
             <div class="section-decor">
                 <span class="section-text">Operasional</span>
                 <span class="section-line" aria-hidden="true"></span>
             </div>
         </li>
+        @endif
         <!-- operational menu items -->
         <li data-group="operasional">
             <a href="{{ route('admin.penetasan') }}" class="menu-link {{ request()->routeIs('admin.penetasan') ? 'active' : '' }}">
@@ -51,6 +55,7 @@
             </a>
             <span class="tooltip">Produksi</span>
         </li>
+        @if(auth()->user()->peran === 'owner')
         <!-- master menu items -->
         <li data-group="master">
             <a href="{{ route('admin.kandang') }}" class="menu-link {{ request()->routeIs('admin.kandang') ? 'active' : '' }}">
@@ -66,6 +71,7 @@
             </a>
             <span class="tooltip">Karyawan</span>
         </li>
+        @endif
         <!-- profile/logout -->
         <li class="profile">
             <div class="profile-details">

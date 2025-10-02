@@ -13,11 +13,19 @@ class Penetasan extends Model
     const UPDATED_AT = 'diperbarui_pada';
 
     protected $fillable = [
+        'batch',
+        'kandang_id',
         'tanggal_simpan_telur',
         'jumlah_telur',
         'tanggal_menetas',
         'jumlah_menetas',
         'jumlah_doc',
+        'suhu_penetasan',
+        'kelembaban_penetasan',
+        'telur_tidak_fertil',
+        'persentase_tetas',
+        'catatan',
+        'status',
     ];
 
     protected $casts = [
@@ -26,4 +34,12 @@ class Penetasan extends Model
         'dibuat_pada' => 'datetime',
         'diperbarui_pada' => 'datetime',
     ];
+
+    /**
+     * Relasi ke tabel kandang
+     */
+    public function kandang()
+    {
+        return $this->belongsTo(Kandang::class, 'kandang_id');
+    }
 }
