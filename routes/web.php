@@ -29,7 +29,19 @@ Route::middleware('auth')->group(function () {
     });
 
     // Operational routes (All authenticated users)
-    Route::get('/admin/pembesaran', [AdminController::class, 'pembesaran'])->name('admin.pembesaran');
+    
+    // Pembesaran routes
+    Route::get('/admin/pembesaran', [App\Http\Controllers\PembesaranController::class, 'index'])->name('admin.pembesaran');
+    Route::get('/admin/pembesaran/create', [App\Http\Controllers\PembesaranController::class, 'create'])->name('admin.pembesaran.create');
+    Route::post('/admin/pembesaran', [App\Http\Controllers\PembesaranController::class, 'store'])->name('admin.pembesaran.store');
+    Route::get('/admin/pembesaran/from-penetasan/{penetasan}', [App\Http\Controllers\PembesaranController::class, 'createFromPenetasan'])->name('admin.pembesaran.createFromPenetasan');
+    Route::post('/admin/pembesaran/from-penetasan/{penetasan}', [App\Http\Controllers\PembesaranController::class, 'storeFromPenetasan'])->name('admin.pembesaran.storeFromPenetasan');
+    Route::get('/admin/pembesaran/{pembesaran}', [App\Http\Controllers\PembesaranController::class, 'show'])->name('admin.pembesaran.show');
+    Route::get('/admin/pembesaran/{pembesaran}/edit', [App\Http\Controllers\PembesaranController::class, 'edit'])->name('admin.pembesaran.edit');
+    Route::patch('/admin/pembesaran/{pembesaran}', [App\Http\Controllers\PembesaranController::class, 'update'])->name('admin.pembesaran.update');
+    Route::delete('/admin/pembesaran/{pembesaran}', [App\Http\Controllers\PembesaranController::class, 'destroy'])->name('admin.pembesaran.destroy');
+    
+    // Penetasan routes
     Route::get('/admin/penetasan', [AdminController::class, 'penetasan'])->name('admin.penetasan');
     // resource-like routes for penetasan actions used by the UI
     Route::get('/admin/penetasan/create', [App\Http\Controllers\PenetasanController::class, 'create'])->name('admin.penetasan.create');

@@ -4,6 +4,150 @@
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-penetasan.css') }}">
+<style>
+    /* POPUPLoopa SweetAlert2 Popup Styles - Complete from original HTML */
+    :root{
+        --bg: #f1f5f9;
+        --panel: #fff;
+        --muted: #64748b;
+        --text: #0f172a;
+        --accent: #2563eb;
+        --swal-pad: 20px;
+    }
+    
+    .swal2-popup.bolopa-popup-swal2-popup {
+        width: 960px !important;
+        max-width: 96vw !important;
+        border-radius: 14px;
+        padding: 0;
+        box-sizing: border-box;
+        max-height: 92vh;
+        overflow: auto;
+    }
+    
+    div:where(.swal2-container) div:where(.swal2-html-container) {
+        padding: 0 !important;
+        margin: 0;
+    }
+    
+    /* Content wrapper */
+    .bolopa-popup-content{box-sizing:border-box;text-align:left;font-size:13px;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
+    .bolopa-popup-content h5{font-size:1rem;font-weight:700;margin:0}
+    .bolopa-popup-content .label{font-size:.82rem}
+    .bolopa-popup-content .stat-body .label{font-size:.85rem}
+    .bolopa-popup-content .stat-body .desc{font-size:.72rem}
+    .bolopa-popup-content .stat-item .value{font-size:.92rem}
+    .bolopa-popup-content .card-simple .value{font-size:1.25rem}
+    .bolopa-popup-content .footer-row{font-size:.78rem}
+    .bolopa-popup-content button{font-size:.82rem}
+    .bolopa-popup-content .swal-body{display:flex;gap:18px;padding:var(--swal-pad);flex-wrap:wrap;align-items:flex-start;width:100%;flex:0 0 auto}
+    
+    /* Columns */
+    .bolopa-popup-content .left,.bolopa-popup-content .right{display:flex;flex-direction:column;gap:12px;box-sizing:border-box}
+    .bolopa-popup-content .left{flex:1 1 520px;min-width:360px}
+    .bolopa-popup-content .right{flex:0 0 300px;min-width:260px}
+    
+    /* Panel & Cards */
+    .bolopa-popup-content .panel{background:var(--panel);border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 6px 14px rgba(15,23,42,.05)}
+    .bolopa-popup-content .card-summary{border-radius:12px;overflow:hidden}
+    .bolopa-popup-content .card-header{padding:.9rem 1rem;background:#f9fafb;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}
+    .bolopa-popup-content .subtle-date{font-size:.8rem;color:var(--muted)}
+    .bolopa-popup-content .card-header .id-val{font-weight:700;color:#000}
+    
+    /* Stats Grid */
+    .bolopa-popup-content .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;padding:1rem}
+    .bolopa-popup-content .stat-item{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:.5rem .6rem;display:grid;grid-template-columns:44px 1fr min-content;align-items:center;gap:.4rem;min-height:64px;box-sizing:border-box;cursor:pointer}
+    .bolopa-popup-content .stat-item .stat-icon i,.bolopa-popup-content .stat-item .value{transition:transform 180ms cubic-bezier(.2,.9,.2,1)}
+    .bolopa-popup-content .stat-item .stat-icon i{transform-origin:center;will-change:transform}
+    .bolopa-popup-content .stat-item .value{transform-origin:center right;will-change:transform}
+    .bolopa-popup-content .stat-item:hover .stat-icon i{transform:scale(1.4)}
+    .bolopa-popup-content .stat-item:hover .value{transform:scale(1.4)}
+    .bolopa-popup-content .stat-body{display:flex;flex-direction:row;align-items:center;gap:8px;text-align:left;min-width:0}
+    .bolopa-popup-content .stat-body .label{font-weight:600;white-space:nowrap;color:#000;display:inline-block;flex:0 0 auto}
+    .bolopa-popup-content .stat-body .desc{font-size:.76rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;flex:1 1 auto;min-width:0}
+    .bolopa-popup-content .stat-icon{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;color:#fff}
+    .bolopa-popup-content .icon.total{background:linear-gradient(135deg,#60a5fa,#3b82f6)}
+    .bolopa-popup-content .icon.menetas{background:linear-gradient(135deg,#34d399,#059669)}
+    .bolopa-popup-content .icon.doc{background:linear-gradient(135deg,#a78bfa,#7c3aed)}
+    .bolopa-popup-content .icon.fertil{background:linear-gradient(135deg,#fcd34d,#f59e0b)}
+    .bolopa-popup-content .icon.gagal{background:linear-gradient(135deg,#fb7185,#ef4444)}
+    .bolopa-popup-content .stat-item .value{text-align:right;font-weight:700;font-size:1rem;color:var(--text);white-space:nowrap;min-width:90px}
+    
+    /* Percentage Row */
+    .bolopa-popup-content .percent-row{border-top:1px solid #e2e8f0;padding:.9rem 1rem;display:flex;align-items:center;justify-content:space-between}
+    .bolopa-popup-content .progress{height:10px;border-radius:6px;overflow:hidden;background:#e5e7eb;width:100%}
+    .bolopa-popup-content .progress-bar{background:linear-gradient(90deg,#06b6d4,#3b82f6);height:100%;transition:width 400ms ease;display:block}
+    
+    /* Metric Cards */
+    .bolopa-popup-content .metrics-row{display:flex;gap:10px}
+    .bolopa-popup-content .card-simple{flex:1;border-radius:12px;padding:1rem 1.6rem 1rem 1rem;display:flex;flex-direction:column;justify-content:space-between;color:#fff;position:relative;min-width:140px}
+    .bolopa-popup-content .card-simple .icon{position:absolute;top:10px;right:10px;background:none!important;width:auto!important;height:auto!important;border-radius:0!important;display:flex;align-items:center;justify-content:center;font-size:1.25rem}
+    .bolopa-popup-content .card-simple .icon i{font-size:1.25rem;transition:transform 180ms cubic-bezier(.2,.9,.2,1);transform-origin:top right}
+    .bolopa-popup-content .card-simple:hover .icon i{transform:scale(1.18)}
+    .bolopa-popup-content .card-simple .icon.temp i,.bolopa-popup-content .card-simple .icon.hum i{color:#fff}
+    .bolopa-popup-content #cardTemp{background:linear-gradient(135deg,#ef6b6b,#d64545)}
+    .bolopa-popup-content #cardHum{background:linear-gradient(135deg,#6fb3ff,#3b82f6)}
+    .bolopa-popup-content .card-simple .label{font-size:.8rem;text-transform:uppercase;opacity:.9}
+    .bolopa-popup-content .card-simple .value{font-size:1.6rem;font-weight:700}
+    .bolopa-popup-content .card-simple .value span{transition:opacity 200ms ease}
+    .bolopa-popup-content .card-simple .value{font-size:1.6rem;font-weight:700}
+    
+    /* Timeline Panel */
+    .bolopa-popup-content .timeline-panel .card-clean{padding:1rem;border-radius:12px;border:1px solid #e2e8f0;background:#fff}
+    .bolopa-popup-content .timeline-panel .mini-label{font-size:.75rem;color:var(--muted);margin-bottom:.5rem;text-transform:uppercase;text-align:center;display:block}
+    .bolopa-popup-content .entry{display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-top:1px solid #f1f5f9}
+    .bolopa-popup-content .entry .label{font-size:.85rem;color:#64748b}
+    .bolopa-popup-content .result-box{background:#f8fafc;padding:.4rem .6rem;border-radius:6px;font-size:.85rem;min-width:140px;text-align:right;display:flex;flex-direction:column;gap:2px}
+    .bolopa-popup-content .timeline-panel .entry .result-box .value{color:#000;font-weight:600;font-size:.88rem}
+    .bolopa-popup-content .timeline-panel .entry .result-box .time{color:#64748b;font-size:.75rem;font-weight:400}
+    .bolopa-popup-content .entry-icon{color:#64748b;font-size:.95rem}
+    
+    /* Note Card */
+    .bolopa-popup-content .note-card{background:#f9fafb;padding:.75rem;border-radius:10px;display:flex;gap:.75rem;align-items:flex-start;border:1px solid #e2e8f0}
+    .bolopa-popup-content .icon.note{background:#ede9fe;color:#3730a3}
+    .bolopa-popup-content .note-card .note-inner{display:flex;flex-direction:column;gap:4px}
+    .bolopa-popup-content .note-card .note-title{font-weight:700;font-size:.82rem;color:var(--text)}
+    .bolopa-popup-content .note-card .note-desc{color:var(--muted);font-size:.78rem;line-height:1.2}
+    
+    /* Footer */
+    .bolopa-popup-content .footer-row{display:flex;justify-content:space-between;align-items:center;padding:.9rem 1.2rem;border-top:1px solid #e2e8f0;background:#f9fafb;font-size:.8rem;color:var(--muted);position:relative;z-index:2}
+    .bolopa-popup-content>.footer-row{align-self:stretch;width:100%;box-sizing:border-box;margin-left:calc(var(--swal-pad) * -1);margin-right:calc(var(--swal-pad) * -1);padding-left:calc(.9rem + var(--swal-pad));padding-right:calc(1.2rem + var(--swal-pad));border-bottom-left-radius:12px;border-bottom-right-radius:12px}
+    
+    /* Buttons */
+    .bolopa-popup-content .btn{padding:.45rem .9rem;border-radius:6px;font-size:.82rem;font-weight:500;cursor:pointer;transition:all 180ms ease;border:none;display:inline-flex;align-items:center;gap:.4rem}
+    .bolopa-popup-content .btn-ghost{border:1px solid #d1d5db;background:#fff;color:#374151}
+    .bolopa-popup-content .btn-ghost:hover{background:#f9fafb;border-color:#9ca3af}
+    .bolopa-popup-content .btn-outline-secondary{border:1px solid #d1d5db;background:#fff;color:#6b7280}
+    .bolopa-popup-content .btn-outline-secondary:hover{background:#f3f4f6;border-color:#9ca3af}
+    .bolopa-popup-content .btn-primary{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border:none}
+    .bolopa-popup-content .btn-primary:hover{background:linear-gradient(135deg,#2563eb,#1d4ed8);box-shadow:0 4px 8px rgba(37,99,235,.3)}
+    .bolopa-popup-content .btn i{font-size:.9rem}
+    
+    /* Responsive: Tablet */
+    @media (max-width: 900px) {
+        :root{--swal-pad:14px}
+        .bolopa-popup-content .swal-body{padding:14px;gap:12px}
+        .bolopa-popup-content .left,.bolopa-popup-content .right{min-width:0}
+        .bolopa-popup-content .left{flex:1 1 100%}
+        .bolopa-popup-content .right{flex:1 1 100%}
+        .bolopa-popup-content .stats-grid{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+        .bolopa-popup-content .metrics-row{flex-direction:row}
+    }
+    
+    /* Responsive: Mobile */
+    @media (max-width: 520px) {
+        :root{--swal-pad:10px}
+        .bolopa-popup-content .swal-body{padding:10px;gap:10px;flex-direction:column}
+        .bolopa-popup-content .stats-grid{grid-template-columns:1fr;gap:.5rem}
+        .bolopa-popup-content .stat-item{grid-template-columns:36px 1fr min-content;padding:.5rem;min-height:56px}
+        .bolopa-popup-content .card-simple{padding:.75rem}
+        .bolopa-popup-content .card-simple .value{font-size:1.3rem}
+        .bolopa-popup-content .metrics-row{flex-direction:column}
+        .bolopa-popup-content>.footer-row{flex-direction:column;align-items:stretch;gap:8px}
+        .bolopa-popup-content>.footer-row>div:last-child{display:flex;gap:8px;flex-direction:column}
+        .bolopa-popup-content>.footer-row button{width:100%}
+    }
+</style>
 @endpush
 
 @section('content')
@@ -113,21 +257,17 @@
                 <tbody>
                     @forelse($penetasan as $index => $item)
                     <tr>
-                        <td class="bolopa-tabel-text-center">{{ $penetasan->firstItem() + $index }}</td>
-                        <td class="bolopa-tabel-text-left">{{ $item->batch ?? '-' }}</td>
-                        <td class="bolopa-tabel-text-left">{{ $item->kandang->nama_kandang ?? '-' }}</td>
-                        <td class="bolopa-tabel-text-center">{{ \Carbon\Carbon::parse($item->tanggal_simpan_telur)->format('d/m/Y') }}</td>
-                        <td class="bolopa-tabel-text-right">{{ number_format($item->jumlah_telur) }} butir</td>
-                        <td class="bolopa-tabel-text-center">{{ $item->tanggal_menetas ? \Carbon\Carbon::parse($item->tanggal_menetas)->format('d/m/Y') : '-' }}</td>
-                        <td class="bolopa-tabel-text-center">
+                        <td class="bolopa-tabel-text-center" style="text-align: center;">{{ $penetasan->firstItem() + $index }}</td>
+                        <td class="bolopa-tabel-text-left" style="text-align: left;">{{ $item->batch ?? '-' }}</td>
+                        <td class="bolopa-tabel-text-left" style="text-align: left;">{{ $item->kandang->nama_kandang ?? '-' }}</td>
+                        <td class="bolopa-tabel-text-center" style="text-align: center;">{{ \Carbon\Carbon::parse($item->tanggal_simpan_telur)->format('d/m/Y') }}</td>
+                        <td class="bolopa-tabel-text-right" style="text-align: right;">{{ number_format($item->jumlah_telur) }} butir</td>
+                        <td class="bolopa-tabel-text-center" style="text-align: center;">{{ $item->tanggal_menetas ? \Carbon\Carbon::parse($item->tanggal_menetas)->format('d/m/Y') : '-' }}</td>
+                        <td class="bolopa-tabel-text-center" style="text-align: center;">
                             @php
                                 $statusClass = 'bolopa-tabel-badge-secondary';
                                 $statusText = 'Proses';
                                 switch($item->status ?? 'proses') {
-                                    case 'aktif':
-                                        $statusClass = 'bolopa-tabel-badge-info';
-                                        $statusText = 'Aktif';
-                                        break;
                                     case 'selesai':
                                         $statusClass = 'bolopa-tabel-badge-success';
                                         $statusText = 'Selesai';
@@ -142,16 +282,19 @@
                                 {{ $statusText }}
                             </span>
                         </td>
-                        <td class="bolopa-tabel-text-center">
+                        <td class="bolopa-tabel-text-center" style="text-align: center;">
                             <div class="bolopa-tabel-actions">
                                 <button type="button"
                                     class="bolopa-tabel-btn bolopa-tabel-btn-info bolopa-tabel-btn-action"
                                     title="Lihat Detail"
                                     onclick="showDetailModal(@js([
                                         'id' => $item->id,
+                                        'batch' => $item->batch ?? '-',
                                         'kandang' => $item->kandang->nama_kandang ?? '-',
                                         'formatted_tanggal_simpan_telur' => optional($item->tanggal_simpan_telur)->format('d/m/Y'),
+                                        'formatted_tanggal_simpan_telur_waktu' => optional($item->tanggal_simpan_telur)->format('d/m/Y H:i'),
                                         'formatted_tanggal_menetas' => optional($item->tanggal_menetas)->format('d/m/Y'),
+                                        'formatted_tanggal_menetas_waktu' => optional($item->tanggal_menetas)->format('d/m/Y H:i'),
                                         'jumlah_telur' => $item->jumlah_telur,
                                         'jumlah_menetas' => $item->jumlah_menetas,
                                         'jumlah_doc' => $item->jumlah_doc,
@@ -166,6 +309,13 @@
                                     ]))">
                                     <img src="{{ asset('bolopa/img/icon/line-md--watch.svg') }}" alt="View" width="14" height="14">
                                 </button>
+                                
+                                {{-- @if($item->status === 'selesai' && $item->jumlah_doc > 0)
+                                <a href="{{ route('admin.pembesaran.createFromPenetasan', $item->id) }}" class="bolopa-tabel-btn bolopa-tabel-btn-success bolopa-tabel-btn-action" title="Pindahkan ke Pembesaran">
+                                    <img src="{{ asset('bolopa/img/icon/game-icons--nest-birds.svg') }}" alt="To Growing" width="14" height="14">
+                                </a>
+                                @endif --}}
+                                
                                 <a href="{{ route('admin.penetasan.edit', $item->id) }}" class="bolopa-tabel-btn bolopa-tabel-btn-warning bolopa-tabel-btn-action" title="Edit">
                                     <img src="{{ asset('bolopa/img/icon/line-md--edit-twotone.svg') }}" alt="Edit" width="14" height="14">
                                 </a>
@@ -382,391 +532,209 @@
         return headers.findIndex(header => header.getAttribute('data-sort') === column);
     }
 
-    // SweetAlert2 Detail Modal Function
+    // SweetAlert2 Detail Modal Function - POPUPLoopa Style
     function showDetailModal(data) {
-        const numberFormatter = new Intl.NumberFormat('id-ID');
-        const percentFormatter = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-
-        const escapeHtml = (value = '') => String(value ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-
+        const escapeHtml = (value = '') => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const toNumber = (value) => {
             if (value === null || value === undefined || value === '') return null;
             const numeric = Number(value);
             return Number.isFinite(numeric) ? numeric : null;
         };
-
-        const formatNumber = (value, unit = '') => {
+        const formatNumber = (value) => {
             const numeric = toNumber(value);
-            if (numeric === null) return '-';
-            const formatted = numberFormatter.format(numeric);
-            return unit ? `${formatted} ${unit}` : formatted;
+            return numeric === null ? '-' : new Intl.NumberFormat('id-ID').format(numeric);
         };
 
-        const formatDecimal = (value, unit) => {
-            const numeric = toNumber(value);
-            if (numeric === null) return '-';
-            const rounded = Math.abs(numeric - Math.round(numeric)) < 0.05
-                ? Math.round(numeric).toString()
-                : numeric.toFixed(1);
-            return `${rounded}${unit}`;
-        };
-
-        const formatPercent = (value) => {
-            const numeric = toNumber(value);
-            if (numeric === null) return '-';
-            return `${percentFormatter.format(numeric)}%`;
-        };
-
-        const withinRange = (value, min, max) => {
-            const numeric = toNumber(value);
-            if (numeric === null) return false;
-            return numeric >= min && numeric <= max;
-        };
-
-        const totalEggs = toNumber(data.jumlah_telur);
-        const hatched = toNumber(data.jumlah_menetas);
-        const infertile = toNumber(data.telur_tidak_fertil);
+        // Parse data
+        const totalTelur = toNumber(data.jumlah_telur);
+        const menetas = toNumber(data.jumlah_menetas);
         const doc = toNumber(data.jumlah_doc);
-        const percent = toNumber(data.persentase_tetas);
+        const tidakFertil = toNumber(data.telur_tidak_fertil);
+        const persentase = toNumber(data.persentase_tetas);
         const suhu = toNumber(data.suhu_penetasan);
         const kelembaban = toNumber(data.kelembaban_penetasan);
+        const gagal = totalTelur !== null ? Math.max(totalTelur - (menetas ?? 0) - (tidakFertil ?? 0), 0) : null;
 
-        const failed = totalEggs !== null
-            ? Math.max(totalEggs - (hatched ?? 0) - (infertile ?? 0), 0)
-            : null;
-
-        const statusInfo = (() => {
-            if (percent === null && suhu === null && kelembaban === null) {
-                return {
-                    label: 'Belum Ada Data',
-                    variant: 'secondary',
-                    description: 'Tambahkan data suhu, kelembapan, atau persentase tetas untuk memantau performa batch ini.'
-                };
-            }
-
-            if (percent !== null) {
-                const isOptimal = percent >= 85 && withinRange(suhu, 36.5, 38.0) && withinRange(kelembaban, 55, 65);
-                if (isOptimal) {
-                    return {
-                        label: 'Optimal',
-                        variant: 'success',
-                        description: 'Kinerja penetasan berada dalam rentang optimal. Pertahankan prosedur dan pencatatan saat ini.'
-                    };
-                }
-
-                if (percent >= 60) {
-                    return {
-                        label: 'Perlu Pemantauan',
-                        variant: 'warning',
-                        description: 'Hasil penetasan cukup baik namun masih dapat ditingkatkan. Periksa kembali stabilitas suhu, kelembapan, dan rotasi telur.'
-                    };
-                }
-            }
-
-            return {
-                label: 'Perlu Tindakan',
-                variant: 'danger',
-                description: 'Hasil penetasan rendah. Evaluasi kualitas telur, protokol pembalikan, dan kalibrasi mesin penetas.'
+        // Split date and time helper
+        const splitDateTime = (dateTimeStr) => {
+            if (!dateTimeStr || dateTimeStr === '-') return { date: '-', time: '' };
+            const parts = dateTimeStr.split(' ');
+            return { 
+                date: parts[0] || '-', 
+                time: parts[1] || '' 
             };
-        })();
-
-        const variantMapping = {
-            success: { badge: 'bg-success-subtle text-success-emphasis', progress: 'bg-success' },
-            warning: { badge: 'bg-warning-subtle text-warning-emphasis', progress: 'bg-warning' },
-            danger: { badge: 'bg-danger-subtle text-danger-emphasis', progress: 'bg-danger' },
-            secondary: { badge: 'bg-secondary-subtle text-secondary-emphasis', progress: 'bg-secondary' }
-        };
-        const variantClass = variantMapping[statusInfo.variant] || variantMapping.secondary;
-        const statusBadge = `<span class="badge ${variantClass.badge} px-3 py-2 rounded-pill">${statusInfo.label}</span>`;
-
-        const statusIconMap = {
-            success: 'fa-solid fa-circle-check',
-            warning: 'fa-solid fa-triangle-exclamation',
-            danger: 'fa-solid fa-circle-exclamation',
-            secondary: 'fa-regular fa-circle'
         };
 
-        const statusAccentClassMap = {
-            success: 'icon-circle-success',
-            warning: 'icon-circle-warning',
-            danger: 'icon-circle-danger',
-            secondary: 'icon-circle-neutral'
+        const simpanDateTime = splitDateTime(data.formatted_tanggal_simpan_telur_waktu);
+        const menetasDateTime = splitDateTime(data.formatted_tanggal_menetas_waktu);
+
+        // Format dates
+        const pad = (n) => String(n).padStart(2, '0');
+        const formatDate = (dateStr) => {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
         };
-
-        const statusIconClass = statusIconMap[statusInfo.variant] || 'fa-solid fa-circle-info';
-        const statusAccentClass = statusAccentClassMap[statusInfo.variant] || 'icon-circle-neutral';
-
-        const percentDisplay = formatPercent(percent);
-        const percentProgress = percent !== null ? Math.max(Math.min(percent, 100), 0) : null;
-
-        const temperatureStatus = (() => {
-            if (suhu === null) {
-                return { label: 'Belum Ada', badge: 'bg-secondary-subtle text-secondary-emphasis' };
-            }
-            return withinRange(suhu, 36.5, 38.0)
-                ? { label: 'Stabil', badge: 'bg-success-subtle text-success-emphasis' }
-                : { label: 'Periksa', badge: 'bg-warning-subtle text-warning-emphasis' };
-        })();
-
-        const humidityStatus = (() => {
-            if (kelembaban === null) {
-                return { label: 'Belum Ada', badge: 'bg-secondary-subtle text-secondary-emphasis' };
-            }
-            return withinRange(kelembaban, 55, 65)
-                ? { label: 'Stabil', badge: 'bg-success-subtle text-success-emphasis' }
-                : { label: 'Periksa', badge: 'bg-warning-subtle text-warning-emphasis' };
-        })();
-
-        const operationalMessage = (() => {
-            switch (statusInfo.variant) {
-                case 'success':
-                    return 'Pertahankan jadwal pengecekan harian agar status tetap optimal.';
-                case 'warning':
-                    return 'Kalibrasi sensor suhu & kelembapan dan lakukan pemantauan 24 jam ke depan.';
-                case 'danger':
-                    return 'Segera lakukan inspeksi mesin penetas serta validasi mutu telur dan SOP.';
-                default:
-                    return 'Tambahkan data lingkungan untuk mendapatkan rekomendasi operasional.';
-            }
-        })();
-
-        const environmentHeadline = (() => {
-            const parts = [];
-            parts.push(temperatureStatus.label !== 'Belum Ada' ? `Suhu ${temperatureStatus.label}` : 'Suhu belum ada');
-            parts.push(humidityStatus.label !== 'Belum Ada' ? `RH ${humidityStatus.label}` : 'RH belum ada');
-            return parts.join(' • ');
-        })();
-
-        const totalEggsDisplay = formatNumber(totalEggs, 'butir');
-        const hatchedDisplay = formatNumber(hatched, 'ekor');
-        const infertileDisplay = formatNumber(infertile, 'butir');
-        const docDisplay = doc !== null ? formatNumber(doc, 'ekor') : (hatched !== null ? hatchedDisplay : '-');
-        const failedDisplay = formatNumber(failed, 'butir');
-
-        const kandangName = escapeHtml(data.kandang ?? '-');
-        const noteHtml = data.catatan ? escapeHtml(data.catatan).replace(/\n/g, '<br>') : '<em class="text-muted">Tidak ada catatan tambahan.</em>';
-        const createdAt = data.formatted_dibuat_pada ? escapeHtml(data.formatted_dibuat_pada) : '-';
-        const updatedAt = data.formatted_diperbarui_pada ? escapeHtml(data.formatted_diperbarui_pada) : '-';
-        const dateStored = data.formatted_tanggal_simpan_telur ? escapeHtml(data.formatted_tanggal_simpan_telur) : '-';
-        const dateHatched = data.formatted_tanggal_menetas ? escapeHtml(data.formatted_tanggal_menetas) : '-';
-
-        const environmentSummary = [
-            suhu !== null ? `Suhu ${formatDecimal(suhu, '°C')} (${temperatureStatus.label})` : 'Suhu belum tersedia',
-            kelembaban !== null ? `RH ${formatDecimal(kelembaban, '%')} (${humidityStatus.label})` : 'Kelembapan belum tersedia'
-        ].map(line => escapeHtml(line)).join('<br>');
-
-        const metrics = [
-            { label: 'Jumlah Telur', value: totalEggsDisplay, icon: 'fa-solid fa-egg', accent: 'icon-circle-primary' },
-            { label: 'Menetas', value: hatchedDisplay, icon: 'fa-solid fa-feather-pointed', accent: 'icon-circle-success' },
-            { label: 'DOC', value: docDisplay, icon: 'fa-solid fa-dove', accent: 'icon-circle-info' },
-            { label: 'Tidak Fertil', value: infertileDisplay, icon: 'fa-solid fa-ban', accent: 'icon-circle-danger' },
-            { label: 'Perkiraan Gagal', value: failedDisplay, icon: 'fa-solid fa-chart-line-down', accent: 'icon-circle-warning' },
-            { label: 'Persentase', value: percentDisplay, icon: 'fa-solid fa-gauge-high', accent: statusAccentClass }
-        ];
-
-        const metricsHtml = metrics.map(metric => `
-            <div class="col">
-                <div class="metric-card border h-100 p-3">
-                    <span class="icon-circle metric-icon ${metric.accent}">
-                        <i class="${metric.icon}"></i>
-                    </span>
-                    <p class="metric-label text-uppercase text-muted small fw-semibold mb-1">${metric.label}</p>
-                    <p class="metric-value text-body fw-semibold fs-6 mb-0">${metric.value}</p>
-                </div>
-            </div>
-        `).join('');
-
-        const highlightCards = [
-            {
-                label: 'Status Batch',
-                title: escapeHtml(statusInfo.label),
-                description: escapeHtml(statusInfo.description),
-                icon: statusIconClass,
-                accent: statusAccentClass
-            },
-            {
-                label: 'Operasional',
-                title: 'Langkah Disarankan',
-                description: escapeHtml(operationalMessage),
-                icon: 'fa-solid fa-screwdriver-wrench',
-                accent: 'icon-circle-info'
-            },
-            {
-                label: 'Kondisi Inkubator',
-                title: escapeHtml(environmentHeadline),
-                description: environmentSummary,
-                icon: 'fa-solid fa-temperature-half',
-                accent: 'icon-circle-primary'
-            }
-        ];
-
-        const summaryHighlightsHtml = highlightCards.map(card => `
-            <div class="col">
-                <div class="summary-highlight h-100">
-                    <span class="icon-circle ${card.accent}">
-                        <i class="${card.icon}"></i>
-                    </span>
-                    <div class="summary-highlight-content">
-                        <p class="summary-highlight-label mb-1">${card.label}</p>
-                        <p class="summary-highlight-title mb-1">${card.title}</p>
-                        ${card.description ? `<p class="summary-highlight-description mb-0">${card.description}</p>` : ''}
-                    </div>
-                </div>
-            </div>
-        `).join('');
-
-        const timelineItems = [
-            { label: 'Tanggal Simpan', value: dateStored, icon: 'fa-regular fa-calendar-days', accent: 'icon-circle-primary' },
-            { label: 'Tanggal Menetas', value: dateHatched, icon: 'fa-solid fa-egg', accent: 'icon-circle-warning' },
-            { label: 'Dibuat Pada', value: createdAt, icon: 'fa-regular fa-clock', accent: 'icon-circle-neutral' },
-            { label: 'Diperbarui', value: updatedAt, icon: 'fa-solid fa-rotate', accent: 'icon-circle-info' }
-        ];
-
-        const timelineGridHtml = timelineItems.map(item => `
-            <div class="col-6">
-                <div class="timeline-card h-100">
-                    <span class="icon-circle ${item.accent}">
-                        <i class="${item.icon}"></i>
-                    </span>
-                    <div>
-                        <p class="timeline-label mb-1">${item.label}</p>
-                        <p class="timeline-value mb-0">${item.value}</p>
-                    </div>
-                </div>
-            </div>
-        `).join('');
+        const formatDateTime = (dateStr) => {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        };
 
         const htmlContent = `
-            <div class="bolopa-detail-modal container-fluid px-0">
-                <div class="row g-3 align-items-stretch">
-                    <div class="col-lg-6 d-flex flex-column gap-3">
-                        <div class="card summary-card border-0 shadow-sm flex-grow-1">
-                            <div class="card-body">
-                                <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
-                                    <div>
-                                        <p class="text-uppercase text-muted small fw-semibold mb-1">Batch Penetasan</p>
-                                        <h5 class="fw-semibold text-body mb-1">Penetasan #${escapeHtml(data.id ?? '-')}</h5>
-                                        <p class="text-muted mb-0">Kandang: <span class="fw-semibold text-body">${kandangName}</span></p>
-                                    </div>
-                                    <div class="text-lg-end d-flex flex-column align-items-lg-end gap-2">
-                                        <div>${statusBadge}</div>
-                                        <div class="fw-semibold text-primary fs-3">${percentDisplay}</div>
-                                        <p class="small text-muted mb-0">Persentase Tetas</p>
-                                    </div>
-                                </div>
-                                ${percentProgress !== null ? `<div class="progress mt-3"><div class="progress-bar ${variantClass.progress}" role="progressbar" style="width: ${percentProgress}%;"></div></div>` : ''}
-                                <div class="row row-cols-1 row-cols-sm-3 g-3 summary-highlights mt-3">
-                                    ${summaryHighlightsHtml}
-                                </div>
+            <style>
+                /* Inline popup styles - vertical layout: label di atas, desc di bawah */
+                .bolopa-popup-content .stats-grid .stat-item{grid-template-columns:44px 1fr min-content}
+                .bolopa-popup-content .stats-grid .stat-item .stat-body{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+                .bolopa-popup-content .stats-grid .stat-item .stat-body .label{white-space:nowrap;font-weight:600;font-size:0.95rem;color:#000}
+                .bolopa-popup-content .stats-grid .stat-item .stat-body .desc{white-space:normal;word-wrap:break-word;width:100%;color:var(--muted);font-size:0.72rem;line-height:1.3}
+                @media (max-width:520px){
+                    .bolopa-popup-content .stats-grid .stat-item .stat-body .label{font-size:.88rem}
+                    .bolopa-popup-content .stats-grid .stat-item .stat-body .desc{font-size:.68rem}
+                }
+            </style>
+            <div class="bolopa-popup-content" style="display:flex;flex-direction:column;gap:12px">
+        <div class="swal-body">
+            <div class="left">
+                <div class="panel">
+                    <div class="card-summary">
+                        <div class="card-header">
+                            <div>
+                                <h5>Ringkasan Hasil</h5>
+                                <div class="subtle-date">${escapeHtml(data.formatted_tanggal_menetas || '-')} • ${escapeHtml(data.kandang || 'Kandang')}</div>
                             </div>
+                            <div class="text-end"><small class="text-muted">Batch: <span class="id-val">${escapeHtml(data.batch || '-')}</span></small></div>
                         </div>
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-body">
-                                <h6 class="text-muted text-uppercase fw-semibold small mb-3">Kondisi Lingkungan</h6>
-                                <div class="row g-3 align-items-stretch">
-                                    <div class="col-sm-6">
-                                        <div class="environment-card border rounded-4 p-3 h-100">
-                                            <div class="d-flex align-items-start gap-3">
-                                                <span class="icon-circle icon-circle-heat">
-                                                    <i class="fa-solid fa-temperature-three-quarters"></i>
-                                                </span>
-                                                <div>
-                                                    <p class="environment-label mb-1">Suhu Penetasan</p>
-                                                    <div class="d-flex align-items-baseline gap-2 flex-wrap">
-                                                        <span class="environment-value">${formatDecimal(suhu, '°C')}</span>
-                                                        <span class="badge ${temperatureStatus.badge}">${temperatureStatus.label}</span>
-                                                    </div>
-                                                    <p class="small text-muted mb-0 mt-2">Rekomendasi 37.0°C – 38.0°C</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-sm-6">
-                                        <div class="environment-card border rounded-4 p-3 h-100">
-                                            <div class="d-flex align-items-start gap-3">
-                                                <span class="icon-circle icon-circle-humidity">
-                                                    <i class="fa-solid fa-droplet"></i>
-                                                </span>
-                                                <div>
-                                                    <p class="environment-label mb-1">Kelembapan</p>
-                                                    <div class="d-flex align-items-baseline gap-2 flex-wrap">
-                                                        <span class="environment-value">${formatDecimal(kelembaban, '%')}</span>
-                                                        <span class="badge ${humidityStatus.badge}">${humidityStatus.label}</span>
-                                                    </div>
-                                                    <p class="small text-muted mb-0 mt-2">Rekomendasi 55% – 65%</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-12">
-                                        <div class="border rounded-4 p-3 bg-body-tertiary operational-card">
-                                            <div class="d-flex align-items-start gap-3">
-                                                <span class="icon-circle icon-circle-operational">
-                                                    <i class="fa-solid fa-headset"></i>
-                                                </span>
-                                                <div>
-                                                    <p class="text-muted small text-uppercase fw-semibold mb-1">Rekomendasi Operasional</p>
-                                                    <p class="small mb-0 text-body-secondary">${escapeHtml(operationalMessage)}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="stats-grid">
+                            <div class="stat-item"><div class="stat-icon icon total"><i class="fa-solid fa-egg"></i></div><div class="stat-body"><div class="label">Total Telur</div><div class="desc">Jumlah keseluruhan</div></div><div class="value" id="sw-total">${formatNumber(totalTelur)}</div></div>
+                            <div class="stat-item"><div class="stat-icon icon menetas"><i class="fa-solid fa-circle-check"></i></div><div class="stat-body"><div class="label">Menetas</div><div class="desc">Telur yang menetas</div></div><div class="value" id="sw-menetas">${formatNumber(menetas)}</div></div>
+                            <div class="stat-item"><div class="stat-icon icon doc"><i class="fa-solid fa-dove"></i></div><div class="stat-body"><div class="label">DOC</div><div class="desc">Day Old Chicks</div></div><div class="value" id="sw-doc">${formatNumber(doc)}</div></div>
+                            <div class="stat-item"><div class="stat-icon icon fertil"><i class="fa-solid fa-seedling"></i></div><div class="stat-body"><div class="label">Tidak Fertil</div><div class="desc">Tidak berkembang</div></div><div class="value" id="sw-fertil">${formatNumber(tidakFertil)}</div></div>
+                            <div class="stat-item"><div class="stat-icon icon gagal"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="stat-body"><div class="label">Gagal</div><div class="desc">Gagal menetas</div></div><div class="value" id="sw-gagal">${formatNumber(gagal)}</div></div>
                         </div>
-                    </div>
-                    <div class="col-lg-6 d-flex flex-column gap-3">
-                        <div class="card border-0 shadow-sm flex-grow-1">
-                            <div class="card-body">
-                                <h6 class="text-muted text-uppercase fw-semibold small mb-3">Ringkasan Produksi</h6>
-                                <div class="row row-cols-2 row-cols-md-3 g-3 metrics-grid">
-                                    ${metricsHtml}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-body">
-                                <h6 class="text-muted text-uppercase fw-semibold small mb-3">Timeline</h6>
-                                <div class="row row-cols-2 g-3 timeline-grid">
-                                    ${timelineGridHtml}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-body">
-                                <h6 class="text-muted text-uppercase fw-semibold small mb-3">Catatan</h6>
-                                <div class="note-box d-flex align-items-start gap-3">
-                                    <span class="icon-circle icon-circle-note">
-                                        <i class="fa-regular fa-note-sticky"></i>
-                                    </span>
-                                    <div class="text-body note-text">${noteHtml}</div>
-                                </div>
-                            </div>
+                        <div class="percent-row">
+                            <div class="percent-info"><div class="label">% Tetas</div><div class="desc">Persentase keberhasilan menetas dari total</div></div>
+                            <div style="min-width:170px;text-align:right"><div class="percent-value" id="sw-percent">${persentase !== null ? persentase.toFixed(1) : '0.0'}%</div><div class="progress mt-2" aria-hidden="true"><div class="progress-bar" id="sw-progressBar" role="progressbar" style="width:${persentase || 0}%" aria-valuemin="0" aria-valuemax="100"></div></div></div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <div class="right">
+                <div class="metrics-row">
+                    <div class="card-simple" id="cardTemp" role="region" aria-label="Suhu"><div><p class="label">Suhu</p><div style="display:flex;align-items:baseline;gap:.4rem"><div class="value"><span id="metric-temp">${suhu !== null ? suhu.toFixed(1) : '—'}</span><span class="unit">°C</span></div></div><div class="target">Target: 37–38°C</div></div><div style="text-align:right"><div class="icon temp"><i class="fa-solid fa-temperature-half"></i></div></div></div>
+                    <div class="card-simple" id="cardHum" role="region" aria-label="Kelembapan"><div><p class="label">Kelembapan</p><div style="display:flex;align-items:baseline;gap:.4rem"><div class="value"><span id="metric-hum">${kelembaban !== null ? kelembaban.toFixed(1) : '—'}</span><span class="unit">%</span></div></div><div class="target">Target: 55–65%</div></div><div style="text-align:right"><div class="icon hum"><i class="fa-solid fa-droplet"></i></div></div></div>
+                </div>
+
+                <div class="panel timeline-panel">
+                    <div class="card-clean">
+                        <div class="mini-label">Timeline</div>
+                        <div class="entry" aria-label="Tanggal Menyimpan"><div style="display:flex;align-items:center;gap:.5rem"><i class="fa-regular fa-calendar-days entry-icon"></i><div class="label">Tanggal Menyimpan</div></div><div class="result-box"><div class="value">${escapeHtml(simpanDateTime.date)}</div><div class="time">${escapeHtml(simpanDateTime.time)}</div></div></div>
+                        <div class="entry" aria-label="Tanggal Menetas"><div style="display:flex;align-items:center;gap:.5rem"><i class="fa-solid fa-calendar-check entry-icon"></i><div class="label">Tanggal Menetas</div></div><div class="result-box"><div class="value">${escapeHtml(menetasDateTime.date)}</div><div class="time">${escapeHtml(menetasDateTime.time)}</div></div></div>
+                    </div>
+                </div>
+
+                <div class="note-row"><div class="note-card"><div class="stat-icon icon note"><i class="fa-regular fa-sticky-note"></i></div><div class="note-inner"><div class="note-title">Catatan</div><div class="note-desc">${escapeHtml(data.catatan) || 'Tidak ada catatan'}</div></div></div></div>
+            </div>
+        </div>
+
+        <div class="footer-row" style="margin:0;border-top-left-radius:0;border-top-right-radius:0;border-bottom-left-radius:12px;border-bottom-right-radius:12px;padding:.9rem 1.2rem;">
+            <div class="muted" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;"><div style="font-size:.92rem">Terakhir diperbarui: <strong>${escapeHtml(data.formatted_diperbarui_pada || '-')}</strong></div></div>
+            <div><button id="sw-copy" class="btn btn-sm btn-ghost me-2" title="Salin ringkasan" aria-label="Salin"><i class="fa-regular fa-copy me-1"></i> Salin</button><button id="sw-close" class="btn btn-sm btn-primary" aria-label="Tutup">Tutup</button></div>
+        </div>
+    </div>
         `;
 
         Swal.fire({
-            title: '<strong class="text-primary">📋 Detail Data Penetasan</strong>',
             html: htmlContent,
-            width: 'min(1000px, 94vw)',
-            padding: '1.25rem',
-            showCloseButton: true,
-            showConfirmButton: true,
-            confirmButtonText: 'Tutup',
-            confirmButtonColor: '#4361ee',
-            customClass: {
-                container: 'bolopa-swal-container',
-                popup: 'bolopa-swal-popup',
-                title: 'bolopa-swal-title',
-                htmlContainer: 'bolopa-swal-html'
+            showConfirmButton: false,
+            customClass: { popup: 'bolopa-popup-swal2-popup' },
+            width: '960px',
+            padding: '0',
+            didOpen: () => {
+                const root = Swal.getHtmlContainer();
+
+                // Calculate and animate percentage
+                const total = parseFloat(root.querySelector('#sw-total')?.textContent.replace(/\./g, '') || '0');
+                const menotasVal = parseFloat(root.querySelector('#sw-menetas')?.textContent.replace(/\./g, '') || '0');
+                const percentEl = root.querySelector('#sw-percent');
+                const bar = root.querySelector('#sw-progressBar');
+                let pct = 0;
+                if (total > 0) pct = Math.max(0, Math.min(100, (menotasVal / total) * 100));
+                if (percentEl) percentEl.textContent = (Math.round(pct * 10) / 10).toFixed(1) + '%';
+                setTimeout(() => { if (bar) bar.style.width = pct + '%'; }, 80);
+
+                // Animated Temperature & Humidity (random fluctuation)
+                const tempEl = root.querySelector('#metric-temp');
+                const humEl = root.querySelector('#metric-hum');
+                const cardTemp = root.querySelector('#cardTemp');
+                const cardHum = root.querySelector('#cardHum');
+                
+                // Store original values
+                const originalTemp = suhu !== null ? suhu : 37.5;
+                const originalHum = kelembaban !== null ? kelembaban : 60;
+                
+                // Random fluctuation range
+                const tempRange = 0.3;  // ±0.3°C
+                const humRange = 1.5;   // ±1.5%
+                
+                // Animation interval
+                let intervalId = null;
+                if (tempEl && humEl) {
+                    intervalId = setInterval(() => {
+                        // Generate random values within range
+                        const tempFluctuation = (Math.random() - 0.5) * 2 * tempRange;
+                        const humFluctuation = (Math.random() - 0.5) * 2 * humRange;
+                        
+                        const newTemp = originalTemp + tempFluctuation;
+                        const newHum = originalHum + humFluctuation;
+                        
+                        // Fade out effect on numbers only
+                        tempEl.style.opacity = '0.5';
+                        humEl.style.opacity = '0.5';
+                        
+                        // Update display after fade out
+                        setTimeout(() => {
+                            tempEl.textContent = newTemp.toFixed(1);
+                            humEl.textContent = newHum.toFixed(1);
+                            
+                            // Fade in effect
+                            tempEl.style.opacity = '1';
+                            humEl.style.opacity = '1';
+                        }, 100);
+                    }, 2000); // Update every 2 seconds
+                }
+
+                // Close button handler
+                const closeBtn = root.querySelector('#sw-close');
+                if (closeBtn) closeBtn.addEventListener('click', () => {
+                    if (intervalId) clearInterval(intervalId); // Clear interval on close
+                    Swal.close();
+                });
+
+                // Copy handler
+                const copyBtn = root.querySelector('#sw-copy');
+                if (copyBtn) copyBtn.addEventListener('click', async () => {
+                    const summary = [
+                        `ID: ${root.querySelector('.id-val')?.textContent || ''}`,
+                        `Total Telur: ${root.querySelector('#sw-total')?.textContent || ''}`,
+                        `Menetas: ${root.querySelector('#sw-menetas')?.textContent || ''}`,
+                        `DOC: ${root.querySelector('#sw-doc')?.textContent || ''}`,
+                        `Tidak Fertil: ${root.querySelector('#sw-fertil')?.textContent || ''}`,
+                        `Gagal: ${root.querySelector('#sw-gagal')?.textContent || ''}`,
+                        `Suhu: ${originalTemp.toFixed(1)}°C`,
+                        `Kelembapan: ${originalHum.toFixed(1)}%`
+                    ].join('\n');
+                    try {
+                        await navigator.clipboard.writeText(summary);
+                        copyBtn.innerHTML = '<i class="fa-regular fa-copy me-1"></i> Tersalin';
+                        setTimeout(() => copyBtn.innerHTML = '<i class="fa-regular fa-copy me-1"></i> Salin', 1500);
+                    } catch (e) {
+                        alert('Gagal menyalin');
+                    }
+                });
             }
         });
     }

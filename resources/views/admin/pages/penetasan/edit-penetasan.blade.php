@@ -220,7 +220,6 @@
                                 @php
                                     $statusBadge = [
                                         'proses' => ['text' => 'Proses', 'class' => 'secondary'],
-                                        'aktif' => ['text' => 'Aktif', 'class' => 'info'],
                                         'selesai' => ['text' => 'Selesai', 'class' => 'success'],
                                         'gagal' => ['text' => 'Gagal', 'class' => 'danger'],
                                     ];
@@ -254,9 +253,6 @@
                                 <option value="">-- Gunakan status otomatis --</option>
                                 <option value="proses" {{ old('status', $penetasan->status) === 'proses' ? 'selected' : '' }}>
                                     Proses
-                                </option>
-                                <option value="aktif" {{ old('status', $penetasan->status) === 'aktif' ? 'selected' : '' }}>
-                                    Aktif
                                 </option>
                                 <option value="selesai" {{ old('status', $penetasan->status) === 'selesai' ? 'selected' : '' }}>
                                     Selesai

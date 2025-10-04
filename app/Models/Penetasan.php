@@ -42,4 +42,12 @@ class Penetasan extends Model
     {
         return $this->belongsTo(Kandang::class, 'kandang_id');
     }
+
+    /**
+     * Relasi ke pembesaran (one-to-many)
+     */
+    public function pembesaran()
+    {
+        return $this->hasMany(Pembesaran::class, 'penetasan_id');
+    }
 }

@@ -91,7 +91,7 @@ class PenetasanController extends Controller
             'kelembaban_penetasan' => 'nullable|numeric|min:0|max:100',
             'telur_tidak_fertil' => 'nullable|integer|min:0',
             'catatan' => 'nullable|string',
-            'status' => 'nullable|in:proses,aktif,selesai,gagal',
+            'status' => 'nullable|in:proses,selesai,gagal',
         ]);
 
         // Calculate persentase_tetas if data is complete
@@ -117,7 +117,7 @@ class PenetasanController extends Controller
         }
 
         $data = $request->validate([
-            'status' => 'required|in:proses,aktif,selesai,gagal',
+            'status' => 'required|in:proses,selesai,gagal',
         ]);
 
         $penetasan->update($data);
