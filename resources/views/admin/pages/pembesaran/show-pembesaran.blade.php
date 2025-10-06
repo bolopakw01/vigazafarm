@@ -3,13 +3,17 @@
 @section('title', 'Detail Pembesaran - ' . $pembesaran->batch_produksi_id)
 
 @push('styles')
+{{-- Custom CSS for this page only (scoped to prevent sidebar conflicts) --}}
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-pembesaran.css') }}">
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-part-pembesaran.css') }}">
 {{-- Inter font dari Google Fonts, Patrick Hand sudah local --}}
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+{{-- ApexCharts for graphs --}}
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 @endpush
 
 @section('content')
+<div class="pembesaran-detail-wrapper">
 <div class="container-fluid py-4">
     
     {{-- Header (tanpa card background) --}}
@@ -84,12 +88,14 @@
     </div>
 
     {{-- Notebook Container with Tabs --}}
-    @include('admin.pages.pembesaran.partials._info-pembesaran')
+    @include('admin.pages.pembesaran.partials._tab-show-pembesaran')
 
+</div>
 </div>
 @endsection
 
 @push('scripts')
+<script src="{{ asset('bolopa/js/admin-show-part-pembesaran.js') }}"></script>
 <script>
 // Ensure Bootstrap tabs work properly
 document.addEventListener('DOMContentLoaded', function() {
@@ -112,7 +118,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('Bootstrap tabs initialized:', tabTriggers.length, 'tabs found');
 });
-    });
 </script>
 @endpush
 
