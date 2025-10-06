@@ -1,0 +1,284 @@
+/* ===================================
+   ADMIN SHOW PEMBESARAN CSS
+   Header & KAI Menu Cards
+   =================================== */
+
+/* Reset & Base */
+.bolopa-show-pembesaran {
+    background-color: #f5f6fa;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Page Header (With white background card) */
+.bolopa-page-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+}
+
+.bolopa-logo-icon {
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #111, #333);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.bolopa-header-content {
+    flex: 1;
+}
+
+.bolopa-page-title {
+    margin: 0;
+    font-size: 1.5rem;
+    line-height: 1.2;
+    font-weight: 700;
+    color: #111;
+}
+
+.bolopa-page-subtitle {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.bolopa-page-subtitle a {
+    color: #0d6efd;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.bolopa-page-subtitle a:hover {
+    text-decoration: underline;
+}
+
+.bolopa-header-action {
+    flex-shrink: 0;
+}
+
+/* Tombol Kembali Style */
+.bolopa-header-action .btn {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 2px solid #6c757d !important;
+    background: #6c757d !important;
+    color: #ffffff !important;
+    text-decoration: none !important;
+}
+
+.bolopa-header-action .btn:hover {
+    background: #5a6268 !important;
+    border-color: #545b62 !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+    text-decoration: none !important;
+}
+
+.bolopa-header-action .btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.bolopa-header-action .btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(108, 117, 125, 0.25);
+    text-decoration: none !important;
+}
+
+.bolopa-header-action .btn i {
+    font-size: 0.85rem;
+}
+
+/* KAI Menu Cards Container - Using CSS Grid for perfect alignment */
+.bolopa-kai-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Responsive Grid */
+@media (max-width: 991px) {
+    .bolopa-kai-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .bolopa-kai-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* KAI Card Base */
+.bolopa-card-kai {
+    border-radius: 10px;
+    color: #fff;
+    padding: 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    min-height: 160px;
+    transition: box-shadow 0.2s ease;
+}
+
+.bolopa-card-kai:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* KAI Card Content */
+.bolopa-kai-content {
+    position: relative;
+    z-index: 2;
+}
+
+.bolopa-card-kai .bolopa-kai-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.bolopa-card-kai .bolopa-kai-label {
+    opacity: 0.95;
+    font-size: 0.9rem;
+    line-height: 1.3;
+}
+
+/* KAI Icon Faint (Background Icon) - Hanya icon yang hover */
+.bolopa-card-kai .bolopa-icon-faint {
+    position: absolute;
+    right: 14px;
+    top: 10px;
+    font-size: 4.25rem;
+    opacity: 0.10;
+    transform-origin: right top;
+    transition: transform 350ms cubic-bezier(.34, 1.56, .64, 1), opacity 300ms ease;
+    will-change: transform, opacity;
+    pointer-events: none;
+}
+
+/* Icon membesar dengan efek ke arah kiri bawah dari pojok kanan atas */
+.bolopa-card-kai:hover .bolopa-icon-faint {
+    transform: scale(1.15);
+    opacity: 0.18;
+    -webkit-transform: scale(1.15);
+    -moz-transform: scale(1.15);
+    -ms-transform: scale(1.15);
+    -o-transform: scale(1.15);
+}
+
+/* KAI More Link */
+.bolopa-card-kai .bolopa-kai-more {
+    display: block;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    text-align: center;
+    text-decoration: none;
+    color: inherit;
+    background: rgba(255, 255, 255, 0.06);
+    transition: background 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.bolopa-card-kai .bolopa-kai-more:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: inherit;
+    text-decoration: none;
+}
+
+/* KAI Color Schemes */
+.bolopa-kai-teal {
+    background: linear-gradient(180deg, #17a2b8, #0f8b99);
+}
+
+.bolopa-kai-green {
+    background: linear-gradient(180deg, #28a745, #1f8a38);
+}
+
+.bolopa-kai-yellow {
+    background: linear-gradient(180deg, #ffc107, #e6a700);
+    color: #222 !important;
+}
+
+.bolopa-kai-yellow .bolopa-kai-more {
+    color: #222;
+}
+
+.bolopa-kai-red {
+    background: linear-gradient(180deg, #dc3545, #b82a35);
+}
+
+.bolopa-kai-indigo {
+    background: linear-gradient(180deg, #6f42c1, #583099);
+}
+
+.bolopa-kai-blue {
+    background: linear-gradient(180deg, #007bff, #0056b3);
+}
+
+.bolopa-kai-orange {
+    background: linear-gradient(180deg, #fd7e14, #dc6502);
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .bolopa-card-kai {
+        min-height: 100px;
+        padding: 14px 14px 10px 14px;
+    }
+
+    .bolopa-card-kai .bolopa-kai-value {
+        font-size: 1.8rem;
+    }
+
+    .bolopa-card-kai .bolopa-kai-label {
+        font-size: 0.8rem;
+    }
+
+    .bolopa-card-kai .bolopa-icon-faint {
+        font-size: 3rem;
+    }
+
+    .bolopa-page-title {
+        font-size: 1.1rem;
+    }
+
+    .bolopa-page-subtitle {
+        font-size: 0.8rem;
+    }
+
+    .bolopa-page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .bolopa-card-kai .bolopa-kai-value {
+        font-size: 2rem;
+    }
+}

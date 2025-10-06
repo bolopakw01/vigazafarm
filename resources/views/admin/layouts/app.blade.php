@@ -141,8 +141,8 @@
         @include('admin.partials.footer')
     </section>
 
-    <!-- Bootstrap JS temporarily disabled - not needed for current implementation -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script> -->
+    <!-- Bootstrap JS for tabs and components -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     @stack('scripts')
 </body>

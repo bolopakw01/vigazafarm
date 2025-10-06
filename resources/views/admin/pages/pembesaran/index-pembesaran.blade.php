@@ -131,6 +131,9 @@
                         </td>
                         <td class="bolopa-tabel-text-center" style="text-align: center;">
                             <div class="bolopa-tabel-actions">
+                                <a href="{{ route('admin.pembesaran.show', $item->id) }}" class="bolopa-tabel-btn bolopa-tabel-btn-info bolopa-tabel-btn-action" title="Detail & Recording">
+                                    <img src="{{ asset('bolopa/img/icon/icon-park-outline--view-grid-detail.svg') }}" alt="Detail" width="14" height="14">
+                                </a>
                                 <a href="{{ route('admin.pembesaran.edit', $item->id) }}" class="bolopa-tabel-btn bolopa-tabel-btn-warning bolopa-tabel-btn-action" title="Edit">
                                     <img src="{{ asset('bolopa/img/icon/line-md--edit-twotone.svg') }}" alt="Edit" width="14" height="14">
                                 </a>

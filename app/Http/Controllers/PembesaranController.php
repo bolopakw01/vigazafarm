@@ -148,7 +148,56 @@ class PembesaranController extends Controller
     public function show(Pembesaran $pembesaran)
     {
         $pembesaran->load(['kandang', 'penetasan']);
-        return view('admin.pages.pembesaran.show-pembesaran', compact('pembesaran'));
+        
+        // Hitung metrics
+        $populasiAwal = $pembesaran->jumlah_anak_ayam;
+        $totalMati = \App\Models\Kematian::totalKematianByBatch($pembesaran->batch_produksi_id);
+        $populasiSaatIni = $populasiAwal - $totalMati;
+        $mortalitas = \App\Models\Kematian::hitungMortalitasKumulatif($pembesaran->batch_produksi_id, $populasiAwal);
+        
+        // Hitung total konsumsi pakan & biaya
+        $totalPakan = \App\Models\Pakan::totalKonsumsiByBatch($pembesaran->batch_produksi_id);
+        $totalBiayaPakan = \App\Models\Pakan::totalBiayaByBatch($pembesaran->batch_produksi_id);
+        
+        // Hitung umur hari (menggunakan startOfDay agar hasilnya integer)
+        $umurHari = \Carbon\Carbon::parse($pembesaran->tanggal_masuk)->startOfDay()->diffInDays(\Carbon\Carbon::now()->startOfDay());
+        
+        // Get stok pakan untuk dropdown
+        $stokPakanList = \App\Models\StokPakan::where('stok_kg', '>', 0)
+            ->orderBy('nama_pakan')
+            ->get();
+        
+        // Get parameter standar
+        $paramBeratStandar = \App\Models\ParameterStandar::where('fase', 'grower')
+            ->where('parameter', 'berat_rata_rata')
+            ->first();
+            
+        $paramSuhuStandar = \App\Models\ParameterStandar::where('fase', 'grower')
+            ->where('parameter', 'suhu')
+            ->first();
+            
+        $paramKelembabanStandar = \App\Models\ParameterStandar::where('fase', 'grower')
+            ->where('parameter', 'kelembaban')
+            ->first();
+        
+        // Get reminder vaksinasi
+        $reminders = \App\Models\Kesehatan::generateReminder($pembesaran->batch_produksi_id, $umurHari);
+        
+        return view('admin.pages.pembesaran.show-pembesaran', compact(
+            'pembesaran',
+            'populasiAwal',
+            'populasiSaatIni',
+            'totalMati',
+            'mortalitas',
+            'totalPakan',
+            'totalBiayaPakan',
+            'umurHari',
+            'stokPakanList',
+            'paramBeratStandar',
+            'paramSuhuStandar',
+            'paramKelembabanStandar',
+            'reminders'
+        ));
     }
 
     /**

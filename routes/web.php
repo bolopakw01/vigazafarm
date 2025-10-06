@@ -41,6 +41,36 @@ Route::middleware('auth')->group(function () {
     Route::patch('/admin/pembesaran/{pembesaran}', [App\Http\Controllers\PembesaranController::class, 'update'])->name('admin.pembesaran.update');
     Route::delete('/admin/pembesaran/{pembesaran}', [App\Http\Controllers\PembesaranController::class, 'destroy'])->name('admin.pembesaran.destroy');
     
+    // Pembesaran Recording routes (API-like for AJAX)
+    Route::prefix('admin/pembesaran/{pembesaran}')->name('admin.pembesaran.recording.')->group(function () {
+        // Pakan
+        Route::post('/pakan', [App\Http\Controllers\PembesaranRecordingController::class, 'storePakan'])->name('pakan');
+        Route::get('/pakan/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getPakanList'])->name('pakan.list');
+        Route::patch('/pakan/{pakan}', [App\Http\Controllers\PembesaranRecordingController::class, 'updatePakan'])->name('pakan.update');
+        Route::delete('/pakan/{pakan}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyPakan'])->name('pakan.destroy');
+        
+        // Kematian
+        Route::post('/kematian', [App\Http\Controllers\PembesaranRecordingController::class, 'storeKematian'])->name('kematian');
+        Route::get('/kematian/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getKematianList'])->name('kematian.list');
+        Route::patch('/kematian/{kematian}', [App\Http\Controllers\PembesaranRecordingController::class, 'updateKematian'])->name('kematian.update');
+        Route::delete('/kematian/{kematian}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyKematian'])->name('kematian.destroy');
+        
+        // Laporan Harian
+        Route::post('/laporan-harian', [App\Http\Controllers\PembesaranRecordingController::class, 'generateLaporanHarian'])->name('laporan');
+        Route::get('/laporan-harian/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getLaporanHarianList'])->name('laporan.list');
+        
+        // Monitoring Lingkungan
+        Route::post('/monitoring', [App\Http\Controllers\PembesaranRecordingController::class, 'storeMonitoring'])->name('lingkungan');
+        Route::get('/monitoring/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getMonitoringList'])->name('lingkungan.list');
+        
+        // Kesehatan
+        Route::post('/kesehatan', [App\Http\Controllers\PembesaranRecordingController::class, 'storeKesehatan'])->name('kesehatan');
+        Route::get('/kesehatan/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getKesehatanList'])->name('kesehatan.list');
+        
+        // Update Berat
+        Route::post('/berat', [App\Http\Controllers\PembesaranRecordingController::class, 'storeBeratRataRata'])->name('berat');
+    });
+    
     // Penetasan routes
     Route::get('/admin/penetasan', [AdminController::class, 'penetasan'])->name('admin.penetasan');
     // resource-like routes for penetasan actions used by the UI
