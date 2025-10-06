@@ -22,31 +22,41 @@
   /* Base typography */
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
   color: var(--ink);
+  /* Background gradient for entire wrapper */
+  /* background: linear-gradient(180deg, #fbfbfb 0%, var(--bg) 100%); */
+  min-height: 100vh;
 }
 
 .pembesaran-detail-wrapper .container-fluid {
-  background: linear-gradient(180deg, #fbfbfb 0%, var(--bg) 100%);
+  background: transparent !important;
   max-width: 100%;
   margin: 0 auto;
   padding-left: 1rem;
   padding-right: 1rem;
 }
 
-/* Notebook paper lines */
+/* Notebook paper lines - NO background, just the line pattern overlay */
 .pembesaran-detail-wrapper .lopa-notebook {
   background-image: repeating-linear-gradient(transparent 0 26px, rgba(0,0,0,0.03) 26px, rgba(0,0,0,0.03) 27px);
+  background-color: transparent;
+  /* create stacking context for pseudo overlays and nav z-indexing */
+  position: relative;
   padding: 1.25rem;
   border-radius: 14px;
-  background-color: transparent;
 }
 
+/* Only lopa-card has white background (for tabs content) */
 .pembesaran-detail-wrapper .lopa-card,
 .pembesaran-detail-wrapper .card.lopa-card {
-  background: var(--paper);
+  /* slightly translucent paper so surrounding gradient shows subtly */
+  background: rgba(255,255,255,0.96);
   border-radius: 12px;
   padding: 1.25rem;
-  border: 1px solid rgba(15,23,42,0.06);
-  box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+  /* remove full box border and keep only top border */
+  border: none;
+  border-top: 1px solid rgba(15,23,42,0.06);
+  /* lighter, subtler shadow */
+  box-shadow: 0 6px 18px rgba(15,23,42,0.02);
   position: relative;
   overflow: visible;
   margin-bottom: 1rem;
@@ -283,11 +293,22 @@
   display: flex;
   justify-content: center;
   gap: .35rem;
-  margin-bottom: 1rem;
+  /* reduce space underneath the tabs so they sit closer to the form */
+  margin-bottom: -0.10rem;
   flex-wrap: wrap;
   border-bottom: none;
   padding-left: 0;
   list-style: none;
+}
+
+/* ensure the tab row visually sits above the notebook 'paper' lines */
+.pembesaran-detail-wrapper .lopa-nav-tabs {
+  position: relative;
+  z-index: 2;
+  /* translucent background so tabs blend with the wrapper */
+  /* background: rgba(250,249,246,0.55);  */
+  padding: 0.12rem 0.18rem;
+  border-radius: 8px;
 }
 
 .pembesaran-detail-wrapper .lopa-nav-tabs .nav-item {
@@ -296,14 +317,14 @@
 
 .pembesaran-detail-wrapper .lopa-nav-tabs .nav-link {
   border: 1px solid rgba(15,23,42,0.06);
-  background: transparent;
+  background: #9595951f;
   color: var(--muted);
-  padding: .45rem .75rem;
+  padding: .38rem .7rem;
   border-radius: 10px 10px 0 0;
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
   display: block;
 }
 
@@ -313,10 +334,12 @@
 }
 
 .pembesaran-detail-wrapper .lopa-nav-tabs .nav-link.active {
-  background: #fff;
+  /* slightly translucent white so tab looks soft over the wrapper */
+  background: rgba(255,255,255,0.92);
   color: var(--accent);
-  box-shadow: 0 -6px 20px rgba(0,119,182,0.06);
-  transform: translateY(-2px);
+  box-shadow: 0 -4px 12px rgba(0,119,182,0.035);
+  /* slightly reduce the lift so the active tab sits nearer the panel */
+  transform: translateY(-1px);
 }
 
 /* Tab content */

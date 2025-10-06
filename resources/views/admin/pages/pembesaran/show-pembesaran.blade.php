@@ -6,8 +6,6 @@
 {{-- Custom CSS for this page only (scoped to prevent sidebar conflicts) --}}
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-pembesaran.css') }}">
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-part-pembesaran.css') }}">
-{{-- Inter font dari Google Fonts, Patrick Hand sudah local --}}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 {{-- ApexCharts for graphs --}}
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 @endpush
