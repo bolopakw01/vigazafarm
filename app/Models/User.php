@@ -33,10 +33,27 @@ class User extends Authenticatable
 
     /**
      * Get the name of the unique identifier for the user.
+     * 
+     * NOTE: This should return the primary key column name (id), NOT username.
+     * Returning 'nama_pengguna' causes Auth::id() to return username string
+     * instead of integer ID, breaking foreign key relationships.
+     * 
+     * If you want to login with username, use getAuthIdentifier() instead,
+     * or configure in config/auth.php
      */
     public function getAuthIdentifierName()
     {
-        return 'nama_pengguna';
+        return 'id';  // Changed from 'nama_pengguna' to 'id'
+    }
+    
+    /**
+     * Get the unique identifier for the user (username for login).
+     * This is used during authentication to find the user.
+     */
+    public function getAuthIdentifier()
+    {
+        // Return actual ID (integer) for Auth::id()
+        return $this->getKey();
     }
 
     /**

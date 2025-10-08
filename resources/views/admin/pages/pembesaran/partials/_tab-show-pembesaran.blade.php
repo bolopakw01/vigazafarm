@@ -153,11 +153,13 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Jenis Pakan <span class="text-danger">*</span></label>
-                            <select class="form-select" name="jenis_pakan" required>
-                                <option value="">-- Pilih Jenis --</option>
-                                <option value="Starter">Starter</option>
-                                <option value="Grower">Grower</option>
-                                <option value="Layer">Layer</option>
+                            <select class="form-select" name="stok_pakan_id" required>
+                                <option value="">-- Pilih Pakan --</option>
+                                @foreach($stokPakanList as $stok)
+                                <option value="{{ $stok->id }}" data-harga="{{ $stok->harga_per_kg }}">
+                                    {{ $stok->nama_pakan }} ({{ $stok->jenis_pakan }}) - Stok: {{ number_format($stok->stok_kg, 0) }} kg
+                                </option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -184,9 +186,19 @@
                     </div>
                 </form>
 
-                <div class="note-panel alt lopa-note-panel lopa-alt">
-                    <h6>History Pakan (30 hari terakhir)</h6>
-                    <p class="text-muted small mb-0">Belum ada data pakan</p>
+                <div class="note-panel alt lopa-note-panel lopa-alt" id="pakan-history-container">
+                    <div class="d-flex justify-content-between align-items-center mb-2" style="cursor: pointer;" onclick="toggleHistory('pakan')">
+                        <h6 class="mb-0">
+                            <i class="fa-solid fa-clock-rotate-left me-1" style="color:#10b981;"></i>
+                            History Pakan (30 hari terakhir)
+                        </h6>
+                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" id="toggle-pakan">
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div id="pakan-history-content" style="display: block;">
+                        <p class="text-muted small mb-0">Loading...</p>
+                    </div>
                 </div>
             </div>
 
@@ -211,10 +223,11 @@
                             <label class="form-label lopa-form-label">Penyebab <span class="text-danger">*</span></label>
                             <select class="form-select" name="penyebab" required>
                                 <option value="">-- Pilih Penyebab --</option>
-                                <option value="Sakit">Sakit</option>
-                                <option value="Kecelakaan">Kecelakaan</option>
-                                <option value="Tidak Diketahui">Tidak Diketahui</option>
-                                <option value="Lainnya">Lainnya</option>
+                                <option value="penyakit">Penyakit</option>
+                                <option value="stress">Stress</option>
+                                <option value="kecelakaan">Kecelakaan</option>
+                                <option value="usia">Usia Tua</option>
+                                <option value="tidak_diketahui">Tidak Diketahui</option>
                             </select>
                         </div>
                         <div class="col-12">
@@ -244,9 +257,19 @@
                     </div>
                 </div>
 
-                <div class="note-panel alt lopa-note-panel lopa-alt">
-                    <h6>History Kematian (30 hari terakhir)</h6>
-                    <p class="text-muted small mb-0">Belum ada data kematian</p>
+                <div class="note-panel alt lopa-note-panel lopa-alt" id="kematian-history-container">
+                    <div class="d-flex justify-content-between align-items-center mb-2" style="cursor: pointer;" onclick="toggleHistory('kematian')">
+                        <h6 class="mb-0">
+                            <i class="fa-solid fa-clock-rotate-left me-1" style="color:#ef4444;"></i>
+                            History Kematian (30 hari terakhir)
+                        </h6>
+                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" id="toggle-kematian">
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div id="kematian-history-content" style="display: block;">
+                        <p class="text-muted small mb-0">Loading...</p>
+                    </div>
                 </div>
             </div>
 
@@ -256,28 +279,46 @@
                     <i class="fa-solid fa-file-lines" style="color:var(--accent)"></i> 
                     Generate Laporan Harian
                 </h5>
-                <form class="form-card p-3 lopa-form-card" aria-label="Form laporan harian">
+                <form class="form-card p-3 lopa-form-card" id="form-laporan-harian" aria-label="Form laporan harian">
                     @csrf
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Tanggal Laporan <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="tanggal_laporan" value="{{ date('Y-m-d') }}" required />
+                            <input type="date" class="form-control" name="tanggal_laporan" id="tanggal_laporan" value="{{ date('Y-m-d') }}" required />
                         </div>
                         <div class="col-12">
-                            <label class="form-label lopa-form-label">Catatan Khusus</label>
-                            <textarea class="form-control" name="catatan" rows="2" placeholder="Catatan tambahan untuk laporan..."></textarea>
+                            <label class="form-label lopa-form-label">Catatan Laporan <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="catatan" id="catatan_laporan" rows="6" placeholder="Klik tombol 'Generate Catatan' untuk membuat laporan otomatis berdasarkan data pakan dan kematian hari ini..." required></textarea>
+                            <small class="form-text text-muted">
+                                <i class="fa-solid fa-lightbulb"></i> Tip: Klik tombol <strong>Generate Catatan</strong> untuk membuat laporan otomatis, lalu sesuaikan jika perlu sebelum menyimpan.
+                            </small>
                         </div>
                     </div>
-                    <div class="text-end mt-3">
-                        <button type="submit" class="btn btn-success">
-                            <i class="fa-solid fa-gears"></i> Generate Laporan
-                        </button>
+                    <div class="row mt-3">
+                        <div class="col-12 text-end">
+                            <button type="button" class="btn btn-info me-2" id="btn-generate-catatan">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Catatan
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa-solid fa-save"></i> Simpan Laporan
+                            </button>
+                        </div>
                     </div>
                 </form>
 
-                <div class="note-panel alt lopa-note-panel lopa-alt">
-                    <h6>History Laporan Harian (30 hari terakhir)</h6>
-                    <p class="text-muted small mb-0">Belum ada laporan harian</p>
+                <div class="note-panel alt lopa-note-panel lopa-alt" id="laporan-history-container">
+                    <div class="d-flex justify-content-between align-items-center mb-2" style="cursor: pointer;" onclick="toggleHistory('laporan')">
+                        <h6 class="mb-0">
+                            <i class="fa-solid fa-clock-rotate-left me-1" style="color:#3b82f6;"></i>
+                            History Laporan Harian (30 hari terakhir)
+                        </h6>
+                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" id="toggle-laporan">
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div id="laporan-history-content" style="display: block;">
+                        <p class="text-muted small mb-0">Loading...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -294,12 +335,12 @@
                     @csrf
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label lopa-form-label">Tanggal Sampling <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="tanggal_sampling" value="{{ date('Y-m-d') }}" required />
+                            <label class="form-label lopa-form-label">Umur (hari) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="umur_hari" placeholder="0" min="0" required />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Berat Rata-rata (gram) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" class="form-control" name="berat_rata" placeholder="0.00" required />
+                            <input type="number" step="0.01" class="form-control" name="berat_rata_rata" placeholder="0.00" min="0" required />
                         </div>
                     </div>
                     <div class="text-end mt-3">
@@ -336,12 +377,16 @@
                             <input type="number" step="0.1" class="form-control" name="kelembaban" placeholder="65.0" required />
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label lopa-form-label">Kualitas Udara</label>
-                            <select class="form-select" name="kualitas_udara">
+                            <label class="form-label lopa-form-label">Intensitas Cahaya (Lux)</label>
+                            <input type="number" step="0.1" class="form-control" name="intensitas_cahaya" placeholder="50" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label lopa-form-label">Kondisi Ventilasi</label>
+                            <select class="form-select" name="kondisi_ventilasi">
                                 <option value="">-- Pilih --</option>
                                 <option value="Baik">Baik</option>
                                 <option value="Cukup">Cukup</option>
-                                <option value="Buruk">Buruk</option>
+                                <option value="Kurang">Kurang</option>
                             </select>
                         </div>
                         <div class="col-12">
@@ -356,9 +401,19 @@
                     </div>
                 </form>
 
-                <div class="note-panel alt mt-3 lopa-note-panel lopa-alt">
-                    <h6>History Monitoring (50 data terakhir)</h6>
-                    <p class="text-muted small mb-0">Belum ada data monitoring</p>
+                <div class="note-panel alt mt-3 lopa-note-panel lopa-alt" id="monitoring-history-container">
+                    <div class="d-flex justify-content-between align-items-center mb-2" style="cursor: pointer;" onclick="toggleHistory('monitoring')">
+                        <h6 class="mb-0">
+                            <i class="fa-solid fa-clock-rotate-left me-1" style="color:#8b5cf6;"></i>
+                            History Monitoring (50 data terakhir)
+                        </h6>
+                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" id="toggle-monitoring">
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div id="monitoring-history-content" style="display: block;">
+                        <p class="text-muted small mb-0">Loading...</p>
+                    </div>
                 </div>
             </div>
 
@@ -387,36 +442,41 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Jenis Tindakan <span class="text-danger">*</span></label>
-                            <select class="form-select" name="jenis_tindakan" required>
+                            <select class="form-select" name="tipe_kegiatan" required>
                                 <option value="">-- Pilih --</option>
-                                <option value="Vaksinasi">Vaksinasi</option>
-                                <option value="Pengobatan">Pengobatan</option>
-                                <option value="Pemeriksaan">Pemeriksaan</option>
+                                <option value="vaksinasi">Vaksinasi</option>
+                                <option value="pengobatan">Pengobatan</option>
+                                <option value="pemeriksaan_rutin">Pemeriksaan Rutin</option>
+                                <option value="karantina">Karantina</option>
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Nama Vaksin/Obat <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="nama_vaksin" placeholder="Nama vaksin/obat" required />
+                            <input type="text" class="form-control" name="nama_vaksin_obat" placeholder="Nama vaksin/obat" required />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Dosis</label>
-                            <input type="text" class="form-control" name="dosis" placeholder="Dosis" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Metode</label>
-                            <input type="text" class="form-control" name="metode" placeholder="Oral/Injeksi/dll" />
+                            <label class="form-label lopa-form-label">Jumlah Burung <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="jumlah_burung" placeholder="0" min="1" required />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Biaya</label>
                             <input type="number" class="form-control" name="biaya" placeholder="0" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label lopa-form-label">Petugas</label>
+                            <input type="text" class="form-control" name="petugas" placeholder="Nama petugas" />
                         </div>
                         <div class="col-12">
                             <label class="form-label lopa-form-label">Gejala/Kondisi</label>
                             <textarea class="form-control" name="gejala" rows="2" placeholder="Deskripsi kondisi atau gejala..."></textarea>
                         </div>
                         <div class="col-12">
-                            <label class="form-label lopa-form-label">Catatan</label>
-                            <textarea class="form-control" name="catatan" rows="2" placeholder="Catatan tambahan..."></textarea>
+                            <label class="form-label lopa-form-label">Diagnosa</label>
+                            <textarea class="form-control" name="diagnosa" rows="2" placeholder="Hasil diagnosa..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label lopa-form-label">Tindakan</label>
+                            <textarea class="form-control" name="tindakan" rows="2" placeholder="Tindakan yang dilakukan..."></textarea>
                         </div>
                     </div>
                     <div class="text-end mt-3">
@@ -479,3 +539,97 @@
         </div>
     </div>
 </div>
+
+<script>
+// Toggle Show/Hide History Sections
+function toggleHistory(section) {
+    const content = document.getElementById(`${section}-history-content`);
+    const toggleBtn = document.getElementById(`toggle-${section}`);
+    const icon = toggleBtn.querySelector('i');
+    
+    if (content.style.display === 'none') {
+        // Show
+        content.style.display = 'block';
+        icon.className = 'fa-solid fa-chevron-down';
+        // Save state to localStorage
+        localStorage.setItem(`history-${section}-visible`, 'true');
+    } else {
+        // Hide
+        content.style.display = 'none';
+        icon.className = 'fa-solid fa-chevron-right';
+        // Save state to localStorage
+        localStorage.setItem(`history-${section}-visible`, 'false');
+    }
+}
+
+// Restore saved toggle states on page load
+document.addEventListener('DOMContentLoaded', function() {
+    ['pakan', 'kematian', 'laporan', 'monitoring'].forEach(section => {
+        const savedState = localStorage.getItem(`history-${section}-visible`);
+        if (savedState === 'false') {
+            // If previously hidden, hide it again
+            const content = document.getElementById(`${section}-history-content`);
+            const toggleBtn = document.getElementById(`toggle-${section}`);
+            const icon = toggleBtn?.querySelector('i');
+            
+            if (content) content.style.display = 'none';
+            if (icon) icon.className = 'fa-solid fa-chevron-right';
+        }
+    });
+
+    // Tab persistence implementation (simple approach - just trigger click)
+    const pembesaranId = window.vigazaConfig?.pembesaranId || '{{ $pembesaran->id ?? "" }}';
+    const tabStorageKey = `pembesaran_active_tab_${pembesaranId}`;
+    
+    // Function to activate tab safely by triggering click
+    function activateTab(tabId) {
+        const tabElement = document.querySelector(`button[data-bs-target="${tabId}"]`);
+        if (tabElement && !tabElement.classList.contains('active')) {
+            // Simply click the tab button - Bootstrap handles the rest
+            tabElement.click();
+        }
+    }
+    
+    // Restore tab from URL hash or localStorage
+    const urlHash = window.location.hash;
+    let targetTab = null;
+    
+    if (urlHash && urlHash.startsWith('#')) {
+        const hashTabId = urlHash.substring(1);
+        const validTabs = ['infoBatch', 'recordHarian', 'recordMingguan', 'grafikAnalisis'];
+        if (validTabs.includes(hashTabId)) {
+            targetTab = `#${hashTabId}`;
+        }
+    }
+    
+    // Fallback to localStorage if no hash or hash invalid
+    if (!targetTab) {
+        const savedTab = localStorage.getItem(tabStorageKey);
+        if (savedTab) {
+            targetTab = savedTab;
+        }
+    }
+    
+    // Activate the determined tab (with small delay to ensure DOM is ready)
+    if (targetTab && targetTab !== '#infoBatch') {
+        setTimeout(() => activateTab(targetTab), 150);
+    }
+    
+    // Listen to tab changes and save to localStorage + update URL hash
+    const tabButtons = document.querySelectorAll('#batchTabs button[data-bs-toggle="tab"]');
+    tabButtons.forEach(button => {
+        button.addEventListener('shown.bs.tab', function(event) {
+            const targetId = event.target.getAttribute('data-bs-target');
+            if (targetId) {
+                localStorage.setItem(tabStorageKey, targetId);
+                // Update URL hash without scrolling
+                if (history.replaceState) {
+                    history.replaceState(null, null, targetId);
+                } else {
+                    window.location.hash = targetId;
+                }
+            }
+        });
+    });
+});
+</script>

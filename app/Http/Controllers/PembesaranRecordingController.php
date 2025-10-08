@@ -141,9 +141,8 @@ class PembesaranRecordingController extends Controller
     /**
      * Get list pakan untuk pembesaran
      */
-    public function getPakanList($pembesaranId)
+    public function getPakanList(Pembesaran $pembesaran)
     {
-        $pembesaran = Pembesaran::findOrFail($pembesaranId);
         
         $pakanList = Pakan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->with('stokPakan')
@@ -247,9 +246,8 @@ class PembesaranRecordingController extends Controller
     /**
      * Get list kematian
      */
-    public function getKematianList($pembesaranId)
+    public function getKematianList(Pembesaran $pembesaran)
     {
-        $pembesaran = Pembesaran::findOrFail($pembesaranId);
         
         $kematianList = Kematian::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->orderByDesc('tanggal')
@@ -290,10 +288,35 @@ class PembesaranRecordingController extends Controller
             'catatan_kejadian' => 'nullable|string',
         ]);
 
+        // Get authenticated user ID (should be integer)
+        $userId = Auth::id();
+        
+        // Fallback: if Auth::id() returns null, try to get from Auth::user()
+        if (!$userId && Auth::check()) {
+            $userId = Auth::user()->id;
+        }
+        
+        // Last resort: get first user ID (for development only)
+        if (!$userId) {
+            $userId = \App\Models\User::first()->id ?? 1;
+        }
+
+        // Check if laporan already exists for this date (server-side guard)
+        $existing = LaporanHarian::getLaporanHarian($pembesaran->batch_produksi_id, $validated['tanggal']);
+        if ($existing) {
+            return response()->json([
+                'success' => true,
+                'already_exists' => true,
+                'message' => 'Anda sudah melakukan pencatatan laporan harian untuk tanggal ini',
+                'data' => $existing,
+            ]);
+        }
+
+        // Create laporan jika belum ada
         $laporan = LaporanHarian::generateLaporanHarian(
             $pembesaran->batch_produksi_id,
             $validated['tanggal'],
-            Auth::id()
+            $userId
         );
 
         if ($laporan && $validated['catatan_kejadian']) {
@@ -303,6 +326,7 @@ class PembesaranRecordingController extends Controller
 
         return response()->json([
             'success' => true,
+            'already_exists' => false,
             'message' => 'Laporan harian berhasil di-generate',
             'data' => $laporan,
         ]);
@@ -311,9 +335,8 @@ class PembesaranRecordingController extends Controller
     /**
      * Get laporan harian list
      */
-    public function getLaporanHarianList($pembesaranId)
+    public function getLaporanHarianList(Pembesaran $pembesaran)
     {
-        $pembesaran = Pembesaran::findOrFail($pembesaranId);
         
         $laporanList = LaporanHarian::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->with('pengguna')
@@ -324,6 +347,84 @@ class PembesaranRecordingController extends Controller
         return response()->json([
             'success' => true,
             'data' => $laporanList,
+        ]);
+    }
+
+    /**
+     * Show detail laporan harian (full page with layout)
+     */
+    public function showLaporanHarian(Pembesaran $pembesaran, LaporanHarian $laporan)
+    {
+        // Verify laporan belongs to this pembesaran
+        if ($laporan->batch_produksi_id !== $pembesaran->batch_produksi_id) {
+            abort(404, 'Laporan tidak ditemukan untuk pembesaran ini');
+        }
+
+        // Load relasi
+        $laporan->load('pengguna');
+
+        return view('admin.pages.pembesaran.detail-laporan', [
+            'laporan' => $laporan,
+            'pembesaran' => $pembesaran
+        ]);
+    }
+
+    /**
+     * Update laporan harian (hanya pembuat atau owner)
+     */
+    public function updateLaporanHarian(Request $request, Pembesaran $pembesaran, LaporanHarian $laporan)
+    {
+        // Verify laporan belongs to this pembesaran
+        if ($laporan->batch_produksi_id !== $pembesaran->batch_produksi_id) {
+            abort(404, 'Laporan tidak ditemukan untuk pembesaran ini');
+        }
+
+        // Authorization: hanya pembuat atau owner
+        $user = Auth::user();
+        if ($laporan->pengguna_id !== $user->id && $user->peran !== 'owner') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki izin untuk mengedit laporan ini'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'catatan_kejadian' => 'nullable|string',
+        ]);
+
+        $laporan->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Laporan berhasil diperbarui',
+            'data' => $laporan
+        ]);
+    }
+
+    /**
+     * Delete laporan harian (hanya pembuat atau owner)
+     */
+    public function destroyLaporanHarian(Pembesaran $pembesaran, LaporanHarian $laporan)
+    {
+        // Verify laporan belongs to this pembesaran
+        if ($laporan->batch_produksi_id !== $pembesaran->batch_produksi_id) {
+            abort(404, 'Laporan tidak ditemukan untuk pembesaran ini');
+        }
+
+        // Authorization: hanya pembuat atau owner
+        $user = Auth::user();
+        if ($laporan->pengguna_id !== $user->id && $user->peran !== 'owner') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki izin untuk menghapus laporan ini'
+            ], 403);
+        }
+
+        $laporan->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Laporan berhasil dihapus'
         ]);
     }
 
@@ -374,9 +475,8 @@ class PembesaranRecordingController extends Controller
     /**
      * Get monitoring list
      */
-    public function getMonitoringList($pembesaranId)
+    public function getMonitoringList(Pembesaran $pembesaran)
     {
-        $pembesaran = Pembesaran::findOrFail($pembesaranId);
         
         $monitoringList = MonitoringLingkungan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->orderByDesc('waktu_pencatatan')
@@ -444,9 +544,8 @@ class PembesaranRecordingController extends Controller
     /**
      * Get kesehatan list
      */
-    public function getKesehatanList($pembesaranId)
+    public function getKesehatanList(Pembesaran $pembesaran)
     {
-        $pembesaran = Pembesaran::findOrFail($pembesaranId);
         
         $kesehatanList = Kesehatan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->orderByDesc('tanggal')
@@ -475,6 +574,57 @@ class PembesaranRecordingController extends Controller
      * ==================================================
      */
     
+    /**
+     * Store berat rata-rata pembesaran (sampling mingguan)
+     */
+    public function storeBeratRataRata(Request $request, $pembesaranId)
+    {
+        $pembesaran = Pembesaran::findOrFail($pembesaranId);
+        
+        $validated = $request->validate([
+            'berat_rata_rata' => 'required|numeric|min:0',
+            'umur_hari' => 'required|integer|min:0',
+        ]);
+
+        $pembesaran->update([
+            'berat_rata_rata' => $validated['berat_rata_rata'],
+            'umur_hari' => $validated['umur_hari'],
+        ]);
+
+        // Get parameter standar untuk grower
+        $paramStandar = ParameterStandar::where('fase', 'grower')
+            ->where('parameter', 'berat_rata_rata')
+            ->first();
+
+        $status = 'normal';
+        $badge = 'success';
+        $message = 'Berat sesuai standar';
+
+        if ($paramStandar) {
+            if ($validated['berat_rata_rata'] < $paramStandar->nilai_minimal) {
+                $status = 'warning';
+                $badge = 'warning';
+                $message = 'Berat di bawah standar minimal';
+            } elseif ($validated['berat_rata_rata'] > $paramStandar->nilai_maksimal) {
+                $status = 'success';
+                $badge = 'success';
+                $message = 'Berat di atas standar (performa sangat baik)';
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Berat rata-rata berhasil disimpan',
+            'data' => $pembesaran,
+            'standar' => $paramStandar,
+            'status' => [
+                'status' => $status,
+                'badge' => $badge,
+                'message' => $message,
+            ],
+        ]);
+    }
+
     /**
      * Update berat rata-rata pembesaran (sampling mingguan)
      */

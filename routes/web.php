@@ -58,6 +58,9 @@ Route::middleware('auth')->group(function () {
         // Laporan Harian
         Route::post('/laporan-harian', [App\Http\Controllers\PembesaranRecordingController::class, 'generateLaporanHarian'])->name('laporan');
         Route::get('/laporan-harian/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getLaporanHarianList'])->name('laporan.list');
+        Route::get('/laporan-harian/{laporan}', [App\Http\Controllers\PembesaranRecordingController::class, 'showLaporanHarian'])->name('laporan.show');
+        Route::patch('/laporan-harian/{laporan}', [App\Http\Controllers\PembesaranRecordingController::class, 'updateLaporanHarian'])->name('laporan.update');
+        Route::delete('/laporan-harian/{laporan}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyLaporanHarian'])->name('laporan.destroy');
         
         // Monitoring Lingkungan
         Route::post('/monitoring', [App\Http\Controllers\PembesaranRecordingController::class, 'storeMonitoring'])->name('lingkungan');

@@ -93,30 +93,21 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('bolopa/js/admin-show-part-pembesaran.js') }}"></script>
+{{-- Pass data to JavaScript --}}
 <script>
-// Ensure Bootstrap tabs work properly
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize all tab triggers
-    const tabTriggers = document.querySelectorAll('[data-bs-toggle="tab"]');
-    
-    tabTriggers.forEach(trigger => {
-        trigger.addEventListener('click', function(e) {
-            e.preventDefault();
-            const tab = new bootstrap.Tab(this);
-            tab.show();
-        });
-        
-        // Accessibility update on tab shown
-        trigger.addEventListener('shown.bs.tab', function(e) {
-            tabTriggers.forEach(t => t.setAttribute('aria-selected', 'false'));
-            e.target.setAttribute('aria-selected', 'true');
-        });
-    });
-    
-    console.log('Bootstrap tabs initialized:', tabTriggers.length, 'tabs found');
-});
+    // Global config for AJAX endpoints
+    window.vigazaConfig = {
+        baseUrl: '{{ url('/') }}',
+        pembesaranId: {{ $pembesaran->id }},
+        csrfToken: '{{ csrf_token() }}'
+    };
 </script>
+<script src="{{ asset('bolopa/js/admin-show-part-pembesaran.js') }}?v={{ time() }}"></script>
+<script>
+// Tab persistence is now handled by the partial view (_tab-show-pembesaran.blade.php)
+// This script is kept minimal to avoid conflicts
+console.log('✅ Pembesaran detail page loaded');
+
 @endpush
 
 

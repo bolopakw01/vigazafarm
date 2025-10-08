@@ -89,6 +89,11 @@ class LaporanHarian extends Model
      */
     public static function generateLaporanHarian($batchId, $date, $userId = null)
     {
+        // Ensure userId is integer or null
+        if ($userId !== null) {
+            $userId = (int) $userId;
+        }
+        
         // Get pembesaran data
         $pembesaran = Pembesaran::where('batch_produksi_id', $batchId)->first();
         
