@@ -3,6 +3,32 @@
     $mortalitasFormatted = $mortalitas == floor($mortalitas) 
         ? number_format($mortalitas, 0) 
         : rtrim(rtrim(number_format($mortalitas, 2), '0'), '.');
+    
+    // Hitung FCR (Feed Conversion Ratio)
+    // FCR = Total Pakan Konsumsi (kg) / Total Pertambahan Berat Badan (kg)
+    // Rumus: FCR = Total Pakan / (Populasi Saat Ini × (Berat Akhir - Berat Awal))
+    
+    $beratAwalKg = 0.009; // Berat awal DOC puyuh standar = 9 gram = 0.009 kg
+    $beratAkhirKg = ($pembesaran->berat_rata_rata ?? 0) / 1000; // konversi gram ke kg
+    $pertambahanBeratPerEkor = $beratAkhirKg - $beratAwalKg; // kg per ekor
+    $totalPertambahanBerat = $pertambahanBeratPerEkor * $populasiSaatIni; // total kg
+    
+    // Hitung FCR - cek jika total pakan dan pertambahan berat > 0
+    if ($totalPakan > 0 && $totalPertambahanBerat > 0 && $beratAkhirKg > $beratAwalKg) {
+        $fcr = $totalPakan / $totalPertambahanBerat;
+    } else {
+        $fcr = 0;
+    }
+    
+    // Format FCR
+    $fcrFormatted = $fcr == floor($fcr) 
+        ? number_format($fcr, 0) 
+        : number_format($fcr, 2);
+    
+    // Cek status batch - jika selesai, disable semua form
+    $isStatusSelesai = strtolower($pembesaran->status_batch ?? 'aktif') === 'selesai';
+    $disabledAttr = $isStatusSelesai ? 'disabled' : '';
+    $readonlyAttr = $isStatusSelesai ? 'readonly' : '';
 @endphp
 
 {{-- Notebook Container with Tabs --}}
@@ -119,8 +145,31 @@
                                     <div class="label lopa-label">Populasi Saat Ini</div>
                                 </div>
                                 <div class="stat-card lopa-stat-card">
-                                    <div class="value lopa-value">{{ number_format($totalMati) }}</div>
-                                    <div class="label lopa-label">Total Kematian</div>
+                                    <div class="value lopa-value">
+                                        @if($fcr > 0)
+                                            {{ $fcrFormatted }}
+                                            @if($fcr <= 2.5)
+                                                <span style="color: #28a745; font-size: 0.6rem;">●</span>
+                                            @elseif($fcr <= 3.5)
+                                                <span style="color: #0d6efd; font-size: 0.6rem;">●</span>
+                                            @elseif($fcr <= 4.5)
+                                                <span style="color: #ffc107; font-size: 0.6rem;">●</span>
+                                            @else
+                                                <span style="color: #dc3545; font-size: 0.6rem;">●</span>
+                                            @endif
+                                        @else
+                                            <span style="font-size: 1.2rem; color: #6c757d;">-</span>
+                                        @endif
+                                    </div>
+                                    <div class="label lopa-label" style="display: flex; align-items: center; justify-content: flex-start; gap: 0.25rem;">
+                                        FCR
+                                        @if($fcr == 0)
+                                            <i class="fa-solid fa-info-circle" style="font-size: 0.7rem; color: #6c757d;" 
+                                               data-bs-toggle="tooltip" 
+                                               data-bs-html="true"
+                                               title="<strong>FCR akan muncul jika:</strong><br>1. Ada data konsumsi pakan<br>2. Berat rata-rata > 9 gram<br>3. Ada populasi aktif"></i>
+                                        @endif
+                                    </div>
                                 </div>
                                 <div class="stat-card lopa-stat-card">
                                     <div class="value lopa-value">{{ $pembesaran->berat_rata_rata ? number_format($pembesaran->berat_rata_rata, 0) : 0 }}g</div>
@@ -164,19 +213,28 @@
                                 <!-- Total Biaya Pakan -->
                                 <div class="mb-3">
                                     <div class="text-muted mb-1" style="font-size: 0.85rem;">Total Biaya Pakan</div>
-                                    <div class="fw-bold text-end" style="font-size: 1rem; font-weight: 700 !important;">Rp {{ number_format($totalBiayaPakan, 0, ',', '.') }}</div>
+                                    <div class="fw-bold" style="font-size: 1rem; font-weight: 700 !important; display: flex; justify-content: space-between; align-items: flex-start;">
+                                        <span style="font-size: 0.75rem; color: #6c757d; margin-top: 0.1rem;">Rp</span>
+                                        <span style="text-align: right;">{{ number_format($totalBiayaPakan, 0, ',', '.') }}</span>
+                                    </div>
                                 </div>
                                 
                                 <!-- Biaya Kesehatan -->
                                 <div class="mb-3">
                                     <div class="text-muted mb-1" style="font-size: 0.85rem;">Biaya Kesehatan & Vaksinasi</div>
-                                    <div class="fw-bold text-end" style="font-size: 1rem; font-weight: 700 !important;">Rp {{ number_format($totalBiayaKesehatan ?? 0, 0, ',', '.') }}</div>
+                                    <div class="fw-bold" style="font-size: 1rem; font-weight: 700 !important; display: flex; justify-content: space-between; align-items: flex-start;">
+                                        <span style="font-size: 0.75rem; color: #6c757d; margin-top: 0.1rem;">Rp</span>
+                                        <span style="text-align: right;">{{ number_format($totalBiayaKesehatan ?? 0, 0, ',', '.') }}</span>
+                                    </div>
                                 </div>
                                 
                                 <!-- Total Keseluruhan -->
                                 <div class="pt-3" style="border-top: 2px solid #495057;">
                                     <div class="text-muted mb-1" style="font-size: 0.85rem;">Total Biaya Keseluruhan</div>
-                                    <div class="fw-bold text-end" style="font-size: 1rem; font-weight: 800 !important; color: #198754;">Rp {{ number_format(($totalBiayaPakan + ($totalBiayaKesehatan ?? 0)), 0, ',', '.') }}</div>
+                                    <div class="fw-bold" style="font-size: 1rem; font-weight: 800 !important; color: #198754; display: flex; justify-content: space-between; align-items: flex-start;">
+                                        <span style="font-size: 0.75rem; margin-top: 0.1rem;">Rp</span>
+                                        <span style="text-align: right;">{{ number_format(($totalBiayaPakan + ($totalBiayaKesehatan ?? 0)), 0, ',', '.') }}</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="row g-2 mt-3">
@@ -194,11 +252,87 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Action Buttons --}}
+                @php
+                    $user = auth()->user();
+                    $isOwnerOrSuperAdmin = $user && ($user->peran === 'owner' || $user->peran === 'super_admin');
+                    $isAktif = strtolower($pembesaran->status_batch ?? 'aktif') === 'aktif';
+                    $targetUmur = 35;
+                    $targetTercapai = $umurHari >= $targetUmur && (!$pembesaran->target_berat_akhir || $pembesaran->berat_rata_rata >= $pembesaran->target_berat_akhir);
+                @endphp
+
+                @if($isAktif)
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="alert alert-info" role="alert" style="padding: 1rem;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+                                    <div style="display: flex; align-items: center; gap: 1rem; flex: 1;">
+                                        <i class="fa-solid fa-info-circle" style="font-size: 1.5rem; flex-shrink: 0;"></i>
+                                        <div style="flex: 1;">
+                                            @if($targetTercapai)
+                                                <strong>Target Tercapai!</strong> Batch sudah mencapai target umur ({{ $umurHari }}/{{ $targetUmur }} hari) 
+                                                @if($pembesaran->target_berat_akhir)
+                                                    dan berat ({{ $pembesaran->berat_rata_rata }}/{{ $pembesaran->target_berat_akhir }}g)
+                                                @endif
+                                                . Anda dapat menyelesaikan batch ini.
+                                            @else
+                                                <strong>Batch Sedang Berjalan</strong> - 
+                                                Umur: {{ $umurHari }}/{{ $targetUmur }} hari
+                                                @if($pembesaran->target_berat_akhir)
+                                                    | Berat: {{ $pembesaran->berat_rata_rata }}/{{ $pembesaran->target_berat_akhir }}g
+                                                @endif
+                                                @if($isOwnerOrSuperAdmin)
+                                                    <br>
+                                                    <span class="badge mt-2" style="background-color: #fbbf24; color: #000000a9;">
+                                                        <i class="fa-solid fa-crown" style="margin-right: 0.35rem;"></i>Overdrive Mode: Anda dapat menyelesaikan kapan pun
+                                                    </span>
+                                                @endif
+                                            @endif
+                                        </div>
+                                    </div>
+                                    @if($isOwnerOrSuperAdmin || $targetTercapai)
+                                        <div style="flex-shrink: 0;">
+                                            <form action="{{ route('admin.pembesaran.selesaikan', $pembesaran) }}" method="POST" 
+                                                  onsubmit="return confirm('Apakah Anda yakin ingin menyelesaikan batch ini? Status akan berubah menjadi Selesai.')">
+                                                @csrf
+                                                <button type="submit" class="btn btn-success btn-sm" style="white-space: nowrap;">
+                                                    <i class="fa-solid fa-check-circle me-1"></i> Selesaikan Batch
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @elseif($pembesaran->status_batch === 'Selesai')
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="alert alert-success d-flex align-items-center" role="alert">
+                                <i class="fa-solid fa-check-circle me-3" style="font-size: 1.5rem; flex-shrink: 0;"></i>
+                                <div>
+                                    <strong>Batch Selesai</strong> - 
+                                    Diselesaikan pada: {{ $pembesaran->tanggal_selesai ? \Carbon\Carbon::parse($pembesaran->tanggal_selesai)->format('d/m/Y') : '-' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
 
         {{-- Tab 2: Recording Harian --}}
         <div class="tab-pane fade" id="recordHarian" role="tabpanel" aria-labelledby="tab-daily">
+            @if($isStatusSelesai)
+                <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+                    <i class="fa-solid fa-lock me-3" style="font-size: 1.5rem; flex-shrink: 0;"></i>
+                    <div>
+                        <strong>Batch Sudah Selesai</strong> - Pencatatan tidak dapat dilakukan lagi. Anda hanya dapat melihat data historis.
+                    </div>
+                </div>
+            @endif
+
             {{-- Konsumsi Pakan Harian --}}
             <div class="card mb-4 lopa-card">
                 <h5 class="section-title lopa-section-title">
@@ -210,11 +344,11 @@
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Tanggal <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" required />
+                            <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Jenis Pakan <span class="text-danger">*</span></label>
-                            <select class="form-select" name="stok_pakan_id" required>
+                            <select class="form-select" name="stok_pakan_id" {{ $disabledAttr }} required>
                                 <option value="">-- Pilih Pakan --</option>
                                 @foreach($stokPakanList as $stok)
                                 <option value="{{ $stok->id }}" data-harga="{{ $stok->harga_per_kg }}">
@@ -225,15 +359,15 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Jumlah (kg) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" class="form-control" name="jumlah_kg" placeholder="0.00" required />
+                            <input type="number" step="0.01" class="form-control" name="jumlah_kg" placeholder="0.00" {{ $disabledAttr }} required />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Jumlah Karung</label>
-                            <input type="number" class="form-control" name="jumlah_karung" placeholder="0" />
+                            <input type="number" class="form-control" name="jumlah_karung" placeholder="0" {{ $disabledAttr }} />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Harga per kg</label>
-                            <input type="number" class="form-control" name="harga_per_kg" placeholder="Rp 0" />
+                            <input type="number" class="form-control" name="harga_per_kg" placeholder="Rp 0" {{ $disabledAttr }} />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Total Biaya</label>
@@ -241,7 +375,7 @@
                         </div>
                     </div>
                     <div class="text-end mt-3">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" {{ $disabledAttr }}>
                             <i class="fa-solid fa-save"></i> Simpan Pakan
                         </button>
                     </div>
@@ -274,15 +408,15 @@
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Tanggal <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" required />
+                            <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Jumlah Ekor <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" name="jumlah_ekor" placeholder="0" required />
+                            <input type="number" class="form-control" name="jumlah_ekor" placeholder="0" {{ $disabledAttr }} required />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Penyebab <span class="text-danger">*</span></label>
-                            <select class="form-select" name="penyebab" required>
+                            <select class="form-select" name="penyebab" {{ $disabledAttr }} required>
                                 <option value="">-- Pilih Penyebab --</option>
                                 <option value="penyakit">Penyakit</option>
                                 <option value="stress">Stress</option>
@@ -293,11 +427,11 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label lopa-form-label">Catatan</label>
-                            <textarea class="form-control" name="catatan" rows="2" placeholder="Catatan tambahan..."></textarea>
+                            <textarea class="form-control" name="catatan" rows="2" placeholder="Catatan tambahan..." {{ $disabledAttr }}></textarea>
                         </div>
                     </div>
                     <div class="text-end mt-3">
-                        <button type="submit" class="btn btn-danger">
+                        <button type="submit" class="btn btn-danger" {{ $disabledAttr }}>
                             <i class="fa-solid fa-save"></i> Simpan Kematian
                         </button>
                     </div>
@@ -345,11 +479,11 @@
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Tanggal Laporan <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="tanggal_laporan" id="tanggal_laporan" value="{{ date('Y-m-d') }}" required />
+                            <input type="date" class="form-control" name="tanggal_laporan" id="tanggal_laporan" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
                         </div>
                         <div class="col-12">
                             <label class="form-label lopa-form-label">Catatan Laporan <span class="text-danger">*</span></label>
-                            <textarea class="form-control" name="catatan" id="catatan_laporan" rows="6" placeholder="Klik tombol 'Generate Catatan' untuk membuat laporan otomatis berdasarkan data pakan dan kematian hari ini..." required></textarea>
+                            <textarea class="form-control" name="catatan" id="catatan_laporan" rows="6" placeholder="Klik tombol 'Generate Catatan' untuk membuat laporan otomatis berdasarkan data pakan dan kematian hari ini..." {{ $disabledAttr }} required></textarea>
                             <small class="form-text text-muted">
                                 <i class="fa-solid fa-lightbulb"></i> Tip: Klik tombol <strong>Generate Catatan</strong> untuk membuat laporan otomatis, lalu sesuaikan jika perlu sebelum menyimpan.
                             </small>
@@ -357,10 +491,10 @@
                     </div>
                     <div class="row mt-3">
                         <div class="col-12 text-end">
-                            <button type="button" class="btn btn-info me-2" id="btn-generate-catatan">
+                            <button type="button" class="btn btn-info me-2" id="btn-generate-catatan" {{ $disabledAttr }}>
                                 <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Catatan
                             </button>
-                            <button type="submit" class="btn btn-success">
+                            <button type="submit" class="btn btn-success" {{ $disabledAttr }}>
                                 <i class="fa-solid fa-save"></i> Simpan Laporan
                             </button>
                         </div>
@@ -386,6 +520,15 @@
 
         {{-- Tab 3: Recording Mingguan --}}
         <div class="tab-pane fade" id="recordMingguan" role="tabpanel" aria-labelledby="tab-weekly">
+            @if($isStatusSelesai)
+                <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+                    <i class="fa-solid fa-lock me-3" style="font-size: 1.5rem; flex-shrink: 0;"></i>
+                    <div>
+                        <strong>Batch Sudah Selesai</strong> - Pencatatan tidak dapat dilakukan lagi. Anda hanya dapat melihat data historis.
+                    </div>
+                </div>
+            @endif
+
             {{-- Sampling Berat --}}
             <div class="card mb-4 lopa-card">
                 <h5 class="section-title lopa-section-title">
@@ -406,11 +549,11 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Berat Rata-rata (gram) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" class="form-control" name="berat_rata_rata" placeholder="0.00" min="0" required />
+                            <input type="number" step="0.01" class="form-control" name="berat_rata_rata" placeholder="0.00" min="0" {{ $disabledAttr }} required />
                         </div>
                     </div>
                     <div class="text-end mt-3">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" {{ $disabledAttr }}>
                             <i class="fa-solid fa-floppy-disk"></i> Simpan Berat
                         </button>
                     </div>
@@ -443,27 +586,27 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Tanggal <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" required />
+                            <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Waktu <span class="text-danger">*</span></label>
-                            <input type="time" class="form-control" name="waktu" required />
+                            <input type="time" class="form-control" name="waktu" {{ $disabledAttr }} required />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Suhu (°C) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.1" class="form-control" name="suhu" placeholder="28.0" required />
+                            <input type="number" step="0.1" class="form-control" name="suhu" placeholder="28.0" {{ $disabledAttr }} required />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Kelembaban (%) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.1" class="form-control" name="kelembaban" placeholder="65.0" required />
+                            <input type="number" step="0.1" class="form-control" name="kelembaban" placeholder="65.0" {{ $disabledAttr }} required />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Intensitas Cahaya (Lux)</label>
-                            <input type="number" step="0.1" class="form-control" name="intensitas_cahaya" placeholder="50" />
+                            <input type="number" step="0.1" class="form-control" name="intensitas_cahaya" placeholder="50" {{ $disabledAttr }} />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Kondisi Ventilasi</label>
-                            <select class="form-select" name="kondisi_ventilasi">
+                            <select class="form-select" name="kondisi_ventilasi" {{ $disabledAttr }}>
                                 <option value="">-- Pilih --</option>
                                 <option value="Baik">Baik</option>
                                 <option value="Cukup">Cukup</option>
@@ -472,11 +615,11 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label lopa-form-label">Catatan</label>
-                            <textarea class="form-control" name="catatan" rows="2" placeholder="Catatan kondisi lingkungan..."></textarea>
+                            <textarea class="form-control" name="catatan" rows="2" placeholder="Catatan kondisi lingkungan..." {{ $disabledAttr }}></textarea>
                         </div>
                     </div>
                     <div class="text-end mt-3">
-                        <button type="submit" class="btn btn-success">
+                        <button type="submit" class="btn btn-success" {{ $disabledAttr }}>
                             <i class="fa-solid fa-save"></i> Simpan Monitoring
                         </button>
                     </div>
@@ -519,11 +662,11 @@
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Tanggal <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" required />
+                            <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Jenis Tindakan <span class="text-danger">*</span></label>
-                            <select class="form-select" name="tipe_kegiatan" required>
+                            <select class="form-select" name="tipe_kegiatan" {{ $disabledAttr }} required>
                                 <option value="">-- Pilih --</option>
                                 <option value="vaksinasi">Vaksinasi</option>
                                 <option value="pengobatan">Pengobatan</option>
@@ -533,35 +676,35 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Nama Vaksin/Obat <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="nama_vaksin_obat" placeholder="Nama vaksin/obat" required />
+                            <input type="text" class="form-control" name="nama_vaksin_obat" placeholder="Nama vaksin/obat" {{ $disabledAttr }} required />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Jumlah Burung <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" name="jumlah_burung" placeholder="0" min="1" required />
+                            <input type="number" class="form-control" name="jumlah_burung" placeholder="0" min="1" {{ $disabledAttr }} required />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Biaya</label>
-                            <input type="number" class="form-control" name="biaya" placeholder="0" />
+                            <input type="number" class="form-control" name="biaya" placeholder="0" {{ $disabledAttr }} />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Petugas</label>
-                            <input type="text" class="form-control" name="petugas" placeholder="Nama petugas" />
+                            <input type="text" class="form-control" name="petugas" placeholder="Nama petugas" {{ $disabledAttr }} />
                         </div>
                         <div class="col-12">
                             <label class="form-label lopa-form-label">Gejala/Kondisi</label>
-                            <textarea class="form-control" name="gejala" rows="2" placeholder="Deskripsi kondisi atau gejala..."></textarea>
+                            <textarea class="form-control" name="gejala" rows="2" placeholder="Deskripsi kondisi atau gejala..." {{ $disabledAttr }}></textarea>
                         </div>
                         <div class="col-12">
                             <label class="form-label lopa-form-label">Diagnosa</label>
-                            <textarea class="form-control" name="diagnosa" rows="2" placeholder="Hasil diagnosa..."></textarea>
+                            <textarea class="form-control" name="diagnosa" rows="2" placeholder="Hasil diagnosa..." {{ $disabledAttr }}></textarea>
                         </div>
                         <div class="col-12">
                             <label class="form-label lopa-form-label">Tindakan</label>
-                            <textarea class="form-control" name="tindakan" rows="2" placeholder="Tindakan yang dilakukan..."></textarea>
+                            <textarea class="form-control" name="tindakan" rows="2" placeholder="Tindakan yang dilakukan..." {{ $disabledAttr }}></textarea>
                         </div>
                     </div>
                     <div class="text-end mt-3">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" {{ $disabledAttr }}>
                             <i class="fa-solid fa-notes-medical"></i> Simpan Kesehatan
                         </button>
                     </div>

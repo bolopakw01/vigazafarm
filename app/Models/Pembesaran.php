@@ -19,6 +19,7 @@ class Pembesaran extends Model
         'jumlah_anak_ayam',
         'jenis_kelamin',
         'status_batch',
+        'tanggal_selesai',
         'tanggal_siap',
         'jumlah_siap',
         'umur_hari',
@@ -31,6 +32,7 @@ class Pembesaran extends Model
     protected $casts = [
         'tanggal_masuk' => 'date',
         'tanggal_siap' => 'date',
+        'tanggal_selesai' => 'date',
         'dibuat_pada' => 'datetime',
         'diperbarui_pada' => 'datetime',
     ];

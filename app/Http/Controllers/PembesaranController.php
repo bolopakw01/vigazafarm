@@ -6,6 +6,7 @@ use App\Models\Pembesaran;
 use App\Models\Penetasan;
 use App\Models\Kandang;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PembesaranController extends Controller
 {
@@ -238,10 +239,52 @@ class PembesaranController extends Controller
             'catatan' => 'nullable|string',
         ]);
 
+        // Owner atau Super Admin bisa update status
+        $user = auth()->user();
+        if ($user && ($user->peran === 'owner' || $user->peran === 'super_admin')) {
+            $validated = array_merge($validated, $request->validate([
+                'status_batch' => 'nullable|in:Aktif,Selesai',
+                'tanggal_selesai' => 'nullable|date',
+            ]));
+        }
+
         $pembesaran->update($validated);
 
         return redirect()->route('admin.pembesaran')
             ->with('success', 'Data pembesaran berhasil diperbarui.');
+    }
+
+    /**
+     * Selesaikan batch pembesaran
+     */
+    public function selesaikanBatch(Pembesaran $pembesaran)
+    {
+        // Cek apakah user adalah owner atau super admin
+        $user = auth()->user();
+        $isOwnerOrSuperAdmin = $user && ($user->peran === 'owner' || $user->peran === 'super_admin');
+        
+        if (!$isOwnerOrSuperAdmin) {
+            // Jika bukan owner, cek apakah target sudah tercapai
+            $umurHari = \Carbon\Carbon::parse($pembesaran->tanggal_masuk)->diffInDays(\Carbon\Carbon::now());
+            $targetUmur = 35; // Target umur minimal untuk pembesaran
+            
+            if ($umurHari < $targetUmur) {
+                return back()->with('error', 'Batch belum mencapai target umur minimal (' . $targetUmur . ' hari). Saat ini: ' . $umurHari . ' hari.');
+            }
+            
+            // Cek target berat
+            if ($pembesaran->target_berat_akhir && $pembesaran->berat_rata_rata < $pembesaran->target_berat_akhir) {
+                return back()->with('error', 'Target berat belum tercapai. Target: ' . $pembesaran->target_berat_akhir . 'g, Saat ini: ' . $pembesaran->berat_rata_rata . 'g');
+            }
+        }
+        
+        // Update status dan tanggal selesai
+        $pembesaran->update([
+            'status_batch' => 'Selesai',
+            'tanggal_selesai' => \Carbon\Carbon::now()
+        ]);
+        
+        return back()->with('success', 'Batch pembesaran berhasil diselesaikan.');
     }
 
     /**

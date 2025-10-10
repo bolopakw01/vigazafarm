@@ -315,3 +315,36 @@ textarea.form-control {
         justify-content: center;
     }
 }
+
+/* ========================================
+   BADGE STYLES FOR TABLE
+   ======================================== */
+
+.bolopa-tabel-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.bolopa-tabel-badge-green {
+    background: #d4edda;
+    color: #155724;
+}
+
+.bolopa-tabel-badge-blue {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.bolopa-tabel-badge-pink {
+    background: #f8d7da;
+    color: #842029;
+}
+
+.bolopa-tabel-badge-gray {
+    background: #e2e3e5;
+    color: #41464b;
+}

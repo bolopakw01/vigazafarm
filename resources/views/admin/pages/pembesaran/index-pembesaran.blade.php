@@ -101,6 +101,13 @@
                                 <img class="bolopa-tabel-sort-icon bolopa-tabel-sort-down" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down" width="10" height="9">
                             </span>
                         </th>
+                        <th data-sort="status" class="bolopa-tabel-text-center">
+                            Status
+                            <span class="bolopa-tabel-sort-wrap">
+                                <img class="bolopa-tabel-sort-icon bolopa-tabel-sort-up" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up" width="10" height="9">
+                                <img class="bolopa-tabel-sort-icon bolopa-tabel-sort-down" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down" width="10" height="9">
+                            </span>
+                        </th>
                         <th data-sort="aksi" style="width: 120px;" class="bolopa-tabel-text-center">Aksi</th>
                     </tr>
                 </thead>
@@ -110,11 +117,9 @@
                         <td class="bolopa-tabel-text-center" style="text-align: center;">{{ $pembesaran->firstItem() + $index }}</td>
                         <td class="bolopa-tabel-text-left" style="text-align: left;">
                             @if($item->penetasan)
-                                <span class="bolopa-tabel-badge bolopa-tabel-badge-blue">
-                                    {{ $item->penetasan->batch }}
-                                </span>
+                                {{ $item->penetasan->batch }}
                             @else
-                                <span class="bolopa-tabel-badge bolopa-tabel-badge-gray">Manual</span>
+                                {{ $item->batch_produksi_id }}
                             @endif
                         </td>
                         <td class="bolopa-tabel-text-left" style="text-align: left;">{{ $item->kandang->nama_kandang ?? '-' }}</td>
@@ -122,12 +127,25 @@
                         <td class="bolopa-tabel-text-right" style="text-align: right;">{{ number_format($item->jumlah_anak_ayam) }} ekor</td>
                         <td class="bolopa-tabel-text-center" style="text-align: center;">
                             @if($item->jenis_kelamin === 'betina')
-                                <span class="bolopa-tabel-badge bolopa-tabel-badge-pink">Betina</span>
+                                <span class="bolopa-tabel-badge bolopa-tabel-badge-pink">♀ Betina</span>
                             @elseif($item->jenis_kelamin === 'jantan')
-                                <span class="bolopa-tabel-badge bolopa-tabel-badge-blue">Jantan</span>
+                                <span class="bolopa-tabel-badge bolopa-tabel-badge-blue">♂ Jantan</span>
                             @else
-                                <span class="bolopa-tabel-badge bolopa-tabel-badge-gray">-</span>
+                                <span class="bolopa-tabel-badge bolopa-tabel-badge-gray">⚥ Campuran</span>
                             @endif
+                        </td>
+                        <td class="bolopa-tabel-text-center" style="text-align: center;">
+                            @php
+                                $status = $item->status_batch ?? 'Aktif';
+                                if (strtolower($status) === 'aktif') {
+                                    $statusClass = 'bolopa-tabel-badge-green';
+                                } else {
+                                    $statusClass = 'bolopa-tabel-badge-gray';
+                                }
+                            @endphp
+                            <span class="bolopa-tabel-badge {{ $statusClass }}">
+                                {{ ucfirst($status) }}
+                            </span>
                         </td>
                         <td class="bolopa-tabel-text-center" style="text-align: center;">
                             <div class="bolopa-tabel-actions">
@@ -149,7 +167,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" style="text-align: center; padding: 40px;">
+                        <td colspan="8" style="text-align: center; padding: 40px;">
                             <img src="{{ asset('bolopa/img/icon/game-icons--nest-birds.svg') }}" alt="No Data" width="64" height="64" style="opacity: 0.3;">
                             <p style="margin-top: 16px; color: #6c757d;">Tidak ada data pembesaran</p>
                         </td>

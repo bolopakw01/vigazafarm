@@ -4,6 +4,57 @@
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-pembesaran.css') }}">
+<style>
+/* Custom Toggle Switch */
+.custom-switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+}
+
+.custom-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e1;
+    transition: .4s;
+    border-radius: 28px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+.custom-switch input:checked + .slider {
+    background-color: #f59e0b;
+}
+
+.custom-switch input:checked + .slider:before {
+    transform: translateX(24px);
+}
+
+.custom-switch input:focus + .slider {
+    box-shadow: 0 0 1px #f59e0b;
+}
+</style>
 @endpush
 
 @section('content')
@@ -199,6 +250,83 @@
                         </div>
                     </div>
                 </div>
+
+                @if(auth()->user()->peran === 'owner' || auth()->user()->peran === 'super_admin')
+                <!-- Divider -->
+                <hr style="margin: 30px 0; border: 0; border-top: 2px dashed #e2e8f0;">
+
+                <!-- Section: Owner Control Toggle -->
+                <div class="form-section" style="background: #fef3c7; border: 2px solid #fbbf24; border-radius: 10px; padding: 20px;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fa-solid fa-user-shield text-danger"></i> 
+                                <strong>Owner Override Control</strong>
+                            </label>
+                            <div style="display: flex; gap: 12px; align-items: center; margin-top: 8px;">
+                                <label class="custom-switch">
+                                    <input type="checkbox" id="ownerOverrideToggle">
+                                    <span class="slider"></span>
+                                </label>
+                                <span id="ownerOverrideLabel" style="font-size: 14px; color: #64748b;">
+                                    Aktifkan untuk override status pembesaran
+                                </span>
+                            </div>
+                            <small class="form-text">
+                                <i class="fa-solid fa-info-circle text-warning"></i>
+                                Status saat ini: 
+                                @php
+                                    $statusBadge = [
+                                        'Aktif' => ['text' => 'Aktif', 'class' => 'primary'],
+                                        'Selesai' => ['text' => 'Selesai', 'class' => 'success'],
+                                    ];
+                                    $current = $statusBadge[$pembesaran->status_batch ?? 'Aktif'];
+                                @endphp
+                                <span class="badge bg-{{ $current['class'] }}">{{ $current['text'] }}</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Owner Override (Hidden by default) -->
+                <div class="form-section" id="ownerOverrideSection" style="display: none; border-left: 4px solid #dc3545; background: #fee2e2; border-radius: 10px; padding: 20px; margin-top: 15px;">
+                    <h3 class="section-title">
+                        <i class="fa-solid fa-user-shield" style="color: #dc3545;"></i>
+                        Kontrol Owner
+                        <span class="badge bg-danger ms-2" style="font-size: 11px; vertical-align: middle;">Owner Only</span>
+                    </h3>
+                    <div class="alert alert-warning" style="margin-bottom: 20px;">
+                        <i class="fa-solid fa-exclamation-triangle"></i>
+                        <strong>Perhatian:</strong> Fitur ini memungkinkan Owner untuk mengubah status batch secara manual tanpa validasi target.
+                    </div>
+
+                    <!-- Override Status -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="status_batch" class="form-label">
+                                <i class="fa-solid fa-tag"></i> Override Status Batch
+                            </label>
+                            <select name="status_batch" id="status_batch" class="form-control">
+                                <option value="Aktif" {{ old('status_batch', $pembesaran->status_batch ?? 'Aktif') == 'Aktif' ? 'selected' : '' }}>
+                                    🟢 Aktif - Batch Sedang Berjalan
+                                </option>
+                                <option value="Selesai" {{ old('status_batch', $pembesaran->status_batch) == 'Selesai' ? 'selected' : '' }}>
+                                    ✅ Selesai - Batch Telah Diselesaikan
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tanggal_selesai" class="form-label">
+                                <i class="fa-solid fa-calendar-check"></i> Tanggal Selesai
+                            </label>
+                            <input type="date" name="tanggal_selesai" id="tanggal_selesai" class="form-control" 
+                                value="{{ old('tanggal_selesai', $pembesaran->tanggal_selesai ? $pembesaran->tanggal_selesai->format('Y-m-d') : '') }}">
+                            <small class="form-text">Tanggal batch diselesaikan (otomatis terisi saat klik tombol selesaikan)</small>
+                        </div>
+                    </div>
+                </div>
+                @endif
 
                 <!-- Section: Catatan Tambahan -->
                 <div class="form-section">
@@ -429,6 +557,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
             }
         });
+    });
+
+    // Toggle Owner Override Section
+    const ownerOverrideToggle = document.getElementById('ownerOverrideToggle');
+    const ownerOverrideSection = document.getElementById('ownerOverrideSection');
+    const ownerOverrideLabel = document.getElementById('ownerOverrideLabel');
+    const statusBatchInput = document.getElementById('status_batch');
+    const tanggalSelesaiInput = document.getElementById('tanggal_selesai');
+
+    if (ownerOverrideToggle && ownerOverrideSection) {
+        ownerOverrideToggle.addEventListener('change', function() {
+            if (this.checked) {
+                ownerOverrideSection.style.display = 'block';
+                ownerOverrideLabel.innerHTML = '<i class="fa-solid fa-check-circle"></i> Override aktif - Status pembesaran tersedia';
+                ownerOverrideLabel.style.color = '#dc3545';
+                ownerOverrideLabel.style.fontWeight = '600';
+                
+                // Enable fields ketika toggle aktif
+                if (statusBatchInput) statusBatchInput.disabled = false;
+                if (tanggalSelesaiInput) tanggalSelesaiInput.disabled = false;
+                
+                // Scroll ke section
+                setTimeout(() => {
+                    ownerOverrideSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            } else {
+                ownerOverrideSection.style.display = 'none';
+                ownerOverrideLabel.textContent = 'Aktifkan untuk override status pembesaran';
+                ownerOverrideLabel.style.color = '#64748b';
+                ownerOverrideLabel.style.fontWeight = '400';
+                
+                // Disable fields ketika toggle non-aktif (opsional, atau bisa tetap enable)
+                // Komentar bagian ini agar field tetap terkirim meskipun section hidden
+                // if (statusBatchInput) statusBatchInput.disabled = true;
+                // if (tanggalSelesaiInput) tanggalSelesaiInput.disabled = true;
+            }
+        });
+    }
+    
+    // Pastikan field tidak disabled saat form disubmit
+    form.addEventListener('submit', function(e) {
+        // Enable semua field yang mungkin disabled agar data terkirim
+        if (statusBatchInput) statusBatchInput.disabled = false;
+        if (tanggalSelesaiInput) tanggalSelesaiInput.disabled = false;
     });
 });
 </script>

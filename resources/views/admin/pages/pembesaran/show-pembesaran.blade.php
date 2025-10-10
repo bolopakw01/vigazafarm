@@ -82,7 +82,10 @@
         {{-- Total Biaya --}}
         <div class="bolopa-card-kai bolopa-kai-indigo">
             <div class="bolopa-kai-content">
-                <div class="bolopa-kai-value">Rp {{ number_format($totalBiayaPakan, 0, ',', '.') }}</div>
+                <div class="bolopa-kai-value" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+                    <span style="font-size: 0.35em; color: rgba(255, 255, 255, 0.7); margin-top: 0.2em;">Rp</span>
+                    <span>{{ number_format($totalBiayaPakan, 0, ',', '.') }}</span>
+                </div>
                 <div class="bolopa-kai-label">Total Biaya Pakan</div>
             </div>
             <i class="fa-solid fa-coins bolopa-icon-faint"></i>
