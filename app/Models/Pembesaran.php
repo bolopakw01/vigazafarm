@@ -18,6 +18,7 @@ class Pembesaran extends Model
         'tanggal_masuk',
         'jumlah_anak_ayam',
         'jenis_kelamin',
+        'status_batch',
         'tanggal_siap',
         'jumlah_siap',
         'umur_hari',

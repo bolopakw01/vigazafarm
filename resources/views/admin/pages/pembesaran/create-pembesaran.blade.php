@@ -137,7 +137,9 @@
                                 Jenis Kelamin
                             </label>
                             <select name="jenis_kelamin" id="jenis_kelamin" class="form-control">
-                                <option value="">-- Belum Dipisah / Campur --</option>
+                                <option value="campuran" {{ old('jenis_kelamin', 'campuran') == 'campuran' ? 'selected' : '' }}>
+                                    Campuran
+                                </option>
                                 <option value="betina" {{ old('jenis_kelamin') == 'betina' ? 'selected' : '' }}>
                                     Betina
                                 </option>
@@ -145,7 +147,7 @@
                                     Jantan
                                 </option>
                             </select>
-                            <small class="form-text">Jenis kelamin (opsional, jika sudah dipisah)</small>
+                            <small class="form-text">Default: Campuran (jika belum dipisah berdasarkan jenis kelamin)</small>
                         </div>
                     </div>
                 </div>

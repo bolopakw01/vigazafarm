@@ -1,3 +1,10 @@
+{{-- Helper untuk format mortalitas --}}
+@php
+    $mortalitasFormatted = $mortalitas == floor($mortalitas) 
+        ? number_format($mortalitas, 0) 
+        : rtrim(rtrim(number_format($mortalitas, 2), '0'), '.');
+@endphp
+
 {{-- Notebook Container with Tabs --}}
 <div class="notebook lopa-notebook">
     <ul class="nav nav-tabs lopa-nav-tabs" id="batchTabs" role="tablist" aria-label="Batch tabs">
@@ -42,7 +49,7 @@
                         </div>
                         <div class="status-compact lopa-status-compact">
                             <div class="icon lopa-icon">{{ $mortalitas > 5 ? '⚠️' : '✅' }}</div>
-                            <div class="text lopa-text">{{ number_format($mortalitas, 2) }}%</div>
+                            <div class="text lopa-text">{{ $mortalitasFormatted }}%</div>
                         </div>
                     </div>
                 </div>
@@ -50,20 +57,54 @@
                 <div class="row mt-3">
                     <div class="col-lg-4 mb-3">
                         <div class="note-panel h-100 lopa-note-panel">
-                            <h6>Detail Batch</h6>
-                            <dl class="row kv mb-0 lopa-kv">
-                                <dt class="col-sm-5">Batch ID:</dt>
+                            <h5 class="mb-3 fw-bold">Detail Batch</h5>
+                            <dl class="row kv mb-0 lopa-kv" style="font-size: 0.95rem;">
+                                <dt class="col-sm-5">ID Batch:</dt>
                                 <dd class="col-sm-7">{{ $pembesaran->batch_produksi_id }}</dd>
+                                
                                 <dt class="col-sm-5">Kandang:</dt>
                                 <dd class="col-sm-7">{{ $pembesaran->kandang->nama_kandang ?? '-' }}</dd>
-                                <dt class="col-sm-5">Tgl Mulai:</dt>
-                                <dd class="col-sm-7">{{ \Carbon\Carbon::parse($pembesaran->tanggal_mulai)->format('d/m/Y') }}</dd>
+                                
+                                <dt class="col-sm-5">Asal:</dt>
+                                <dd class="col-sm-7">
+                                    @if($pembesaran->penetasan_id && $pembesaran->penetasan)
+                                        <span class="badge" style="background-color: #17a2b8; color: #ffffff;">
+                                            <i class="fa-solid fa-egg me-1"></i>
+                                            {{ $pembesaran->penetasan->batch }}
+                                        </span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </dd>
+                                
+                                <dt class="col-sm-5">Tanggal Masuk:</dt>
+                                <dd class="col-sm-7">{{ \Carbon\Carbon::parse($pembesaran->tanggal_masuk)->format('d/m/Y') }}</dd>
+                                
                                 <dt class="col-sm-5">Umur:</dt>
                                 <dd class="col-sm-7">{{ (int)$umurHari }} hari</dd>
+                                
+                                <dt class="col-sm-5">Jenis Kelamin:</dt>
+                                <dd class="col-sm-7">
+                                    @php
+                                        $jenisKelamin = strtolower($pembesaran->jenis_kelamin ?? 'campuran');
+                                    @endphp
+                                    @if($jenisKelamin === 'jantan')
+                                        <span class="badge bg-primary">♂ Jantan</span>
+                                    @elseif($jenisKelamin === 'betina')
+                                        <span class="badge bg-danger">♀ Betina</span>
+                                    @else
+                                        <span class="badge bg-secondary">⚥ Campuran</span>
+                                    @endif
+                                </dd>
+                                
                                 <dt class="col-sm-5">Status:</dt>
                                 <dd class="col-sm-7">
-                                    <span class="badge {{ $pembesaran->status_batch === 'Aktif' ? 'bg-success' : 'bg-secondary' }}">
-                                        {{ $pembesaran->status_batch }}
+                                    @php
+                                        $status = $pembesaran->status_batch ?? 'Aktif';
+                                        $badgeClass = strtolower($status) === 'aktif' ? 'bg-success' : 'bg-secondary';
+                                    @endphp
+                                    <span class="badge {{ $badgeClass }}">
+                                        {{ ucfirst($status) }}
                                     </span>
                                 </dd>
                             </dl>
@@ -86,7 +127,9 @@
                                     <div class="label lopa-label">Berat Rata-rata</div>
                                 </div>
                                 <div class="stat-card lopa-stat-card">
-                                    <div class="value lopa-value">{{ number_format($mortalitas, 2) }}%</div>
+                                    <div class="value lopa-value">
+                                        {{ $mortalitasFormatted }}%
+                                    </div>
                                     <div class="label lopa-label">Mortalitas</div>
                                 </div>
                             </div>
@@ -110,25 +153,43 @@
 
                     <div class="col-lg-3 mb-3">
                         <div class="note-panel alt h-100 lopa-note-panel lopa-alt">
-                            <h6>Ringkasan Biaya</h6>
-                            <table class="w-100 small cost-table lopa-cost-table">
-                                <tr>
-                                    <td>Total Pakan:</td>
-                                    <td class="text-end"><strong>Rp {{ number_format($totalBiayaPakan, 0, ',', '.') }}</strong></td>
-                                </tr>
-                                <tr>
-                                    <td>Biaya Lain:</td>
-                                    <td class="text-end"><strong>Rp 0</strong></td>
-                                </tr>
-                                <tr style="border-top: 1px solid #ddd;">
-                                    <td><strong>Total:</strong></td>
-                                    <td class="text-end"><strong>Rp {{ number_format($totalBiayaPakan, 0, ',', '.') }}</strong></td>
-                                </tr>
-                            </table>
-                            <div class="d-grid gap-2 mt-3">
-                                <button type="button" class="btn btn-outline-primary btn-sm">
-                                    <i class="fa-solid fa-file-invoice"></i> Lihat Detail Biaya
-                                </button>
+                            <h5 class="mb-3 fw-bold">Ringkasan Biaya</h5>
+                            <div style="font-size: 0.9rem;">
+                                <!-- Total Konsumsi Pakan -->
+                                <div class="mb-3">
+                                    <div class="text-muted mb-1" style="font-size: 0.85rem;">Total Konsumsi Pakan</div>
+                                    <div class="fw-bold text-end" style="font-size: 1rem; font-weight: 700 !important;">{{ number_format($totalPakan, 2) }} kg</div>
+                                </div>
+                                
+                                <!-- Total Biaya Pakan -->
+                                <div class="mb-3">
+                                    <div class="text-muted mb-1" style="font-size: 0.85rem;">Total Biaya Pakan</div>
+                                    <div class="fw-bold text-end" style="font-size: 1rem; font-weight: 700 !important;">Rp {{ number_format($totalBiayaPakan, 0, ',', '.') }}</div>
+                                </div>
+                                
+                                <!-- Biaya Kesehatan -->
+                                <div class="mb-3">
+                                    <div class="text-muted mb-1" style="font-size: 0.85rem;">Biaya Kesehatan & Vaksinasi</div>
+                                    <div class="fw-bold text-end" style="font-size: 1rem; font-weight: 700 !important;">Rp {{ number_format($totalBiayaKesehatan ?? 0, 0, ',', '.') }}</div>
+                                </div>
+                                
+                                <!-- Total Keseluruhan -->
+                                <div class="pt-3" style="border-top: 2px solid #495057;">
+                                    <div class="text-muted mb-1" style="font-size: 0.85rem;">Total Biaya Keseluruhan</div>
+                                    <div class="fw-bold text-end" style="font-size: 1rem; font-weight: 800 !important; color: #198754;">Rp {{ number_format(($totalBiayaPakan + ($totalBiayaKesehatan ?? 0)), 0, ',', '.') }}</div>
+                                </div>
+                            </div>
+                            <div class="row g-2 mt-3">
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-outline-primary btn-sm w-100">
+                                        <i class="fa-solid fa-file-invoice me-1"></i> Lihat Detail Biaya
+                                    </button>
+                                </div>
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-outline-success btn-sm w-100">
+                                        <i class="fa-solid fa-file-csv me-1"></i> Export CSV
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -253,7 +314,7 @@
                         <div class="icon lopa-icon" style="background:#fff4e6; color:#92400e;">
                             <i class="fa-solid fa-percent"></i>
                         </div>
-                        <div class="text lopa-text">Mortalitas Kumulatif: <strong>{{ number_format($mortalitas, 2) }}%</strong></div>
+                        <div class="text lopa-text">Mortalitas Kumulatif: <strong>{{ $mortalitasFormatted }}%</strong></div>
                     </div>
                 </div>
 
@@ -336,7 +397,12 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Umur (hari) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" name="umur_hari" placeholder="0" min="0" required />
+                            @php
+                                $tanggalMasuk = \Carbon\Carbon::parse($pembesaran->tanggal_masuk);
+                                $umurHari = floor($tanggalMasuk->diffInDays(now()));
+                            @endphp
+                            <input type="number" class="form-control" name="umur_hari" value="{{ intval($umurHari) }}" min="0" required readonly />
+                            <small class="text-muted">Otomatis dihitung dari tanggal masuk: {{ $tanggalMasuk->format('d/m/Y') }}</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Berat Rata-rata (gram) <span class="text-danger">*</span></label>
@@ -349,6 +415,21 @@
                         </button>
                     </div>
                 </form>
+
+                <div class="note-panel alt mt-3 lopa-note-panel lopa-alt" id="berat-history-container">
+                    <div class="d-flex justify-content-between align-items-center mb-2" style="cursor: pointer;" onclick="toggleHistory('berat')">
+                        <h6 class="mb-0">
+                            <i class="fa-solid fa-clock-rotate-left me-1" style="color:#8b5cf6;"></i>
+                            History Sampling Berat (50 data terakhir)
+                        </h6>
+                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" id="toggle-berat">
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div id="berat-history-content" style="display: block;">
+                        <p class="text-muted small mb-0">Loading...</p>
+                    </div>
+                </div>
             </div>
 
             {{-- Monitoring Lingkungan --}}
@@ -486,9 +567,19 @@
                     </div>
                 </form>
 
-                <div class="note-panel alt mt-3 lopa-note-panel lopa-alt">
-                    <h6>Riwayat Kesehatan & Vaksinasi</h6>
-                    <p class="text-muted small mb-0">Belum ada riwayat kesehatan</p>
+                <div class="note-panel alt mt-3 lopa-note-panel lopa-alt" id="kesehatan-history-container">
+                    <div class="d-flex justify-content-between align-items-center mb-2" style="cursor: pointer;" onclick="toggleHistory('kesehatan')">
+                        <h6 class="mb-0">
+                            <i class="fa-solid fa-clock-rotate-left me-1" style="color:#8b5cf6;"></i>
+                            Riwayat Kesehatan & Vaksinasi (50 data terakhir)
+                        </h6>
+                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" id="toggle-kesehatan">
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div id="kesehatan-history-content" style="display: block;">
+                        <p class="text-muted small mb-0">Loading...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -564,7 +655,7 @@ function toggleHistory(section) {
 
 // Restore saved toggle states on page load
 document.addEventListener('DOMContentLoaded', function() {
-    ['pakan', 'kematian', 'laporan', 'monitoring'].forEach(section => {
+    ['pakan', 'kematian', 'laporan', 'monitoring', 'kesehatan', 'berat'].forEach(section => {
         const savedState = localStorage.getItem(`history-${section}-visible`);
         if (savedState === 'false') {
             // If previously hidden, hide it again

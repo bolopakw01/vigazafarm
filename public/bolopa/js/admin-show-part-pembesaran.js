@@ -595,8 +595,28 @@ async function loadMonitoringData() {
 }
 
 async function loadBeratData() {
-    // Implementasi tergantung endpoint yang tersedia
-    console.log('Loading berat data...');
+    // Load dari endpoint berat/list yang menyimpan history sampling
+    try {
+        console.log('📊 Loading berat data from berat sampling...');
+        const response = await fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/berat/list`, {
+            credentials: 'same-origin'
+        });
+        const result = await response.json();
+        
+        if (result.success && result.data && result.data.length > 0) {
+            renderBeratChart(result.data);
+            renderBeratHistory(result.data);
+        } else {
+            document.getElementById('weightError').style.display = 'block';
+            document.getElementById('weightAnalysis').style.display = 'none';
+            renderBeratHistory([]);
+        }
+    } catch (error) {
+        console.error('❌ Error loading berat data:', error);
+        document.getElementById('weightError').style.display = 'block';
+        document.getElementById('weightAnalysis').style.display = 'none';
+        renderBeratHistory([]);
+    }
 }
 
 async function loadKesehatanData() {
@@ -617,7 +637,14 @@ async function loadKesehatanData() {
 // ========== CHART RENDERERS ==========
 
 function renderPakanChart(data) {
-    if (!data || !data.length) return;
+    if (!data || !data.length) {
+        document.getElementById('feedError').style.display = 'block';
+        document.getElementById('feedAnalysis').style.display = 'none';
+        return;
+    }
+    
+    document.getElementById('feedError').style.display = 'none';
+    document.getElementById('feedAnalysis').style.display = 'block';
     
     const categories = data.map(d => new Date(d.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' }));
     const series = [{ name: 'Pakan (kg)', data: data.map(d => parseFloat(d.jumlah_kg)) }];
@@ -646,10 +673,24 @@ function renderPakanChart(data) {
 }
 
 function renderKematianChart(data, mortalitasPct) {
-    if (!data || !data.length) return;
+    if (!data || !data.length) {
+        document.getElementById('mortalityError').style.display = 'block';
+        document.getElementById('mortalityAnalysis').style.display = 'none';
+        return;
+    }
+    
+    document.getElementById('mortalityError').style.display = 'none';
+    document.getElementById('mortalityAnalysis').style.display = 'block';
     
     const categories = data.map(d => new Date(d.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' }));
-    const series = [{ name: 'Mortalitas (%)', data: data.map((d, i) => mortalitasPct) }]; // Simplified
+    // Hitung mortalitas kumulatif
+    let kumulatif = 0;
+    const mortalitasData = data.map((d) => {
+        kumulatif += parseInt(d.jumlah);
+        return kumulatif;
+    });
+    
+    const series = [{ name: 'Kematian Kumulatif (ekor)', data: mortalitasData }];
     
     if (window.mortalityChart) {
         window.mortalityChart.updateSeries(series);
@@ -662,8 +703,17 @@ function renderKematianChart(data, mortalitasPct) {
             colors: ['#ef4444'],
             stroke: { curve: 'smooth', width: 3 },
             dataLabels: { enabled: false },
-            tooltip: { y: { formatter: val => val.toFixed(2) + '%' } },
-            yaxis: { min: 0, max: 10, title: { text: 'Mortalitas (%)' } }
+            tooltip: { y: { formatter: val => val + ' ekor' } },
+            yaxis: { 
+                title: { text: 'Kematian (ekor)' },
+                min: 0
+            },
+            markers: {
+                size: 4,
+                colors: ['#ef4444'],
+                strokeColors: '#fff',
+                strokeWidth: 2
+            }
         });
         window.mortalityChart.render();
     }
@@ -674,7 +724,14 @@ function renderKematianChart(data, mortalitasPct) {
 }
 
 function renderMonitoringChart(data) {
-    if (!data || !data.length) return;
+    if (!data || !data.length) {
+        document.getElementById('envError').style.display = 'block';
+        document.getElementById('envAnalysis').style.display = 'none';
+        return;
+    }
+    
+    document.getElementById('envError').style.display = 'none';
+    document.getElementById('envAnalysis').style.display = 'block';
     
     const categories = data.map(d => new Date(d.waktu_pencatatan).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' }));
     const tempData = data.map(d => parseFloat(d.suhu));
@@ -709,6 +766,54 @@ function renderMonitoringChart(data) {
     const avgHum = humData.reduce((a, b) => a + b, 0) / humData.length;
     document.getElementById('envAnalysis').textContent = 
         `Rata-rata Suhu: ${avgTemp.toFixed(1)}°C | Kelembaban: ${avgHum.toFixed(1)}%`;
+}
+
+function renderBeratChart(data) {
+    if (!data || !data.length) {
+        document.getElementById('weightError').style.display = 'block';
+        document.getElementById('weightAnalysis').style.display = 'none';
+        return;
+    }
+    
+    document.getElementById('weightError').style.display = 'none';
+    document.getElementById('weightAnalysis').style.display = 'block';
+    
+    const categories = data.map(d => new Date(d.tanggal_sampling).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' }));
+    const beratData = data.map(d => parseFloat(d.berat_rata_rata));
+    
+    if (window.weightChart) {
+        window.weightChart.updateSeries([{ name: 'Berat Rata-rata (gram)', data: beratData }]);
+        window.weightChart.updateOptions({ xaxis: { categories } });
+    } else {
+        window.weightChart = new ApexCharts(document.querySelector('#chartWeight'), {
+            chart: { type: 'line', height: 240, toolbar: { show: false } },
+            series: [{ name: 'Berat Rata-rata (gram)', data: beratData }],
+            xaxis: { categories: categories, labels: { rotate: -45 } },
+            colors: ['#10b981'],
+            stroke: { curve: 'smooth', width: 3 },
+            dataLabels: { enabled: false },
+            tooltip: { y: { formatter: val => val.toFixed(0) + ' gram' } },
+            yaxis: { 
+                title: { text: 'Berat (gram)' },
+                min: 0
+            },
+            markers: {
+                size: 4,
+                colors: ['#10b981'],
+                strokeColors: '#fff',
+                strokeWidth: 2,
+                hover: { size: 6 }
+            }
+        });
+        window.weightChart.render();
+    }
+    
+    const latestWeight = beratData[beratData.length - 1];
+    const avgWeight = beratData.reduce((a, b) => a + b, 0) / beratData.length;
+    const growth = beratData.length > 1 ? latestWeight - beratData[0] : 0;
+    
+    document.getElementById('weightAnalysis').textContent = 
+        `Berat terkini: ${latestWeight.toFixed(0)}g | Rata-rata: ${avgWeight.toFixed(0)}g | Pertumbuhan: ${growth.toFixed(0)}g`;
 }
 
 // ========== HISTORY RENDERERS ==========
@@ -897,7 +1002,130 @@ function renderLaporanHistory(data) {
 }
 
 function renderKesehatanHistory(data) {
-    // Implement if needed
+    console.log('🔍 renderKesehatanHistory called, container found:', !!document.getElementById('kesehatan-history-content'), 'data count:', data?.length);
+    
+    const container = document.getElementById('kesehatan-history-content');
+    if (!container) {
+        console.warn('⚠️ Kesehatan history container not found');
+        return;
+    }
+    
+    if (!data || data.length === 0) {
+        container.innerHTML = '<p class="text-muted small mb-0">ℹ️ Belum ada riwayat kesehatan & vaksinasi</p>';
+        return;
+    }
+    
+    console.log('✅ Rendering', data.length, 'kesehatan records');
+    console.log('📝 Sample kesehatan record:', data[0]);
+    
+    const rows = data.map(item => {
+        const tanggal = new Date(item.tanggal).toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+        
+        const tipeKegiatan = {
+            'vaksinasi': '<span class="badge bg-primary">Vaksinasi</span>',
+            'pengobatan': '<span class="badge bg-danger">Pengobatan</span>',
+            'pemeriksaan_rutin': '<span class="badge bg-info">Pemeriksaan</span>',
+            'karantina': '<span class="badge bg-warning">Karantina</span>'
+        }[item.tipe_kegiatan] || `<span class="badge bg-secondary">${item.tipe_kegiatan}</span>`;
+        
+        const biaya = item.biaya ? `Rp ${parseInt(item.biaya).toLocaleString('id-ID')}` : '-';
+        
+        return `
+            <tr>
+                <td class="text-start">${tanggal}</td>
+                <td class="text-start">${tipeKegiatan}</td>
+                <td class="text-start">${item.nama_vaksin_obat || '-'}</td>
+                <td class="text-end">${item.jumlah_burung || '-'}</td>
+                <td class="text-end">${biaya}</td>
+                <td class="text-start">${item.petugas || '-'}</td>
+                <td class="text-start">${item.gejala || '-'}</td>
+            </tr>
+        `;
+    }).join('');
+    
+    container.innerHTML = `
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="text-start">Tanggal</th>
+                        <th class="text-start">Tipe</th>
+                        <th class="text-start">Vaksin/Obat</th>
+                        <th class="text-end">Jumlah Burung</th>
+                        <th class="text-end">Biaya</th>
+                        <th class="text-start">Petugas</th>
+                        <th class="text-start">Gejala/Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function renderBeratHistory(data) {
+    console.log('🔍 renderBeratHistory called, container found:', !!document.getElementById('berat-history-content'), 'data count:', data?.length);
+    
+    const container = document.getElementById('berat-history-content');
+    if (!container) {
+        console.warn('⚠️ Berat history container not found');
+        return;
+    }
+    
+    if (!data || data.length === 0) {
+        container.innerHTML = '<p class="text-muted small mb-0">ℹ️ Belum ada riwayat sampling berat</p>';
+        return;
+    }
+    
+    console.log('✅ Rendering', data.length, 'berat records');
+    console.log('📝 Sample berat record:', data[0]);
+    
+    const rows = data.slice(0, 50).map(item => {
+        const tanggal = new Date(item.tanggal_sampling).toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+        
+        const beratGram = parseFloat(item.berat_rata_rata);
+        const beratKg = (beratGram / 1000).toFixed(3);
+        
+        return `
+            <tr>
+                <td class="text-start">${tanggal}</td>
+                <td class="text-end">${item.umur_hari} hari</td>
+                <td class="text-end">${beratGram.toFixed(0)} g</td>
+                <td class="text-end">${beratKg} kg</td>
+                <td class="text-start">${item.catatan || '-'}</td>
+            </tr>
+        `;
+    }).join('');
+    
+    container.innerHTML = `
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="text-start">Tanggal Sampling</th>
+                        <th class="text-end">Umur</th>
+                        <th class="text-end">Berat (gram)</th>
+                        <th class="text-end">Berat (kg)</th>
+                        <th class="text-start">Catatan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows}
+                </tbody>
+            </table>
+        </div>
+        ${data.length > 50 ? `<p class="text-muted small mt-2 mb-0 text-center">Menampilkan 50 dari ${data.length} data</p>` : ''}
+    `;
 }
 
 // ========== UPDATE METRICS ==========

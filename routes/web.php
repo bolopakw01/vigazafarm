@@ -72,6 +72,7 @@ Route::middleware('auth')->group(function () {
         
         // Update Berat
         Route::post('/berat', [App\Http\Controllers\PembesaranRecordingController::class, 'storeBeratRataRata'])->name('berat');
+        Route::get('/berat/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getBeratList'])->name('berat.list');
     });
     
     // Penetasan routes

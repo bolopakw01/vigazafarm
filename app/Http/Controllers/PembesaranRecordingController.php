@@ -584,11 +584,24 @@ class PembesaranRecordingController extends Controller
         $validated = $request->validate([
             'berat_rata_rata' => 'required|numeric|min:0',
             'umur_hari' => 'required|integer|min:0',
+            'jumlah_sampel' => 'nullable|integer|min:1',
+            'catatan' => 'nullable|string',
         ]);
 
+        // Update pembesaran (nilai terkini)
         $pembesaran->update([
             'berat_rata_rata' => $validated['berat_rata_rata'],
             'umur_hari' => $validated['umur_hari'],
+        ]);
+
+        // Simpan history ke tabel berat_sampling
+        $beratSampling = \App\Models\BeratSampling::create([
+            'batch_produksi_id' => $pembesaran->batch_produksi_id,
+            'tanggal_sampling' => now()->toDateString(),
+            'umur_hari' => $validated['umur_hari'],
+            'berat_rata_rata' => $validated['berat_rata_rata'],
+            'jumlah_sampel' => $validated['jumlah_sampel'] ?? null,
+            'catatan' => $validated['catatan'] ?? null,
         ]);
 
         // Get parameter standar untuk grower
@@ -616,6 +629,7 @@ class PembesaranRecordingController extends Controller
             'success' => true,
             'message' => 'Berat rata-rata berhasil disimpan',
             'data' => $pembesaran,
+            'sampling' => $beratSampling,
             'standar' => $paramStandar,
             'status' => [
                 'status' => $status,
@@ -673,6 +687,21 @@ class PembesaranRecordingController extends Controller
                 'badge' => $badge,
                 'message' => $message,
             ],
+        ]);
+    }
+
+    /**
+     * Get list berat sampling
+     */
+    public function getBeratList(Pembesaran $pembesaran)
+    {
+        $beratList = \App\Models\BeratSampling::where('batch_produksi_id', $pembesaran->batch_produksi_id)
+            ->orderBy('tanggal_sampling', 'asc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $beratList,
         ]);
     }
 }

@@ -11,6 +11,13 @@
 @endpush
 
 @section('content')
+{{-- Helper untuk format mortalitas --}}
+@php
+    $mortalitasFormatted = $mortalitas == floor($mortalitas) 
+        ? number_format($mortalitas, 0) 
+        : rtrim(rtrim(number_format($mortalitas, 2), '0'), '.');
+@endphp
+
 <div class="pembesaran-detail-wrapper">
 <div class="container-fluid py-4">
     
@@ -51,7 +58,7 @@
         {{-- Mortalitas --}}
         <div class="bolopa-card-kai bolopa-kai-red">
             <div class="bolopa-kai-content">
-                <div class="bolopa-kai-value">{{ number_format($mortalitas, 2) }}<small style="font-size:0.45em;">%</small></div>
+                <div class="bolopa-kai-value">{{ $mortalitasFormatted }}<small style="font-size:0.45em;">%</small></div>
                 <div class="bolopa-kai-label">Mortalitas ({{ number_format($totalMati) }} ekor)</div>
             </div>
             <i class="fa-solid fa-skull-crossbones bolopa-icon-faint"></i>

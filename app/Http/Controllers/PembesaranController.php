@@ -57,7 +57,7 @@ class PembesaranController extends Controller
             'kandang_id' => 'required|exists:kandang,id',
             'tanggal_masuk' => 'required|date',
             'jumlah_anak_ayam' => 'required|integer|min:1',
-            'jenis_kelamin' => 'nullable|in:betina,jantan',
+            'jenis_kelamin' => 'nullable|in:betina,jantan,campuran',
             'catatan' => 'nullable|string',
         ]);
 
@@ -74,7 +74,8 @@ class PembesaranController extends Controller
             'kandang_id' => $validated['kandang_id'],
             'tanggal_masuk' => $validated['tanggal_masuk'],
             'jumlah_anak_ayam' => $validated['jumlah_anak_ayam'],
-            'jenis_kelamin' => $validated['jenis_kelamin'] ?? null,
+            'jenis_kelamin' => $validated['jenis_kelamin'] ?? 'campuran',
+            'status_batch' => 'Aktif',
             'catatan' => $validated['catatan'] ?? null,
         ]);
 
@@ -127,7 +128,7 @@ class PembesaranController extends Controller
             'batch_produksi_id' => 'required|string|unique:pembesaran,batch_produksi_id',
             'tanggal_masuk' => 'required|date',
             'jumlah_anak_ayam' => 'required|integer|min:1',
-            'jenis_kelamin' => 'nullable|in:betina,jantan',
+            'jenis_kelamin' => 'nullable|in:betina,jantan,campuran',
             'umur_hari' => 'nullable|integer|min:0',
             'tanggal_siap' => 'nullable|date|after:tanggal_masuk',
             'berat_rata_rata' => 'nullable|numeric|min:0',
@@ -135,6 +136,10 @@ class PembesaranController extends Controller
             'kondisi_doc' => 'nullable|string',
             'catatan' => 'nullable|string',
         ]);
+
+        // Set default values
+        $validated['status_batch'] = 'Aktif';
+        $validated['jenis_kelamin'] = $validated['jenis_kelamin'] ?? 'campuran';
 
         Pembesaran::create($validated);
 
@@ -158,6 +163,9 @@ class PembesaranController extends Controller
         // Hitung total konsumsi pakan & biaya
         $totalPakan = \App\Models\Pakan::totalKonsumsiByBatch($pembesaran->batch_produksi_id);
         $totalBiayaPakan = \App\Models\Pakan::totalBiayaByBatch($pembesaran->batch_produksi_id);
+        
+        // Hitung total biaya kesehatan & vaksinasi
+        $totalBiayaKesehatan = \App\Models\Kesehatan::getTotalBiayaKesehatan($pembesaran->batch_produksi_id);
         
         // Hitung umur hari (menggunakan startOfDay agar hasilnya integer)
         $umurHari = \Carbon\Carbon::parse($pembesaran->tanggal_masuk)->startOfDay()->diffInDays(\Carbon\Carbon::now()->startOfDay());
@@ -191,6 +199,7 @@ class PembesaranController extends Controller
             'mortalitas',
             'totalPakan',
             'totalBiayaPakan',
+            'totalBiayaKesehatan',
             'umurHari',
             'stokPakanList',
             'paramBeratStandar',
@@ -221,7 +230,7 @@ class PembesaranController extends Controller
             'kandang_id' => 'required|exists:kandang,id',
             'tanggal_masuk' => 'required|date',
             'jumlah_anak_ayam' => 'required|integer|min:1',
-            'jenis_kelamin' => 'nullable|in:betina,jantan',
+            'jenis_kelamin' => 'nullable|in:betina,jantan,campuran',
             'tanggal_siap' => 'nullable|date|after_or_equal:tanggal_masuk',
             'jumlah_siap' => 'nullable|integer|min:0',
             'umur_hari' => 'nullable|integer|min:0',
