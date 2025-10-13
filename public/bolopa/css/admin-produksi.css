@@ -1,0 +1,158 @@
+/* Styles for Produksi page - shared bolopa styles + page specific tweaks */
+
+/* Page Header (matches other admin pages) */
+.bolopa-page-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.25rem;
+}
+
+.bolopa-page-title {
+    margin: 0;
+    font-size: 1.5rem;
+    line-height: 1.2;
+    font-weight: 700;
+    color: #111;
+}
+
+.bolopa-page-subtitle {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.bolopa-header-action {
+    flex-shrink: 0;
+}
+
+.bolopa-header-action .btn {
+    padding: 0.45rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.18s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+}
+
+/* KAI Cards (grid-friendly) */
+.prod-kai-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.prod-kai-card {
+    border-radius: 10px;
+    color: #fff;
+    padding: 18px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 6px 18px rgba(12, 27, 77, 0.06);
+    min-height: 120px;
+}
+
+.prod-kai-card .value {
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+.prod-kai-card .label {
+    font-size: 0.9rem;
+    opacity: 0.95;
+}
+
+.prod-kai-blue { background: linear-gradient(180deg,#3b82f6,#0ea5e9); }
+.prod-kai-green { background: linear-gradient(180deg,#10b981,#059669); }
+.prod-kai-indigo { background: linear-gradient(180deg,#6366f1,#4f46e5); }
+.prod-kai-yellow { background: linear-gradient(180deg,#f59e0b,#fbbf24); color: #1f2937; }
+
+@media (max-width: 991px) {
+    .prod-kai-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 576px) {
+    .prod-kai-grid { grid-template-columns: 1fr; }
+    .prod-kai-card .value { font-size: 1.2rem; }
+    .bolopa-page-title { font-size: 1.1rem; }
+    .bolopa-page-subtitle { font-size: 0.8rem; }
+    .bolopa-page-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+}
+
+/* Cards & layout helpers used in Blade markup (card, card-body, card-footer) */
+.card {
+    background: #ffffff;
+    border-radius: 10px;
+    border: 1px solid rgba(15,23,42,0.04);
+    box-shadow: 0 6px 18px rgba(12, 27, 77, 0.04);
+}
+
+.card-body { padding: 16px; }
+.card-footer { padding: 12px 16px; background: transparent; border-top: 1px solid rgba(15,23,42,0.03); }
+
+/* Buttons (small variants used in the view) */
+.btn { cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; }
+.btn-sm { padding: 6px 10px; font-size: 0.85rem; border-radius: 8px; }
+.btn-primary { background: #4361ee; color: #fff; border: none; }
+.btn-primary:hover { background: #3f37c9; transform: translateY(-1px); }
+.btn-outline-primary { background: transparent; border: 1px solid #4361ee; color: #4361ee; }
+.btn-outline-secondary { background: transparent; border: 1px solid #6c757d; color: #6c757d; }
+.btn-info { background: #4895ef; color: #fff; }
+.btn-warning { background: #f59e0b; color: #111; }
+
+/* Form controls (small) */
+.form-control, .form-select { display: inline-block; width: 100%; padding: 8px 10px; border: 1px solid rgba(15,23,42,0.06); border-radius: 8px; }
+.form-control-sm { padding: 6px 8px; font-size: 0.85rem; }
+.form-select-sm { padding: 6px 8px; font-size: 0.85rem; }
+
+/* Table basics to match other pages */
+.table { width: 100%; border-collapse: collapse; font-family: inherit; }
+.table th, .table td { padding: 10px 12px; border-bottom: 1px solid rgba(15,23,42,0.06); vertical-align: middle; }
+.table thead th { background: #f8f9fa; font-weight: 700; position: sticky; top: 0; }
+.table-sm { font-size: 0.92rem; }
+.table-hover tbody tr:hover { background: rgba(67, 97, 238, 0.04); transform: translateY(-1px); }
+
+.text-end { text-align: right !important; }
+.text-center { text-align: center !important; }
+
+/* Specific tweaks for Produksi table */
+#tableProduksi th, #tableProduksi td { vertical-align: middle; }
+
+/* Export/Print button group alignment inside controls */
+.ms-auto { margin-left: auto !important; }
+.d-flex { display: flex !important; }
+.gap-2 { gap: 0.5rem; }
+.flex-wrap { flex-wrap: wrap; }
+.align-items-center { align-items: center; }
+.justify-content-between { justify-content: space-between; }
+
+/* Simple Bootstrap-like .row/.col fallback when Bootstrap CSS is not included */
+.row { display: flex; flex-wrap: wrap; margin-left: -0.5rem; margin-right: -0.5rem; }
+.row > [class*='col-'] { padding-left: 0.5rem; padding-right: 0.5rem; }
+.col-lg-3 { width: 25%; }
+.col-sm-6 { width: 50%; }
+
+@media (max-width: 991px) {
+    .col-lg-3 { width: 50%; }
+}
+
+@media (max-width: 575px) {
+    .col-lg-3, .col-sm-6 { width: 100%; }
+}
+
+/* Small responsive adjustments */
+@media (max-width: 767px) {
+    .prod-kai-card .value { font-size: 1rem; }
+}
+

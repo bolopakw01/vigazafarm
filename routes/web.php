@@ -87,6 +87,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('/admin/penetasan/{penetasan}/status', [App\Http\Controllers\PenetasanController::class, 'updateStatus'])->name('admin.penetasan.updateStatus');
     Route::delete('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'destroy'])->name('admin.penetasan.destroy');
     Route::get('/admin/produksi', [AdminController::class, 'produksi'])->name('admin.produksi');
+    // Placeholder routes for Produksi actions (create/show/edit)
+    // These are minimal handlers to avoid missing route exceptions while the full
+    // ProduksiController/views are being implemented. They redirect back to the
+    // index with a notice.
+    Route::get('/admin/produksi/create', [AdminController::class, 'produksiCreate'])->name('admin.produksi.create');
+    Route::get('/admin/produksi/{produksi}', [AdminController::class, 'produksiShow'])->name('admin.produksi.show');
+    Route::get('/admin/produksi/{produksi}/edit', [AdminController::class, 'produksiEdit'])->name('admin.produksi.edit');
 });
 
 require __DIR__.'/auth.php';
