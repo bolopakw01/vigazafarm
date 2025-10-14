@@ -1,158 +1,626 @@
-/* Styles for Produksi page - shared bolopa styles + page specific tweaks */
+/* Produksi Page Styles - VigazaFarm (Based on Bolopa Table Design) */
 
-/* Page Header (matches other admin pages) */
-.bolopa-page-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.25rem;
-    background: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    margin-bottom: 1.25rem;
+/* Import AlanSans Font */
+@font-face {
+    font-family: 'AlanSans';
+    src: url('../font/AlanSans-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
 }
 
-.bolopa-page-title {
-    margin: 0;
-    font-size: 1.5rem;
-    line-height: 1.2;
-    font-weight: 700;
-    color: #111;
+/* CSS Variables */
+.bolopa-tabel-wrapper {
+    --bolopa-tabel-primary: #4361ee;
+    --bolopa-tabel-secondary: #3f37c9;
+    --bolopa-tabel-success: #4cc9f0;
+    --bolopa-tabel-info: #4895ef;
+    --bolopa-tabel-warning: #f72585;
+    --bolopa-tabel-danger: #e63946;
+    --bolopa-tabel-light: #f8f9fa;
+    --bolopa-tabel-dark: #212529;
+    --bolopa-tabel-gray: #6c757d;
+    --bolopa-tabel-light-gray: #e9ecef;
+    --bolopa-tabel-border-radius: 8px;
+    --bolopa-tabel-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --bolopa-tabel-transition: all 0.3s ease;
 }
 
-.bolopa-page-subtitle {
-    margin: 0;
-    font-size: 0.9rem;
-    color: #6c757d;
-    margin-top: 0.25rem;
+/* Reset box-sizing for all elements */
+.bolopa-tabel-wrapper * {
+    box-sizing: border-box;
 }
 
-.bolopa-header-action {
+.bolopa-tabel-wrapper {
+    font-family: 'AlanSans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Preserve Font Awesome icons */
+.bolopa-tabel-wrapper i[class^="fa-"],
+.bolopa-tabel-wrapper i[class*=" fa-"],
+.bolopa-tabel-wrapper .fa,
+.bolopa-tabel-wrapper .fas,
+.bolopa-tabel-wrapper .far,
+.bolopa-tabel-wrapper .fal,
+.bolopa-tabel-wrapper .fab {
+    font-family: "Font Awesome 6 Free", "FontAwesome", "Font Awesome 5 Free", "Font Awesome 6 Brands" !important;
+    font-weight: 900;
+    font-style: normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    display: inline-block;
+    text-rendering: auto;
+    line-height: inherit;
+}
+
+/* SVG Icon Styling */
+.bolopa-icon-svg {
+    width: 18px;
+    height: 18px;
+    display: inline-block;
+    vertical-align: middle;
     flex-shrink: 0;
 }
 
-.bolopa-header-action .btn {
-    padding: 0.45rem 1rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-    border-radius: 8px;
-    transition: all 0.18s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    border: none;
+h1 .bolopa-icon-svg {
+    width: 28px;
+    height: 28px;
 }
 
-/* KAI Cards (grid-friendly) */
-.prod-kai-grid {
+.bolopa-tabel-search-box .bolopa-icon-svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+}
+
+.bolopa-tabel-btn .bolopa-icon-svg {
+    width: 16px;
+    height: 16px;
+}
+
+.bolopa-tabel-btn-action .bolopa-icon-svg {
+    width: 14px;
+    height: 14px;
+}
+
+.bolopa-tabel-sort-icon-svg {
+    width: 10px;
+    height: 10px;
+    display: block;
+}
+
+.bolopa-tabel-pagination-buttons .bolopa-icon-svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Main Container */
+.bolopa-tabel-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    border-radius: var(--bolopa-tabel-border-radius);
+    box-shadow: var(--bolopa-tabel-box-shadow);
+    padding: 24px;
+    overflow: hidden;
+}
+
+/* Header Section */
+.bolopa-tabel-container header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--bolopa-tabel-light-gray);
+}
+
+.bolopa-tabel-container h1 {
+    color: var(--bolopa-tabel-dark);
+    font-size: 1.6rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* KAI Cards Grid */
+.bolopa-kai-card {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 12px;
+    align-items: start;
 }
 
-.prod-kai-card {
-    border-radius: 10px;
-    color: #fff;
-    padding: 18px;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    box-shadow: 0 6px 18px rgba(12, 27, 77, 0.06);
-    min-height: 120px;
+.bolopa-kai-item {
+    color: var(--bolopa-tabel-dark);
+    background: #fff;
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
 }
 
-.prod-kai-card .value {
-    font-size: 1.6rem;
+.bolopa-kai-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.bolopa-kai-item .bolopa-kai-label {
+    font-size: 0.7rem;
+    color: var(--bolopa-tabel-gray);
+    margin-bottom: 8px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.bolopa-kai-item .bolopa-kai-value {
+    font-size: 1.25rem;
     font-weight: 700;
+    color: var(--bolopa-tabel-dark);
+    margin-bottom: 4px;
 }
 
-.prod-kai-card .label {
+.bolopa-kai-item .bolopa-kai-sub {
+    font-size: 0.75rem;
+    color: var(--bolopa-tabel-gray);
+}
+
+/* Responsive KAI Grid */
+@media (max-width: 1100px) {
+    .bolopa-kai-card {
+        grid-template-columns: repeat(2, 1fr);
+        grid-auto-flow: column;
+        grid-template-rows: repeat(4, auto);
+    }
+}
+
+@media (max-width: 600px) {
+    .bolopa-kai-card {
+        grid-template-columns: 1fr;
+        grid-auto-flow: row;
+        grid-template-rows: none;
+    }
+}
+
+/* Controls Section */
+.bolopa-tabel-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--bolopa-tabel-light);
+    border-radius: var(--bolopa-tabel-border-radius);
+}
+
+.bolopa-tabel-left-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.bolopa-tabel-right-controls {
+    display: flex;
+    gap: 10px;
+}
+
+/* Search Box */
+.bolopa-tabel-search-box {
+    position: relative;
+}
+
+.bolopa-tabel-search-box input {
+    padding: 10px 15px 10px 40px;
+    border: 1px solid var(--bolopa-tabel-light-gray);
+    border-radius: var(--bolopa-tabel-border-radius);
     font-size: 0.9rem;
-    opacity: 0.95;
+    width: 220px;
+    transition: var(--bolopa-tabel-transition);
 }
 
-.prod-kai-blue { background: linear-gradient(180deg,#3b82f6,#0ea5e9); }
-.prod-kai-green { background: linear-gradient(180deg,#10b981,#059669); }
-.prod-kai-indigo { background: linear-gradient(180deg,#6366f1,#4f46e5); }
-.prod-kai-yellow { background: linear-gradient(180deg,#f59e0b,#fbbf24); color: #1f2937; }
-
-@media (max-width: 991px) {
-    .prod-kai-grid { grid-template-columns: repeat(2, 1fr); }
+.bolopa-tabel-search-box input:focus {
+    outline: none;
+    border-color: var(--bolopa-tabel-primary);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
 }
 
-@media (max-width: 576px) {
-    .prod-kai-grid { grid-template-columns: 1fr; }
-    .prod-kai-card .value { font-size: 1.2rem; }
-    .bolopa-page-title { font-size: 1.1rem; }
-    .bolopa-page-subtitle { font-size: 0.8rem; }
-    .bolopa-page-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+.bolopa-tabel-search-box i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--bolopa-tabel-gray);
 }
 
-/* Cards & layout helpers used in Blade markup (card, card-body, card-footer) */
-.card {
-    background: #ffffff;
-    border-radius: 10px;
-    border: 1px solid rgba(15,23,42,0.04);
-    box-shadow: 0 6px 18px rgba(12, 27, 77, 0.04);
+/* Entries Select */
+.bolopa-tabel-entries-select {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
 }
 
-.card-body { padding: 16px; }
-.card-footer { padding: 12px 16px; background: transparent; border-top: 1px solid rgba(15,23,42,0.03); }
-
-/* Buttons (small variants used in the view) */
-.btn { cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; }
-.btn-sm { padding: 6px 10px; font-size: 0.85rem; border-radius: 8px; }
-.btn-primary { background: #4361ee; color: #fff; border: none; }
-.btn-primary:hover { background: #3f37c9; transform: translateY(-1px); }
-.btn-outline-primary { background: transparent; border: 1px solid #4361ee; color: #4361ee; }
-.btn-outline-secondary { background: transparent; border: 1px solid #6c757d; color: #6c757d; }
-.btn-info { background: #4895ef; color: #fff; }
-.btn-warning { background: #f59e0b; color: #111; }
-
-/* Form controls (small) */
-.form-control, .form-select { display: inline-block; width: 100%; padding: 8px 10px; border: 1px solid rgba(15,23,42,0.06); border-radius: 8px; }
-.form-control-sm { padding: 6px 8px; font-size: 0.85rem; }
-.form-select-sm { padding: 6px 8px; font-size: 0.85rem; }
-
-/* Table basics to match other pages */
-.table { width: 100%; border-collapse: collapse; font-family: inherit; }
-.table th, .table td { padding: 10px 12px; border-bottom: 1px solid rgba(15,23,42,0.06); vertical-align: middle; }
-.table thead th { background: #f8f9fa; font-weight: 700; position: sticky; top: 0; }
-.table-sm { font-size: 0.92rem; }
-.table-hover tbody tr:hover { background: rgba(67, 97, 238, 0.04); transform: translateY(-1px); }
-
-.text-end { text-align: right !important; }
-.text-center { text-align: center !important; }
-
-/* Specific tweaks for Produksi table */
-#tableProduksi th, #tableProduksi td { vertical-align: middle; }
-
-/* Export/Print button group alignment inside controls */
-.ms-auto { margin-left: auto !important; }
-.d-flex { display: flex !important; }
-.gap-2 { gap: 0.5rem; }
-.flex-wrap { flex-wrap: wrap; }
-.align-items-center { align-items: center; }
-.justify-content-between { justify-content: space-between; }
-
-/* Simple Bootstrap-like .row/.col fallback when Bootstrap CSS is not included */
-.row { display: flex; flex-wrap: wrap; margin-left: -0.5rem; margin-right: -0.5rem; }
-.row > [class*='col-'] { padding-left: 0.5rem; padding-right: 0.5rem; }
-.col-lg-3 { width: 25%; }
-.col-sm-6 { width: 50%; }
-
-@media (max-width: 991px) {
-    .col-lg-3 { width: 50%; }
+.bolopa-tabel-entries-select select {
+    padding: 8px 12px;
+    border: 1px solid var(--bolopa-tabel-light-gray);
+    border-radius: var(--bolopa-tabel-border-radius);
+    background: white;
+    font-size: 0.9rem;
+    cursor: pointer;
 }
 
-@media (max-width: 575px) {
-    .col-lg-3, .col-sm-6 { width: 100%; }
+/* Buttons */
+.bolopa-tabel-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: var(--bolopa-tabel-border-radius);
+    cursor: pointer;
+    font-weight: 500;
+    transition: var(--bolopa-tabel-transition);
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
 }
 
-/* Small responsive adjustments */
-@media (max-width: 767px) {
-    .prod-kai-card .value { font-size: 1rem; }
+.bolopa-tabel-btn-primary {
+    background: var(--bolopa-tabel-primary);
+    color: white;
 }
 
+.bolopa-tabel-btn-primary:hover {
+    background: var(--bolopa-tabel-secondary);
+    transform: translateY(-1px);
+}
+
+.bolopa-tabel-btn-success {
+    background: var(--bolopa-tabel-success);
+    color: white;
+}
+
+.bolopa-tabel-btn-success:hover {
+    background: #3aafd9;
+    transform: translateY(-1px);
+}
+
+.bolopa-tabel-btn-danger {
+    background: var(--bolopa-tabel-danger);
+    color: white;
+}
+
+.bolopa-tabel-btn-danger:hover {
+    background: #c22c38;
+    transform: translateY(-1px);
+}
+
+.bolopa-tabel-btn-action {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    margin: 0 2px;
+}
+
+.bolopa-tabel-btn-info {
+    background: var(--bolopa-tabel-info);
+    color: white;
+}
+
+.bolopa-tabel-btn-info:hover {
+    background: #3a7fd8;
+    transform: translateY(-1px);
+}
+
+.bolopa-tabel-btn-warning {
+    background: var(--bolopa-tabel-warning);
+    color: white;
+}
+
+.bolopa-tabel-btn-warning:hover {
+    background: #d61c6a;
+    transform: translateY(-1px);
+}
+
+/* Table Responsive Wrapper */
+.bolopa-tabel-table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Table Styles */
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-bottom: 12px;
+    table-layout: auto;
+    min-width: 1100px;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: center;
+    border-bottom: 1px solid var(--bolopa-tabel-light-gray);
+    white-space: nowrap;
+}
+
+th {
+    background-color: var(--bolopa-tabel-light);
+    font-weight: 600;
+    color: var(--bolopa-tabel-dark);
+    position: sticky;
+    top: 0;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.9rem;
+    padding: 12px 15px;
+    padding-right: 30px;
+}
+
+th:hover {
+    background-color: #e9ecef;
+}
+
+/* Sort Icons */
+.bolopa-tabel-sort-wrap {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 20px;
+    justify-content: center;
+}
+
+.bolopa-tabel-sort-icon {
+    opacity: 0.3;
+    transition: opacity 0.2s ease;
+    display: block;
+    font-size: 0.8rem;
+    line-height: 0.6;
+    color: var(--bolopa-tabel-dark);
+}
+
+.bolopa-tabel-sort-icon.bolopa-tabel-active {
+    opacity: 1;
+    color: var(--bolopa-tabel-primary);
+}
+
+/* SVG Sort Icons */
+.bolopa-tabel-sort-icon-svg {
+    opacity: 0.3;
+    transition: all 0.2s ease;
+}
+
+.bolopa-tabel-sort-icon-svg.bolopa-tabel-active {
+    opacity: 1;
+    filter: brightness(0) saturate(100%) invert(36%) sepia(98%) saturate(2061%) hue-rotate(224deg) brightness(97%) contrast(93%);
+}
+
+th:hover .bolopa-tabel-sort-icon {
+    opacity: 0.5;
+}
+
+th:hover .bolopa-tabel-sort-icon.bolopa-tabel-active {
+    opacity: 1;
+}
+
+/* Table Rows */
+tr {
+    transition: all 0.18s ease;
+}
+
+tbody tr:hover {
+    background-color: rgba(67, 97, 238, 0.06);
+    box-shadow: 0 8px 18px rgba(20, 30, 60, 0.06);
+    transform: translateY(-2px);
+    position: relative;
+    z-index: 2;
+}
+
+tbody tr:hover td:first-child {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+
+tbody tr:hover td:last-child {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+tbody tr:hover td {
+    background-color: rgba(67, 97, 238, 0.06);
+}
+
+tbody tr:nth-child(odd) {
+    background-color: #fafbfc;
+}
+
+/* Badge Styles */
+.bolopa-tabel-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.bolopa-tabel-badge-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.bolopa-tabel-badge-danger {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Action Buttons */
+.bolopa-tabel-actions {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+/* Pagination */
+.bolopa-tabel-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.bolopa-tabel-pagination-info {
+    color: var(--bolopa-tabel-gray);
+    font-size: 0.9rem;
+}
+
+.bolopa-tabel-pagination-buttons {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.bolopa-tabel-pagination-buttons button,
+.bolopa-tabel-pagination-buttons a button {
+    padding: 6px 10px;
+    border: 1px solid var(--bolopa-tabel-light-gray);
+    background: white;
+    border-radius: var(--bolopa-tabel-border-radius);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    font-size: 0.9rem;
+    transition: var(--bolopa-tabel-transition);
+    text-decoration: none;
+    color: var(--bolopa-tabel-dark);
+}
+
+.bolopa-tabel-pagination-buttons button:hover:not(:disabled):not(.bolopa-tabel-active) {
+    background: var(--bolopa-tabel-light);
+}
+
+.bolopa-tabel-pagination-buttons button.bolopa-tabel-active {
+    background: var(--bolopa-tabel-primary);
+    color: white;
+    border-color: var(--bolopa-tabel-primary);
+}
+
+.bolopa-tabel-pagination-buttons button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Toast Notification */
+.bolopa-tabel-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    background: var(--bolopa-tabel-dark);
+    color: white;
+    border-radius: var(--bolopa-tabel-border-radius);
+    box-shadow: var(--bolopa-tabel-box-shadow);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    z-index: 1100;
+}
+
+.bolopa-tabel-toast.bolopa-tabel-show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+tbody tr {
+    animation: fadeIn 0.3s ease forwards;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .bolopa-tabel-container {
+        padding: 16px;
+    }
+
+    .bolopa-tabel-container header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .bolopa-tabel-controls {
+        flex-direction: column;
+    }
+
+    .bolopa-tabel-left-controls, .bolopa-tabel-right-controls {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .bolopa-tabel-search-box {
+        width: 100%;
+    }
+
+    .bolopa-tabel-search-box input {
+        width: 100%;
+    }
+
+    .bolopa-tabel-pagination {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .bolopa-tabel-pagination-buttons {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .bolopa-kai-item .bolopa-kai-value {
+        font-size: 1.1rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .bolopa-tabel-controls,
+    .bolopa-tabel-pagination,
+    .bolopa-tabel-actions {
+        display: none !important;
+    }
+
+    .bolopa-tabel-container {
+        box-shadow: none;
+        padding: 0;
+    }
+
+    table {
+        min-width: auto;
+    }
+
+    tbody tr:hover {
+        background-color: transparent;
+        transform: none;
+        box-shadow: none;
+    }
+}

@@ -77,7 +77,10 @@ class AdminController extends Controller
         if ($search) {
             $query->where(function($q) use ($search) {
                 $q->where('batch_produksi_id', 'like', "%{$search}%")
-                  ->orWhere('catatan', 'like', "%{$search}%");
+                  ->orWhere('catatan', 'like', "%{$search}%")
+                  ->orWhereHas('kandang', function($q) use ($search) {
+                      $q->where('nama_kandang', 'like', "%{$search}%");
+                  });
             });
         }
 
@@ -85,15 +88,53 @@ class AdminController extends Controller
             ? $query->orderBy('tanggal_mulai', 'desc')->get()
             : $query->orderBy('tanggal_mulai', 'desc')->paginate($perPage);
 
-        // KPI aggregates (simple implementations)
+        // KPI aggregates
         $totalTelur = \App\Models\LaporanHarian::selectRaw('COALESCE(SUM(produksi_telur),0) as total')->value('total') ?? 0;
-        $rataTelurPerHari = $produksi->count() ? round(($produksi->sum('jumlah_telur') / $produksi->count()), 2) : 0;
-        $pendapatan = $produksi->sum(function($p) { return ($p->jumlah_telur ?? 0) * ($p->harga_per_pcs ?? 0); });
-        $lostRate = 0; // Calculation depends on stok & kematian; leave 0 for now
+        
+        // Rata-rata telur per hari dari laporan harian yang memiliki produksi
+        $laporanCount = \App\Models\LaporanHarian::where('produksi_telur', '>', 0)->count();
+        $rataTelurPerHari = $laporanCount > 0 ? round($totalTelur / $laporanCount, 2) : 0;
+        
+        // Pendapatan estimasi
+        $pendapatan = $produksi->sum(function($p) { 
+            return ($p->jumlah_telur ?? 0) * ($p->harga_per_pcs ?? 0); 
+        });
+        
+        // Loss rate: hitung dari mortalitas kumulatif rata-rata
+        // Atau bisa dari jumlah kematian dibanding populasi
+        $totalKematian = \App\Models\LaporanHarian::selectRaw('COALESCE(SUM(jumlah_kematian),0) as total')->value('total') ?? 0;
+        $totalPopulasi = \App\Models\LaporanHarian::selectRaw('COALESCE(AVG(jumlah_burung),0) as total')->value('total') ?? 0;
+        $lostRate = $totalPopulasi > 0 ? round(($totalKematian / $totalPopulasi) * 100, 2) : 0;
+        
+        // Batch aktif (status aktif)
+        $batchAktif = \App\Models\Produksi::where('status', 'aktif')->distinct('batch_produksi_id')->count('batch_produksi_id');
+        
+        // Kandang aktif yang sedang produksi
+        $kandangAktif = \App\Models\Produksi::where('status', 'aktif')->distinct('kandang_id')->count('kandang_id');
+        
+        // Usia rata-rata produksi (dalam hari dari tanggal_mulai)
+        $usiaRataRata = \App\Models\Produksi::where('status', 'aktif')
+            ->selectRaw('AVG(DATEDIFF(NOW(), tanggal_mulai)) as avg_usia')
+            ->value('avg_usia') ?? 0;
+        $usiaRataRata = round($usiaRataRata);
+        
+        // Total indukan dari semua batch aktif
+        $totalIndukan = \App\Models\Produksi::where('status', 'aktif')->sum('jumlah_indukan') ?? 0;
 
         $kandangList = \App\Models\Kandang::orderBy('nama_kandang')->get();
 
-        return view('admin.pages.produksi.index-produksi', compact('produksi', 'kandangList', 'totalTelur', 'rataTelurPerHari', 'pendapatan', 'lostRate'));
+        return view('admin.pages.produksi.index-produksi', compact(
+            'produksi', 
+            'kandangList', 
+            'totalTelur', 
+            'rataTelurPerHari', 
+            'pendapatan', 
+            'lostRate',
+            'batchAktif',
+            'kandangAktif',
+            'usiaRataRata',
+            'totalIndukan'
+        ));
     }
 
     // Minimal placeholder for creating produksi
