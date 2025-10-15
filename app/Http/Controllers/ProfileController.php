@@ -7,6 +7,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -31,30 +33,30 @@ class ProfileController extends Controller
         // Handle profile picture upload
         if ($request->hasFile('profile_picture')) {
             // Delete old profile picture if exists
-            if ($user->profile_picture && file_exists(public_path('storage/' . $user->profile_picture))) {
-                unlink(public_path('storage/' . $user->profile_picture));
+            if ($user->foto_profil && Storage::exists('public/foto_profil/' . $user->foto_profil)) {
+                Storage::delete('public/foto_profil/' . $user->foto_profil);
             }
 
             // Store new profile picture
-            $path = $request->file('profile_picture')->store('profile-pictures', 'public');
-            $user->profile_picture = $path;
+            $file = $request->file('profile_picture');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->storeAs('public/foto_profil', $filename);
+            $user->foto_profil = $filename;
         }
 
         // Update user data
-        $user->fill($request->only(['nama', 'username', 'email']));
+        $user->nama = $request->nama;
+        $user->nama_pengguna = $request->username;
+        $user->surel = $request->email;
 
         // Handle password update
         if ($request->filled('password')) {
-            $user->password = bcrypt($request->password);
-        }
-
-        if ($user->isDirty('email')) {
-            $user->email_verified_at = null;
+            $user->kata_sandi = Hash::make($request->password);
         }
 
         $user->save();
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return Redirect::route('profile.edit')->with('success', 'Profile berhasil diperbarui');
     }
 
     /**

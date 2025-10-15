@@ -33,7 +33,14 @@ Route::middleware('auth')->group(function () {
         Route::patch('/admin/kandang/{kandang}', [App\Http\Controllers\KandangController::class, 'update'])->name('admin.kandang.update');
         Route::delete('/admin/kandang/{kandang}', [App\Http\Controllers\KandangController::class, 'destroy'])->name('admin.kandang.destroy');
 
-        Route::get('/admin/karyawan', [AdminController::class, 'karyawan'])->name('admin.karyawan');
+        // Karyawan CRUD
+        Route::get('/admin/karyawan', [App\Http\Controllers\KaryawanController::class, 'index'])->name('admin.karyawan');
+        Route::get('/admin/karyawan/create', [App\Http\Controllers\KaryawanController::class, 'create'])->name('admin.karyawan.create');
+        Route::post('/admin/karyawan', [App\Http\Controllers\KaryawanController::class, 'store'])->name('admin.karyawan.store');
+        Route::get('/admin/karyawan/{karyawan}', [App\Http\Controllers\KaryawanController::class, 'show'])->name('admin.karyawan.show');
+        Route::get('/admin/karyawan/{karyawan}/edit', [App\Http\Controllers\KaryawanController::class, 'edit'])->name('admin.karyawan.edit');
+        Route::patch('/admin/karyawan/{karyawan}', [App\Http\Controllers\KaryawanController::class, 'update'])->name('admin.karyawan.update');
+        Route::delete('/admin/karyawan/{karyawan}', [App\Http\Controllers\KaryawanController::class, 'destroy'])->name('admin.karyawan.destroy');
     });
 
     // Operational routes (All authenticated users)
