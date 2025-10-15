@@ -1,0 +1,174 @@
+/* Admin Kandang - Lopa-inspired table styles
+   Moved from inline styles in index-kandang.blade.php
+   Scoped to prevent affecting global elements
+*/
+:root {
+	--bolopa-tabel-primary: #4361ee;
+	--bolopa-tabel-secondary: #3f37c9;
+	--bolopa-tabel-success: #4cc9f0;
+	--bolopa-tabel-info: #4895ef;
+	--bolopa-tabel-warning: #f72585;
+	--bolopa-tabel-danger: #e63946;
+	--bolopa-tabel-light: #f8f9fb;
+	--bolopa-tabel-dark: #212529;
+	--bolopa-tabel-gray: #6c757d;
+	--bolopa-tabel-border-radius: 10px;
+	--bolopa-tabel-box-shadow: 0 6px 18px rgba(20,30,60,0.06);
+	--bolopa-tabel-transition: all 0.18s ease;
+}
+
+/* Load local variable font Alan Sans placed under public/bolopa/font/AlanSans-VariableFont_wght.ttf */
+@font-face {
+	font-family: 'AlanSans';
+	src: url('../font/AlanSans-VariableFont_wght.ttf') format('truetype');
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+.bolopa-tabel-wrapper * { box-sizing: border-box; }
+.bolopa-tabel-wrapper { font-family: 'AlanSans', Inter, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: var(--bolopa-tabel-dark); font-weight:400; }
+
+/* Ensure table text uses Alan Sans even if other rules exist - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-tabel-container, .bolopa-tabel-wrapper .bolopa-tabel-container th, .bolopa-tabel-wrapper .bolopa-tabel-container td, .bolopa-tabel-wrapper .bolopa-tabel-container .bolopa-tabel-actions, .bolopa-tabel-wrapper .bolopa-tabel-container .bolopa-kai-card {
+	font-family: 'Alan Sans', Inter, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+	font-variation-settings: 'wght' 400 !important;
+}
+.bolopa-tabel-wrapper { font-size: 14px; }
+.bolopa-tabel-wrapper .bolopa-tabel-container { font-size: 14px; }
+.bolopa-tabel-wrapper .bolopa-tabel-container { background: #fff; border-radius: var(--bolopa-tabel-border-radius); padding: 20px; box-shadow: var(--bolopa-tabel-box-shadow); }
+
+/* Header - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-tabel-container header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.bolopa-tabel-wrapper .bolopa-tabel-container h1 { font-size:1.4rem; margin:0; display:flex; align-items:center; gap:10px; }
+
+/* Summary / KPI cards placeholder - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-kai-card { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+
+/* Controls - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-tabel-controls { display:flex; justify-content:space-between; gap:12px; margin:12px 0; }
+.bolopa-tabel-wrapper .bolopa-tabel-left-controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.bolopa-tabel-wrapper .bolopa-tabel-right-controls { display:flex; gap:8px; align-items:center; }
+.bolopa-tabel-wrapper .bolopa-tabel-entries-select { display:flex; align-items:center; gap:8px; }
+.bolopa-tabel-wrapper .bolopa-tabel-entries-select select { padding:8px 10px; border-radius:8px; border:1px solid #e9eef6; background:white; }
+.bolopa-tabel-wrapper .bolopa-tabel-search-box { position:relative; display:inline-block; }
+.bolopa-tabel-wrapper .bolopa-tabel-search-box img { position:absolute; left:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; opacity:0.6; }
+.bolopa-tabel-wrapper .bolopa-tabel-search-box input { padding:8px 12px 8px 40px; border-radius:8px; border:1px solid #e9eef6; width:220px; transition:var(--bolopa-tabel-transition); }
+.bolopa-tabel-wrapper .bolopa-tabel-search-box input:focus { outline:none; box-shadow:0 6px 18px rgba(67,97,238,0.08); border-color:var(--bolopa-tabel-primary); }
+
+/* Buttons - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-tabel-btn { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:8px; border:none; cursor:pointer; transition:var(--bolopa-tabel-transition); font-weight:600; }
+.bolopa-tabel-wrapper .bolopa-tabel-btn img { width:18px; height:18px; }
+/* apply requested color filter to icons inside buttons (action icons) */
+.bolopa-tabel-wrapper .bolopa-tabel-btn img, .bolopa-tabel-wrapper .bolopa-tabel-btn-action img { filter: invert(100%) sepia(3%) saturate(14%) hue-rotate(112deg) brightness(107%) contrast(105%); }
+
+/* remove underline on anchor buttons like 'Tambah Data' */
+.bolopa-tabel-wrapper .bolopa-tabel-btn, .bolopa-tabel-wrapper .bolopa-tabel-btn:link, .bolopa-tabel-wrapper .bolopa-tabel-btn:visited { text-decoration: none; }
+.bolopa-tabel-wrapper .bolopa-tabel-btn-primary { background:var(--bolopa-tabel-primary); color:white; }
+.bolopa-tabel-wrapper .bolopa-tabel-btn-primary:hover { background:var(--bolopa-tabel-secondary); transform:translateY(-1px); }
+.bolopa-tabel-wrapper .bolopa-tabel-btn-success { background:var(--bolopa-tabel-success); color:white; }
+.bolopa-tabel-wrapper .bolopa-tabel-btn-info { background:var(--bolopa-tabel-info); color:white; }
+
+/* Colorize small svg/icon elements in controls - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-icon-svg { width:18px; height:18px; display:inline-block; vertical-align:middle; filter: invert(100%) sepia(3%) saturate(14%) hue-rotate(112deg) brightness(107%) contrast(105%); }
+
+/* active sort icon uses primary color instead of black - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-tabel-sort-icon.bolopa-tabel-dominant { opacity:1; transform:translateX(-50%) scale(1.12); filter: none; }
+.bolopa-tabel-wrapper .bolopa-tabel-sort-icon.bolopa-tabel-dominant { filter: drop-shadow(0 1px 0 rgba(0,0,0,0.02)); }
+.bolopa-tabel-wrapper .bolopa-tabel-sort-icon.bolopa-tabel-dominant { filter: brightness(0) saturate(100%) sepia(1) hue-rotate(210deg) saturate(600%) brightness(90%); }
+
+/* ensure inactive sort icons are slightly muted - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-tabel-sort-icon { opacity:0.55; }
+
+/* Small action buttons (lihat/edit/hapus) - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-tabel-btn-action { padding:6px 8px; font-size:0.85rem; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; }
+.bolopa-tabel-wrapper .bolopa-tabel-btn-action img { width:14px; height:14px; }
+
+.bolopa-tabel-wrapper .bolopa-tabel-btn-info { background:var(--bolopa-tabel-info); color:#fff; }
+.bolopa-tabel-wrapper .bolopa-tabel-btn-info:hover { filter:brightness(0.95); }
+
+.bolopa-tabel-wrapper .bolopa-tabel-btn-warning { background:var(--bolopa-tabel-warning); color:#fff; }
+.bolopa-tabel-wrapper .bolopa-tabel-btn-warning:hover { filter:brightness(0.95); }
+
+.bolopa-tabel-wrapper .bolopa-tabel-btn-danger { background:var(--bolopa-tabel-danger); color:#fff; }
+.bolopa-tabel-wrapper .bolopa-tabel-btn-danger:hover { filter:brightness(0.95); }
+
+/* smaller spacing for action container - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-tabel-actions { gap:6px; justify-content: center; }
+
+/* Text center utility class - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-tabel-text-center { text-align: center; }
+
+/* Table responsive wrapper - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-tabel-table-responsive { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.bolopa-tabel-wrapper table { width:100%; border-collapse:separate; border-spacing:0; margin-bottom:12px; table-layout:fixed; min-width:900px; }
+.bolopa-tabel-wrapper th, .bolopa-tabel-wrapper td { padding:12px 14px; text-align:left; border-bottom:1px solid #eef2f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bolopa-tabel-wrapper th { background:var(--bolopa-tabel-light); font-weight:700; position:sticky; top:0; z-index:1; font-size:0.95rem; padding-right:48px; }
+.bolopa-tabel-wrapper th[data-sort="no"] { width:72px; text-align:center; padding-right:20px; }
+
+/* Sort icons - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-tabel-sort-wrap { position:absolute; right:12px; top:50%; transform:translateY(-50%); width:18px; height:18px; display:inline-block; pointer-events:none; }
+.bolopa-tabel-wrapper .bolopa-tabel-sort-icon { position:absolute; left:50%; transform:translateX(-50%); width:12px; height:11px; opacity:0.45; transition:opacity 0.12s ease, transform 0.12s ease, filter 0.12s ease; }
+.bolopa-tabel-wrapper .bolopa-tabel-sort-up { top:0; }
+.bolopa-tabel-wrapper .bolopa-tabel-sort-down { bottom:0; }
+.bolopa-tabel-wrapper .bolopa-tabel-sort-icon.bolopa-tabel-dominant { opacity:1; transform:translateX(-50%) scale(1.12); filter: brightness(0) saturate(100%); }
+
+/* slightly larger base font for headers - scoped to wrapper */
+.bolopa-tabel-wrapper th { font-size: 0.95rem; }
+.bolopa-tabel-wrapper td { font-size: 0.92rem; }
+
+.bolopa-tabel-wrapper tbody tr { transition:var(--bolopa-tabel-transition); }
+.bolopa-tabel-wrapper tbody tr:hover { background:rgba(67,97,238,0.05); transform:translateY(-2px); box-shadow:0 8px 18px rgba(20,30,60,0.04); position:relative; z-index:2; }
+.bolopa-tabel-wrapper tbody tr:hover td:first-child { border-top-left-radius:8px; border-bottom-left-radius:8px; }
+.bolopa-tabel-wrapper tbody tr:hover td:last-child { border-top-right-radius:8px; border-bottom-right-radius:8px; }
+
+.bolopa-tabel-wrapper .bolopa-tabel-badge { padding:4px 8px; border-radius:12px; font-size:0.8rem; font-weight:700; }
+.bolopa-tabel-wrapper .bolopa-tabel-badge { padding:4px 8px; border-radius:10px; font-size:0.78rem; font-weight:700; display:inline-flex; align-items:center; gap:6px; }
+.bolopa-tabel-wrapper .bolopa-tabel-badge-success { background:#d4edda; color:#155724; }
+.bolopa-tabel-wrapper .bolopa-tabel-badge-danger { background:#f8d7da; color:#721c24; }
+.bolopa-tabel-wrapper .bolopa-tabel-badge-warning { background:#fff3cd; color:#856404; }
+
+/* status dot (smaller) - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-tabel-badge-success::before, .bolopa-tabel-wrapper .bolopa-tabel-badge-danger::before, .bolopa-tabel-wrapper .bolopa-tabel-badge-warning::before {
+	content: '';
+	display:inline-block;
+	width:8px;
+	height:8px;
+	border-radius:50%;
+}
+.bolopa-tabel-wrapper .bolopa-tabel-badge-success::before { background:#28a745; }
+.bolopa-tabel-wrapper .bolopa-tabel-badge-danger::before { background:#e63946; }
+.bolopa-tabel-wrapper .bolopa-tabel-badge-warning::before { background:#ffc107; }
+
+.bolopa-tabel-wrapper .bolopa-tabel-actions { display:flex; gap:6px; justify-content:center; }
+.bolopa-tabel-wrapper .bolopa-tabel-pagination { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
+.bolopa-tabel-wrapper .bolopa-tabel-pagination-buttons { display:flex; gap:6px; }
+.bolopa-tabel-wrapper .bolopa-tabel-pagination-buttons a { padding:6px 10px; border:1px solid #e9eef6; background:white; border-radius:8px; cursor:pointer; min-width:36px; height:36px; display:flex; align-items:center; justify-content:center; text-decoration:none; color:var(--bolopa-tabel-dark); transition:var(--bolopa-tabel-transition); }
+.bolopa-tabel-wrapper .bolopa-tabel-pagination-buttons a:hover { background:var(--bolopa-tabel-light); border-color:#d0d7de; }
+.bolopa-tabel-wrapper .bolopa-tabel-pagination-buttons a.bolopa-tabel-active { background:var(--bolopa-tabel-primary); color:white; border-color:var(--bolopa-tabel-primary); }
+.bolopa-tabel-wrapper .bolopa-tabel-pagination-buttons a.disabled { background:#f8f9fa; color:#6c757d; border-color:#dee2e6; cursor:not-allowed; pointer-events:none; }
+
+/* Modal and toast (simple) - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-tabel-modal { display:none; }
+.bolopa-tabel-wrapper .bolopa-tabel-toast { position:fixed; bottom:20px; right:20px; padding:12px 18px; background:var(--bolopa-tabel-dark); color:white; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.12); opacity:0; transform:translateY(20px); transition:all 0.25s ease; z-index:1100; }
+.bolopa-tabel-wrapper .bolopa-tabel-toast.bolopa-tabel-show { opacity:1; transform:translateY(0); }
+
+@media (max-width:768px) {
+	.bolopa-tabel-wrapper .bolopa-tabel-search-box input { width:140px; }
+	.bolopa-tabel-wrapper table { min-width:720px; }
+	.bolopa-tabel-wrapper th, .bolopa-tabel-wrapper td { padding:10px 8px; }
+}
+
+/* Card utility used for forms/pages - scoped to wrapper */
+.bolopa-tabel-wrapper .bolopa-card {
+	background: #ffffff;
+	border-radius: 12px;
+	box-shadow: 0 10px 22px rgba(16,24,40,0.08);
+	padding: 20px;
+	border: 1px solid rgba(16,24,40,0.04);
+}
+.bolopa-tabel-wrapper .bolopa-tabel-form-group { margin-bottom:12px; display:block; }
+.bolopa-tabel-wrapper .bolopa-tabel-form-group label { display:block; margin-bottom:6px; font-weight:600; }
+.bolopa-tabel-wrapper .bolopa-tabel-form-group input[type="text"], .bolopa-tabel-wrapper .bolopa-tabel-form-group input[type="number"], .bolopa-tabel-wrapper .bolopa-tabel-form-group select, .bolopa-tabel-wrapper .bolopa-tabel-form-group textarea { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #e9eef6; }
+.bolopa-tabel-wrapper .bolopa-tabel-form-group textarea { min-height:80px; }
+

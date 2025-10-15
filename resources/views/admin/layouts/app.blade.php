@@ -7,8 +7,7 @@
     <title>@yield('title', 'Vigaza Farm') | Vigaza Farm</title>
     <link rel="icon" type="image/png" href="{{ asset('bolopa/img/icon.png') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Bootstrap temporarily disabled - causing sidebar style conflicts -->
-    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" crossorigin="anonymous"> -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     
     <!-- Load SweetAlert2 in head to ensure it's available for inline scripts -->
@@ -86,42 +85,6 @@
                 left: 250px;
                 width: calc(100% - 250px);
             }
-        }
-
-        /* Minimal Bootstrap Alert Styles (to replace disabled Bootstrap CSS) */
-        .alert {
-            position: relative;
-            padding: 12px 20px;
-            margin-bottom: 16px;
-            border: 1px solid transparent;
-            border-radius: 6px;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        .alert-success {
-            color: #0f5132;
-            background-color: #d1e7dd;
-            border-color: #badbcc;
-        }
-        .alert-danger {
-            color: #842029;
-            background-color: #f8d7da;
-            border-color: #f5c2c7;
-        }
-        .alert-warning {
-            color: #664d03;
-            background-color: #fff3cd;
-            border-color: #ffecb5;
-        }
-        .alert-info {
-            color: #055160;
-            background-color: #cff4fc;
-            border-color: #b6effb;
-        }
-        .alert-secondary {
-            color: #41464b;
-            background-color: #e2e3e5;
-            border-color: #d3d6d8;
         }
     </style>
 </head>

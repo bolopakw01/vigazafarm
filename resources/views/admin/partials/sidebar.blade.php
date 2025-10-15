@@ -4,7 +4,19 @@
         <div class="logo_name">Vigazafarm</div>
         <img id="btn" src="{{ asset('bolopa/img/icon/line-md--menu-fold-right.svg') }}" alt="menu" />
     </div>
-    <ul class="nav-list" data-active="operasional">
+  @php
+    // Determine which sidebar group should be active based on current route
+    $currentRoute = request()->route() ? request()->route()->getName() : null;
+    $activeGroup = 'operasional';
+    if ($currentRoute) {
+      if (request()->routeIs('admin.penetasan*') || request()->routeIs('admin.pembesaran*') || request()->routeIs('admin.produksi*')) {
+        $activeGroup = 'operasional';
+      } elseif (request()->routeIs('admin.kandang*') || request()->routeIs('admin.karyawan*')) {
+        $activeGroup = 'master';
+      }
+    }
+  @endphp
+  <ul class="nav-list" data-active="{{ $activeGroup }}">
         <!-- mini horizontal menu: Operational & Master (Owner Only) -->
         @if(auth()->user()->peran === 'owner')
         <li class="mini-menus">
@@ -34,22 +46,22 @@
         </li>
         @endif
         <!-- operational menu items -->
-        <li data-group="operasional">
-            <a href="{{ route('admin.penetasan') }}" class="menu-link {{ request()->routeIs('admin.penetasan') ? 'active' : '' }}">
+    <li data-group="operasional">
+      <a href="{{ route('admin.penetasan') }}" class="menu-link {{ request()->routeIs('admin.penetasan*') ? 'active' : '' }}">
                 <img src="{{ asset('bolopa/img/icon/game-icons--nest-eggs.svg') }}" alt="Penetasan" class="menu-icon" />
                 <span class="links_name">Penetasan</span>
             </a>
             <span class="tooltip">Penetasan</span>
         </li>
         <li data-group="operasional">
-            <a href="{{ route('admin.pembesaran') }}" class="menu-link {{ request()->routeIs('admin.pembesaran') ? 'active' : '' }}">
+      <a href="{{ route('admin.pembesaran') }}" class="menu-link {{ request()->routeIs('admin.pembesaran*') ? 'active' : '' }}">
                 <img src="{{ asset('bolopa/img/icon/game-icons--nest-birds.svg') }}" alt="Pembesaran" class="menu-icon" />
                 <span class="links_name">Pembesaran</span>
             </a>
             <span class="tooltip">Pembesaran</span>
         </li>
         <li data-group="operasional">
-            <a href="{{ route('admin.produksi') }}" class="menu-link {{ request()->routeIs('admin.produksi') ? 'active' : '' }}">
+      <a href="{{ route('admin.produksi') }}" class="menu-link {{ request()->routeIs('admin.produksi*') ? 'active' : '' }}">
                 <img src="{{ asset('bolopa/img/icon/streamline-sharp--archive-box-solid.svg') }}" alt="Produksi" class="menu-icon" />
                 <span class="links_name">Produksi</span>
             </a>
@@ -57,15 +69,15 @@
         </li>
         @if(auth()->user()->peran === 'owner')
         <!-- master menu items -->
-        <li data-group="master">
-            <a href="{{ route('admin.kandang') }}" class="menu-link {{ request()->routeIs('admin.kandang') ? 'active' : '' }}">
+    <li data-group="master">
+      <a href="{{ route('admin.kandang') }}" class="menu-link {{ request()->routeIs('admin.kandang*') ? 'active' : '' }}">
                 <img src="{{ asset('bolopa/img/icon/mdi--home-city-outline.svg') }}" alt="Kandang" class="menu-icon" />
                 <span class="links_name">Kandang</span>
             </a>
             <span class="tooltip">Kandang</span>
         </li>
         <li data-group="master">
-            <a href="{{ route('admin.karyawan') }}" class="menu-link {{ request()->routeIs('admin.karyawan') ? 'active' : '' }}">
+      <a href="{{ route('admin.karyawan') }}" class="menu-link {{ request()->routeIs('admin.karyawan*') ? 'active' : '' }}">
                 <img src="{{ asset('bolopa/img/icon/fluent--person-note-20-filled.svg') }}" alt="Karyawan" class="menu-icon" />
                 <span class="links_name">Karyawan</span>
             </a>
@@ -94,7 +106,9 @@
 <style>
 /* Google Font Link */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap');
-*{
+
+/* Scoped sidebar styles to prevent conflicts with Bootstrap */
+.bolopa-sidebar-vigazafarm * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;

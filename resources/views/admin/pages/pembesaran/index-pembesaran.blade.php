@@ -235,33 +235,169 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Table sorting functionality (client-side)
+    const table = document.getElementById('dataTable');
+    const tbody = table ? table.querySelector('tbody') : null;
+
+    if (table && tbody) {
+        const headers = table.querySelectorAll('th[data-sort]');
+        let sortState = { column: null, direction: 'asc' };
+
+        headers.forEach(header => {
+            header.style.cursor = 'pointer';
+            header.addEventListener('click', function() {
+                const column = this.getAttribute('data-sort');
+                // Toggle direction
+                if (sortState.column === column) {
+                    sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    sortState.column = column;
+                    sortState.direction = 'asc';
+                }
+                sortTable(column, sortState.direction);
+                updateSortIcons(column, sortState.direction);
+            });
+        });
+
+        function getColumnIndex(sortKey) {
+            const mapping = {
+                'no': 0,
+                'batch': 1,
+                'kandang': 2,
+                'tanggal_masuk': 3,
+                'jumlah_anak_ayam': 4,
+                'jenis_kelamin': 5,
+                'status': 6,
+                'aksi': 7
+            };
+            return mapping[sortKey] ?? -1;
+        }
+
+        function getCellValue(row, index) {
+            const cell = row.cells[index];
+            if (!cell) return '';
+            let value = cell.textContent.trim();
+            // Normalize numbers: remove dots, replace comma with dot
+            const numeric = value.replace(/\./g, '').replace(/,/g, '.').replace(/[^0-9.-]/g, '');
+            if (numeric !== '' && !isNaN(numeric)) return parseFloat(numeric);
+            return value.toLowerCase();
+        }
+
+        function sortTable(column, direction) {
+            const columnIndex = getColumnIndex(column);
+            if (columnIndex === -1) return;
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            rows.sort((a, b) => {
+                const aVal = getCellValue(a, columnIndex);
+                const bVal = getCellValue(b, columnIndex);
+
+                if (typeof aVal === 'number' && typeof bVal === 'number') {
+                    return direction === 'asc' ? aVal - bVal : bVal - aVal;
+                }
+                return direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+            });
+
+            rows.forEach(r => tbody.appendChild(r));
+        }
+
+        function updateSortIcons(activeColumn, direction) {
+            const headers = table.querySelectorAll('th[data-sort]');
+            headers.forEach(header => {
+                const col = header.getAttribute('data-sort');
+                const up = header.querySelector('.bolopa-tabel-sort-up');
+                const down = header.querySelector('.bolopa-tabel-sort-down');
+                up?.classList.remove('bolopa-tabel-active');
+                down?.classList.remove('bolopa-tabel-active');
+                if (col === activeColumn) {
+                    if (direction === 'asc') up?.classList.add('bolopa-tabel-active'); else down?.classList.add('bolopa-tabel-active');
+                }
+            });
+        }
+    }
+
     const deleteButtons = document.querySelectorAll('.delete-btn');
     deleteButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
             const form = this.closest('.delete-form');
             
+            // Get batch name for display
+            const batchName = (() => {
+                const row = this.closest('tr');
+                if (!row) return 'Data Pembesaran';
+                const batchCell = row.cells[1]; // Batch column
+                return batchCell ? batchCell.textContent.trim() || 'Data Pembesaran' : 'Data Pembesaran';
+            })();
+
             Swal.fire({
                 title: 'Konfirmasi Hapus',
-                text: 'Apakah Anda yakin ingin menghapus data pembesaran ini?',
+                html: `
+                    <div style="text-align: center; margin-bottom: 15px; padding: 0 10px;">
+                        Apakah Anda yakin ingin menghapus data pembesaran ini?
+                    </div>
+                    <div style="background: #fee2e2; border-left: 4px solid #dc2626; padding: 12px; border-radius: 6px; margin: 15px 10px; text-align: left;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-exclamation-triangle text-danger"></i>
+                            <div>
+                                <div style="font-weight: 600; color: #991b1b; font-size: 14px; margin-bottom: 2px;">Batch yang akan dihapus:</div>
+                                <div style="font-weight: 700; color: #7f1d1d; font-size: 16px; background: #fecaca; padding: 4px 8px; border-radius: 4px; display: inline-block;">${batchName}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: #fef3c7; border-left: 4px solid #d97706; padding: 12px; border-radius: 6px; margin: 15px 10px; text-align: left;">
+                        <div style="display: flex; align-items: flex-start; gap: 8px;">
+                            <i class="fa-solid fa-info-circle text-warning" style="margin-top: 2px;"></i>
+                            <div>
+                                <div style="font-weight: 600; color: #92400e; font-size: 14px; margin-bottom: 4px;">Peringatan</div>
+                                <div style="color: #78350f; font-size: 13px; line-height: 1.4;">
+                                    Data yang sudah dihapus <strong>tidak dapat dikembalikan</strong> dan akan hilang secara permanen dari sistem.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `,
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Ya, Hapus!',
-                cancelButtonText: 'Batal'
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                focusCancel: true,
+                customClass: {
+                    confirmButton: 'btn btn-danger px-4 py-2',
+                    cancelButton: 'btn btn-secondary px-4 py-2'
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
                     Swal.fire({
                         title: 'Menghapus Data...',
-                        html: 'Mohon tunggu sebentar',
+                        html: `
+                            <div style="text-align: center;">
+                                <div class="spinner-border text-danger" role="status" style="width: 3rem; height: 3rem;">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p style="margin-top: 15px; color: #6c757d;">Mohon tunggu sebentar, data sedang dihapus...</p>
+                            </div>
+                        `,
                         allowOutsideClick: false,
                         allowEscapeKey: false,
+                        showConfirmButton: false,
                         didOpen: () => {
-                            Swal.showLoading();
+                            setTimeout(() => {
+                                try {
+                                    form.submit();
+                                } catch (error) {
+                                    console.error('Error submitting form:', error);
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error',
+                                        text: 'Terjadi kesalahan saat menghapus data'
+                                    });
+                                }
+                            }, 500);
                         }
                     });
-                    form.submit();
                 }
             });
         });

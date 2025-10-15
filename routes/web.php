@@ -24,7 +24,15 @@ Route::middleware('auth')->group(function () {
 
     // Master routes (Owner only)
     Route::middleware('owner')->group(function () {
-        Route::get('/admin/kandang', [AdminController::class, 'kandang'])->name('admin.kandang');
+        // Kandang CRUD
+        Route::get('/admin/kandang', [App\Http\Controllers\KandangController::class, 'index'])->name('admin.kandang');
+        Route::get('/admin/kandang/create', [App\Http\Controllers\KandangController::class, 'create'])->name('admin.kandang.create');
+        Route::post('/admin/kandang', [App\Http\Controllers\KandangController::class, 'store'])->name('admin.kandang.store');
+        Route::get('/admin/kandang/{kandang}', [App\Http\Controllers\KandangController::class, 'show'])->name('admin.kandang.show');
+        Route::get('/admin/kandang/{kandang}/edit', [App\Http\Controllers\KandangController::class, 'edit'])->name('admin.kandang.edit');
+        Route::patch('/admin/kandang/{kandang}', [App\Http\Controllers\KandangController::class, 'update'])->name('admin.kandang.update');
+        Route::delete('/admin/kandang/{kandang}', [App\Http\Controllers\KandangController::class, 'destroy'])->name('admin.kandang.destroy');
+
         Route::get('/admin/karyawan', [AdminController::class, 'karyawan'])->name('admin.karyawan');
     });
 
@@ -86,14 +94,25 @@ Route::middleware('auth')->group(function () {
     Route::patch('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'update'])->name('admin.penetasan.update');
     Route::patch('/admin/penetasan/{penetasan}/status', [App\Http\Controllers\PenetasanController::class, 'updateStatus'])->name('admin.penetasan.updateStatus');
     Route::delete('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'destroy'])->name('admin.penetasan.destroy');
+    
+    // Transfer routes - Penetasan
+    Route::get('/admin/penetasan/{penetasan}/transfer', [App\Http\Controllers\TransferController::class, 'showTransferPenetasan'])->name('admin.penetasan.transfer');
+    Route::post('/admin/penetasan/{penetasan}/transfer/doc', [App\Http\Controllers\TransferController::class, 'transferDocToPembesaran'])->name('admin.penetasan.transfer.doc');
+    Route::post('/admin/penetasan/{penetasan}/transfer/telur-infertil', [App\Http\Controllers\TransferController::class, 'transferTelurInfertilToProduksi'])->name('admin.penetasan.transfer.telur');
+    
+    // Transfer routes - Pembesaran
+    Route::get('/admin/pembesaran/{pembesaran}/transfer', [App\Http\Controllers\TransferController::class, 'showTransferPembesaran'])->name('admin.pembesaran.transfer');
+    Route::post('/admin/pembesaran/{pembesaran}/transfer/indukan', [App\Http\Controllers\TransferController::class, 'transferIndukanToProduksi'])->name('admin.pembesaran.transfer.indukan');
+    
+    // Produksi routes
     Route::get('/admin/produksi', [AdminController::class, 'produksi'])->name('admin.produksi');
-    // Placeholder routes for Produksi actions (create/show/edit)
-    // These are minimal handlers to avoid missing route exceptions while the full
-    // ProduksiController/views are being implemented. They redirect back to the
-    // index with a notice.
-    Route::get('/admin/produksi/create', [AdminController::class, 'produksiCreate'])->name('admin.produksi.create');
-    Route::get('/admin/produksi/{produksi}', [AdminController::class, 'produksiShow'])->name('admin.produksi.show');
-    Route::get('/admin/produksi/{produksi}/edit', [AdminController::class, 'produksiEdit'])->name('admin.produksi.edit');
+    Route::get('/admin/produksi/create', [App\Http\Controllers\ProduksiController::class, 'create'])->name('admin.produksi.create');
+    Route::post('/admin/produksi', [App\Http\Controllers\ProduksiController::class, 'store'])->name('admin.produksi.store');
+    Route::get('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'show'])->name('admin.produksi.show');
+    Route::get('/admin/produksi/{produksi}/edit', [App\Http\Controllers\ProduksiController::class, 'edit'])->name('admin.produksi.edit');
+    Route::patch('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'update'])->name('admin.produksi.update');
+    Route::patch('/admin/produksi/{produksi}/status', [App\Http\Controllers\ProduksiController::class, 'updateStatus'])->name('admin.produksi.updateStatus');
+    Route::delete('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'destroy'])->name('admin.produksi.destroy');
 });
 
 require __DIR__.'/auth.php';

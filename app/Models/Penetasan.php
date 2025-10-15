@@ -26,6 +26,8 @@ class Penetasan extends Model
         'persentase_tetas',
         'catatan',
         'status',
+        'doc_ditransfer',
+        'telur_infertil_ditransfer',
     ];
 
     protected $casts = [
@@ -49,5 +51,29 @@ class Penetasan extends Model
     public function pembesaran()
     {
         return $this->hasMany(Pembesaran::class, 'penetasan_id');
+    }
+
+    /**
+     * Relasi ke produksi (untuk telur infertil)
+     */
+    public function produksi()
+    {
+        return $this->hasMany(Produksi::class, 'penetasan_id');
+    }
+
+    /**
+     * Hitung DOC yang tersedia untuk ditransfer ke pembesaran
+     */
+    public function getDocTersediaAttribute()
+    {
+        return ($this->jumlah_doc ?? 0) - ($this->doc_ditransfer ?? 0);
+    }
+
+    /**
+     * Hitung telur infertil yang tersedia untuk produksi
+     */
+    public function getTelurInfertilTersediaAttribute()
+    {
+        return ($this->telur_tidak_fertil ?? 0) - ($this->telur_infertil_ditransfer ?? 0);
     }
 }

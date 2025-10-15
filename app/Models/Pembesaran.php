@@ -27,6 +27,7 @@ class Pembesaran extends Model
         'target_berat_akhir',
         'kondisi_doc',
         'catatan',
+        'indukan_ditransfer',
     ];
 
     protected $casts = [
@@ -51,5 +52,21 @@ class Pembesaran extends Model
     public function penetasan()
     {
         return $this->belongsTo(Penetasan::class, 'penetasan_id');
+    }
+
+    /**
+     * Relasi ke produksi (untuk indukan yang siap produksi)
+     */
+    public function produksi()
+    {
+        return $this->hasMany(Produksi::class, 'pembesaran_id');
+    }
+
+    /**
+     * Hitung indukan yang tersedia untuk ditransfer ke produksi
+     */
+    public function getIndukanTersediaAttribute()
+    {
+        return ($this->jumlah_siap ?? 0) - ($this->indukan_ditransfer ?? 0);
     }
 }

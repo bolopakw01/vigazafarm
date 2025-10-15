@@ -43,10 +43,46 @@ class Kandang extends Model
     }
 
     /**
+     * Relasi ke tabel produksi
+     */
+    public function produksi()
+    {
+        return $this->hasMany(Produksi::class, 'kandang_id');
+    }
+
+    /**
      * Relasi ke tabel monitoring_lingkungan
      */
     public function monitoringLingkungan()
     {
         return $this->hasMany(MonitoringLingkungan::class, 'kandang_id');
+    }
+
+    /**
+     * Relasi ke tabel pembesaran
+     */
+    public function pembesaran()
+    {
+        return $this->hasMany(Pembesaran::class, 'kandang_id');
+    }
+
+    /**
+     * Hitung kapasitas terpakai berdasarkan tipe kandang
+     */
+    public function getKapasitasTerpakaiAttribute()
+    {
+        switch (strtolower($this->tipe_kandang)) {
+            case 'penetasan':
+                // Jumlah telur yang disimpan atau menetas
+                return $this->penetasan()->where('status', 'aktif')->sum('jumlah_telur');
+            case 'pembesaran':
+                // Jumlah anak ayam di pembesaran aktif
+                return $this->pembesaran()->where('status_batch', 'aktif')->sum('jumlah_anak_ayam');
+            case 'produksi':
+                // Jumlah indukan di produksi aktif
+                return $this->produksi()->where('status', 'aktif')->sum('jumlah_indukan');
+            default:
+                return 0;
+        }
     }
 }

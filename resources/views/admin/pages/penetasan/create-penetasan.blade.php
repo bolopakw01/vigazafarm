@@ -62,9 +62,10 @@
                             </label>
                             <select name="kandang_id" id="kandang_id" class="form-control" required>
                                 <option value="">-- Pilih Kandang --</option>
-                                @foreach($kandang as $k)
+                                @php $availableKandangs = $kandangs ?? ($kandang ?? collect()); @endphp
+                                @foreach($availableKandangs as $k)
                                 <option value="{{ $k->id }}" {{ old('kandang_id') == $k->id ? 'selected' : '' }}>
-                                    {{ $k->nama_kandang }} (Kapasitas: {{ number_format($k->kapasitas) }})
+                                    {{ $k->nama_kandang }} @if(isset($k->kapasitas)) (Kapasitas: {{ number_format($k->kapasitas) }}) @endif
                                 </option>
                                 @endforeach
                             </select>

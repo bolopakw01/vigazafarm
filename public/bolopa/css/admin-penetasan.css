@@ -761,6 +761,54 @@ tbody tr {
     animation: fadeIn 0.3s ease forwards;
 }
 
+/* Pagination */
+.bolopa-tabel-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.bolopa-tabel-pagination-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.bolopa-tabel-pagination-buttons a {
+    padding: 6px 10px;
+    border: 1px solid #e9eef6;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    min-width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: var(--bolopa-tabel-dark);
+    transition: var(--bolopa-tabel-transition);
+}
+
+.bolopa-tabel-pagination-buttons a:hover {
+    background: var(--bolopa-tabel-light);
+    border-color: #d0d7de;
+}
+
+.bolopa-tabel-pagination-buttons a.bolopa-tabel-active {
+    background: var(--bolopa-tabel-primary);
+    color: white;
+    border-color: var(--bolopa-tabel-primary);
+}
+
+.bolopa-tabel-pagination-buttons a.disabled {
+    background: #f8f9fa;
+    color: #6c757d;
+    border-color: #dee2e6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .bolopa-tabel-container {

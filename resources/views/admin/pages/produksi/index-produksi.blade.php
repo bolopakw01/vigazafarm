@@ -23,6 +23,43 @@
         height: 12px;
         display: block;
     }
+    /* Right control icons (Tambah Data, Export, Print) color filter */
+    .bolopa-tabel-right-controls .bolopa-icon-svg {
+        filter: invert(100%) sepia(3%) saturate(14%) hue-rotate(112deg) brightness(107%) contrast(105%);
+    }
+
+    /* Sort icons: stack much closer vertically and show as black when active */
+    .bolopa-tabel-sort-wrap {
+        display: inline-flex;
+        flex-direction: column;
+        gap: 0px; /* remove gap to bring icons adjacent */
+        align-items: center;
+        justify-content: center;
+        line-height: 0;
+        padding-left: 6px; /* slight separation from header text */
+    }
+
+    .bolopa-tabel-sort-icon {
+        display: block;
+        line-height: 0;
+        opacity: 0.7;
+        margin: 0;
+        padding: 0;
+        transform: translateY(0);
+        transition: filter 0.12s ease, opacity 0.12s ease, transform 0.12s ease;
+    }
+
+    /* Slightly overlap icons so they're visually closer */
+    .bolopa-tabel-sort-icon.bolopa-tabel-sort-up { transform: translateY(1px); }
+    .bolopa-tabel-sort-icon.bolopa-tabel-sort-down { transform: translateY(-1px); }
+
+    /* When a sort icon is active, make it visually black and more prominent */
+    .bolopa-tabel-sort-icon.bolopa-tabel-active {
+        /* Make icon appear black regardless of original color */
+        filter: brightness(0) saturate(100%);
+        opacity: 1;
+        transform: translateY(0);
+    }
 </style>
 @endpush
 
@@ -32,8 +69,8 @@
         <!-- Header Card -->
         <header>
             <h1>
-                <img src="{{ asset('bolopa/img/icon/streamline-ultimate--animal-products-egg-bold.svg') }}" alt="Egg" class="bolopa-icon-svg">
-                Produksi Telur
+                <img src="{{ asset('bolopa/img/icon/streamline-sharp--archive-box-solid.svg') }}" alt="Egg" class="bolopa-icon-svg">
+                Produksi
             </h1>
         </header>
 
@@ -477,3 +514,44 @@ function confirmDelete(id) {
 }
 </script>
 @endpush
+
+    @push('scripts')
+    <!-- SweetAlert2 for nicer confirmation dialogs -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    function confirmDelete(id) {
+        Swal.fire({
+            title: 'Hapus data?',
+            text: 'Data yang dihapus tidak bisa dikembalikan. Anda yakin?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, hapus',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // create and submit form
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/admin/produksi/${id}`;
+
+                const csrfToken = document.createElement('input');
+                csrfToken.type = 'hidden';
+                csrfToken.name = '_token';
+                csrfToken.value = '{{ csrf_token() }}';
+
+                const methodField = document.createElement('input');
+                methodField.type = 'hidden';
+                methodField.name = '_method';
+                methodField.value = 'DELETE';
+
+                form.appendChild(csrfToken);
+                form.appendChild(methodField);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+    </script>
+    @endpush

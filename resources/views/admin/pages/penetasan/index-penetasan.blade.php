@@ -346,19 +346,16 @@
                 Menampilkan {{ $penetasan->firstItem() ?? 0 }} sampai {{ $penetasan->lastItem() ?? 0 }} dari {{ $penetasan->total() }} entri
             </div>
             <div class="bolopa-tabel-pagination-buttons">
-                {{-- Previous Button --}}
                 <a href="{{ $penetasan->previousPageUrl() }}" class="bolopa-tabel-pagination-btn {{ $penetasan->onFirstPage() ? 'disabled' : '' }}">
                     <img src="{{ asset('bolopa/img/icon/line-md--chevron-small-left.svg') }}" alt="Previous" width="18" height="18">
                 </a>
 
-                {{-- Page Numbers --}}
                 @foreach($penetasan->getUrlRange(1, $penetasan->lastPage()) as $page => $url)
                     <a href="{{ $url }}" class="bolopa-tabel-pagination-btn {{ $page == $penetasan->currentPage() ? 'bolopa-tabel-active' : '' }}">
                         {{ $page }}
                     </a>
                 @endforeach
 
-                {{-- Next Button --}}
                 <a href="{{ $penetasan->nextPageUrl() }}" class="bolopa-tabel-pagination-btn {{ !$penetasan->hasMorePages() ? 'disabled' : '' }}">
                     <img src="{{ asset('bolopa/img/icon/line-md--chevron-small-right.svg') }}" alt="Next" width="18" height="18">
                 </a>
@@ -741,60 +738,106 @@
 
     // Handle delete confirmation with SweetAlert2
     document.addEventListener('DOMContentLoaded', function() {
-        const deleteButtons = document.querySelectorAll('.delete-btn');
-        
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
+        // Use event delegation for better performance and to handle dynamically added elements
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.delete-btn')) {
                 e.preventDefault();
-                
-                const form = this.closest('.delete-form');
-                const batchName = form.dataset.batch;
-                
+
+                const button = e.target.closest('.delete-btn');
+                const form = button.closest('.delete-form');
+
+                if (!form) {
+                    console.error('Form delete tidak ditemukan');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Terjadi kesalahan saat memproses permintaan hapus'
+                    });
+                    return;
+                }
+
+                // Get batch name for display
+                const batchName = (() => {
+                    const row = button.closest('tr');
+                    if (!row) return 'Data Penetasan';
+                    const batchCell = row.cells[1]; // Batch column
+                    return batchCell ? batchCell.textContent.trim() || 'Data Penetasan' : 'Data Penetasan';
+                })();
+
                 Swal.fire({
                     title: 'Konfirmasi Hapus',
                     html: `
-                        <div style="text-align: left;">
-                            <p style="margin-bottom: 10px;">Apakah Anda yakin ingin menghapus data penetasan ini?</p>
-                            <div style="background: #fee2e2; border-left: 4px solid #dc2626; padding: 12px; border-radius: 4px; margin-top: 15px;">
-                                <p style="margin: 0; color: #991b1b; font-weight: 600;">
-                                    <i class="fa-solid fa-exclamation-triangle"></i> Batch: ${batchName}
-                                </p>
+                        <div style="text-align: center; margin-bottom: 15px; padding: 0 10px;">
+                            Apakah Anda yakin ingin menghapus data penetasan ini?
+                        </div>
+                        <div style="background: #fee2e2; border-left: 4px solid #dc2626; padding: 12px; border-radius: 6px; margin: 15px 10px; text-align: left;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-exclamation-triangle text-danger"></i>
+                                <div>
+                                    <div style="font-weight: 600; color: #991b1b; font-size: 14px; margin-bottom: 2px;">Batch yang akan dihapus:</div>
+                                    <div style="font-weight: 700; color: #7f1d1d; font-size: 16px; background: #fecaca; padding: 4px 8px; border-radius: 4px; display: inline-block;">${batchName}</div>
+                                </div>
                             </div>
-                            <p style="margin-top: 15px; color: #dc2626; font-size: 14px;">
-                                <i class="fa-solid fa-info-circle"></i> <strong>Perhatian:</strong> Data yang sudah dihapus tidak dapat dikembalikan!
-                            </p>
+                        </div>
+                        <div style="background: #fef3c7; border-left: 4px solid #d97706; padding: 12px; border-radius: 6px; margin: 15px 10px; text-align: left;">
+                            <div style="display: flex; align-items: flex-start; gap: 8px;">
+                                <i class="fa-solid fa-info-circle text-warning" style="margin-top: 2px;"></i>
+                                <div>
+                                    <div style="font-weight: 600; color: #92400e; font-size: 14px; margin-bottom: 4px;">Peringatan</div>
+                                    <div style="color: #78350f; font-size: 13px; line-height: 1.4;">
+                                        Data yang sudah dihapus <strong>tidak dapat dikembalikan</strong> dan akan hilang secara permanen dari sistem.
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     `,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#dc2626',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: '<i class="fa-solid fa-trash"></i> Ya, Hapus!',
-                    cancelButtonText: '<i class="fa-solid fa-times"></i> Batal',
+                    confirmButtonText: 'Ya, Hapus',
+                    cancelButtonText: 'Batal',
                     reverseButtons: true,
                     focusCancel: true,
                     customClass: {
-                        confirmButton: 'btn btn-danger px-4',
-                        cancelButton: 'btn btn-secondary px-4'
+                        confirmButton: 'btn btn-danger px-4 py-2',
+                        cancelButton: 'btn btn-secondary px-4 py-2'
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // Show loading
+                        // Show loading with better UX
                         Swal.fire({
                             title: 'Menghapus Data...',
-                            html: 'Mohon tunggu sebentar',
+                            html: `
+                                <div style="text-align: center;">
+                                    <div class="spinner-border text-danger" role="status" style="width: 3rem; height: 3rem;">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p style="margin-top: 15px; color: #6c757d;">Mohon tunggu sebentar, data sedang dihapus...</p>
+                                </div>
+                            `,
                             allowOutsideClick: false,
                             allowEscapeKey: false,
+                            showConfirmButton: false,
                             didOpen: () => {
-                                Swal.showLoading();
+                                // Submit form after showing loading
+                                setTimeout(() => {
+                                    try {
+                                        form.submit();
+                                    } catch (error) {
+                                        console.error('Error submitting form:', error);
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Error',
+                                            text: 'Terjadi kesalahan saat menghapus data'
+                                        });
+                                    }
+                                }, 500); // Small delay for better UX
                             }
                         });
-                        
-                        // Submit form
-                        form.submit();
                     }
                 });
-            });
+            }
         });
     });
 </script>
