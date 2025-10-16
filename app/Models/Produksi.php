@@ -8,6 +8,9 @@ class Produksi extends Model
 {
     protected $table = 'produksi';
 
+    const CREATED_AT = 'dibuat_pada';
+    const UPDATED_AT = 'diperbarui_pada';
+
     protected $fillable = [
         'kandang_id', 
         'batch_produksi_id', 

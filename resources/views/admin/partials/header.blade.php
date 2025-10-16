@@ -30,8 +30,6 @@
               'admin.pembesaran.edit' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Pembesaran', 'link' => route('admin.pembesaran'), 'class' => 'breadcrumb-link'], ['label' => 'Edit Data', 'link' => null]],
               'admin.pembesaran.recording.laporan.show' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Pembesaran', 'link' => route('admin.pembesaran'), 'class' => 'breadcrumb-link'], ['label' => 'Detail', 'link' => $pembesaranId ? route('admin.pembesaran.show', $pembesaranId) : '#', 'class' => 'breadcrumb-link'], ['label' => 'Catatan', 'link' => null]],
               'admin.produksi' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Produksi', 'link' => null]],
-              // Produksi create/edit breadcrumbs
-              // use view title if provided (e.g., @section('title', 'Edit Data Produksi'))
               'admin.produksi.create' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Produksi', 'link' => route('admin.produksi'), 'class' => 'breadcrumb-link'], ['label' => trim(View::yieldContent('title')) !== '' ? View::yieldContent('title') : 'Tambah Data', 'link' => null]],
               'admin.produksi.edit' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Produksi', 'link' => route('admin.produksi'), 'class' => 'breadcrumb-link'], ['label' => trim(View::yieldContent('title')) !== '' ? View::yieldContent('title') : 'Edit Data', 'link' => null]],
           ];
