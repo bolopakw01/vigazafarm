@@ -11,7 +11,7 @@
 
 	<div class="container-app container">
 		<!-- Header Card -->
-		<div class="app-card section-gap header-with-rt">
+		{{-- <div class="app-card section-gap header-with-rt">
 			<div class="header-rt" role="button" tabindex="0" title="Refresh page" aria-label="Refresh page">
 				<img src="{{ asset('bolopa/img/icon/line-md--speed-loop.svg') }}" class="header-rt-img" alt="Refresh Icon">
 			</div>
@@ -27,7 +27,7 @@
 					</div>
 				</div>
 			</div>
-		</div>
+		</div> --}}
 
 		<!-- MINI KPI / MENU CARDS -->
 		<div class="app-card section-gap">
