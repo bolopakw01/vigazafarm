@@ -8,6 +8,7 @@ use App\Models\Penetasan;
 use App\Models\Pembesaran;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class ProduksiController extends Controller
@@ -53,19 +54,24 @@ class ProduksiController extends Controller
      */
     public function create()
     {
-        $kandangList = Kandang::where('status', 'aktif')
+        $kandangList = Kandang::whereIn('status', ['aktif', 'maintenance'])
                               ->orderBy('nama_kandang')
                               ->get();
         
-        // Get penetasan with available infertile eggs
-        $penetasanList = Penetasan::where('status', 'selesai')
+        // Get penetasan with available infertile eggs and load kandang relation
+        $penetasanList = Penetasan::with('kandang')
+                                  ->whereIn('status', ['selesai', 'proses'])
                                   ->whereRaw('(telur_tidak_fertil - COALESCE(telur_infertil_ditransfer, 0)) > 0')
                                   ->orderBy('tanggal_menetas', 'desc')
                                   ->get();
         
-        // Get pembesaran with available breeding stock
-        $pembesaranList = Pembesaran::whereIn('status_batch', ['aktif', 'selesai'])
-                                    ->whereRaw('(jumlah_siap - COALESCE(indukan_ditransfer, 0)) > 0')
+        // Get pembesaran with available breeding stock and load kandang relation
+        $pembesaranList = Pembesaran::with('kandang')
+                                    ->whereIn('status_batch', ['aktif', 'Aktif', 'selesai'])
+                                    ->where(function($query) {
+                                        $query->whereRaw('(COALESCE(jumlah_siap, 0) - COALESCE(indukan_ditransfer, 0)) > 0')
+                                              ->orWhere('status_batch', 'Aktif'); // Always show active batches
+                                    })
                                     ->orderBy('tanggal_masuk', 'desc')
                                     ->get();
         
@@ -77,11 +83,32 @@ class ProduksiController extends Controller
      */
     public function store(Request $request)
     {
+        // Store original fokus_manual before mapping
+        $fokusManual = $request->get('fokus_manual');
+        
+        // Map form field names to database field names
+        $mappedData = $request->all();
+        
+        // Map jumlah_burung to jumlah_indukan
+        if (isset($mappedData['jumlah_burung'])) {
+            $mappedData['jumlah_indukan'] = $mappedData['jumlah_burung'];
+            unset($mappedData['jumlah_burung']);
+        }
+        
+        // Map umur_burung to umur_mulai_produksi
+        if (isset($mappedData['umur_burung'])) {
+            $mappedData['umur_mulai_produksi'] = $mappedData['umur_burung'];
+            unset($mappedData['umur_burung']);
+        }
+        
+        // Create a new request with mapped data
+        $request = new Request($mappedData);
+
         $validated = $request->validate([
             'kandang_id' => 'required|exists:kandang,id',
             'jenis_input' => 'required|in:manual,dari_pembesaran,dari_penetasan',
             'batch_produksi_id' => 'nullable|string|max:50',
-            'jumlah_indukan' => 'required|integer|min:1',
+            'jumlah_indukan' => 'nullable|integer|min:1',
             'umur_mulai_produksi' => 'nullable|integer|min:1',
             'tanggal_mulai' => 'required|date',
             'tanggal_akhir' => 'nullable|date|after_or_equal:tanggal_mulai',
@@ -95,6 +122,19 @@ class ProduksiController extends Controller
             'berat_rata_telur' => 'nullable|numeric|min:0',
             'harga_per_kg' => 'nullable|numeric|min:0',
         ]);
+
+        // Set tipe_produksi based on input type
+        if ($validated['jenis_input'] === 'manual') {
+            if ($fokusManual) {
+                $validated['tipe_produksi'] = $fokusManual === 'telur' ? 'telur' : 'puyuh';
+            } else {
+                $validated['tipe_produksi'] = 'puyuh'; // default for manual input
+            }
+        } elseif ($validated['jenis_input'] === 'dari_pembesaran') {
+            $validated['tipe_produksi'] = 'puyuh';
+        } elseif ($validated['jenis_input'] === 'dari_penetasan') {
+            $validated['tipe_produksi'] = 'telur';
+        }
 
         DB::beginTransaction();
         try {
@@ -139,15 +179,23 @@ class ProduksiController extends Controller
                 $penetasan->increment('telur_infertil_ditransfer', $validated['jumlah_telur']);
             }
 
+            Log::info('Creating production record', $validated);
+
             // Create produksi record
             $produksi = Produksi::create($validated);
+            
+            Log::info('Production record created with ID: ' . $produksi->id);
 
             DB::commit();
+            Log::info('Transaction committed successfully');
+            $redirectUrl = route('admin.produksi');
+            Log::info('Redirecting to: ' . $redirectUrl);
             return redirect()->route('admin.produksi')
                            ->with('success', 'Data produksi berhasil ditambahkan!');
 
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Production creation failed: ' . $e->getMessage());
             return redirect()->back()
                            ->withInput()
                            ->with('error', 'Gagal menambahkan data: ' . $e->getMessage());
@@ -168,16 +216,18 @@ class ProduksiController extends Controller
      */
     public function edit(Produksi $produksi)
     {
-        $kandangList = Kandang::where('status', 'aktif')
+        $kandangList = Kandang::whereIn('status', ['aktif', 'maintenance'])
                               ->orderBy('nama_kandang')
                               ->get();
         
-        $penetasanList = Penetasan::where('status', 'selesai')
+        $penetasanList = Penetasan::with('kandang')
+                                  ->whereIn('status', ['selesai', 'proses'])
                                   ->orderBy('tanggal_menetas', 'desc')
                                   ->get();
         
-        $pembesaranList = Pembesaran::whereIn('status_batch', ['aktif', 'selesai'])
-                                    ->orderBy('tanggal_mulai', 'desc')
+        $pembesaranList = Pembesaran::with('kandang')
+                                    ->whereIn('status_batch', ['aktif', 'Aktif', 'selesai'])
+                                    ->orderBy('tanggal_masuk', 'desc')
                                     ->get();
         
         return view('admin.pages.produksi.edit-produksi', compact('produksi', 'kandangList', 'penetasanList', 'pembesaranList'));

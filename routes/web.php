@@ -120,6 +120,15 @@ Route::middleware('auth')->group(function () {
     Route::patch('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'update'])->name('admin.produksi.update');
     Route::patch('/admin/produksi/{produksi}/status', [App\Http\Controllers\ProduksiController::class, 'updateStatus'])->name('admin.produksi.updateStatus');
     Route::delete('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'destroy'])->name('admin.produksi.destroy');
+    
+    // Pencatatan Produksi routes (nested under produksi)
+    Route::prefix('admin/produksi/{produksi}/pencatatan')->name('admin.produksi.pencatatan.')->group(function () {
+        Route::get('/', [App\Http\Controllers\PencatatanProduksiController::class, 'index'])->name('index');
+        Route::post('/', [App\Http\Controllers\PencatatanProduksiController::class, 'store'])->name('store');
+        Route::patch('/{pencatatan}', [App\Http\Controllers\PencatatanProduksiController::class, 'update'])->name('update');
+        Route::delete('/{pencatatan}', [App\Http\Controllers\PencatatanProduksiController::class, 'destroy'])->name('destroy');
+        Route::get('/statistics', [App\Http\Controllers\PencatatanProduksiController::class, 'getStatistics'])->name('statistics');
+    });
 });
 
 require __DIR__.'/auth.php';

@@ -16,6 +16,8 @@ class Produksi extends Model
         'batch_produksi_id', 
         'penetasan_id',
         'pembesaran_id',
+        'tipe_produksi', // telur, puyuh
+        'jenis_input',
         'tanggal_mulai',
         'tanggal_akhir',
         'tanggal', 
@@ -23,7 +25,9 @@ class Produksi extends Model
         'jumlah_indukan',
         'umur_mulai_produksi',
         'berat_rata_rata', 
+        'berat_rata_telur',
         'harga_per_pcs', 
+        'harga_per_kg',
         'status',
         'catatan'
     ];
@@ -49,10 +53,11 @@ class Produksi extends Model
         return $this->belongsTo(Pembesaran::class, 'pembesaran_id');
     }
 
-    // Backwards-compatible accessor: expose 'tanggal' for views that expect it
-    public function getTanggalAttribute()
+    /**
+     * Relasi ke pencatatan produksi harian
+     */
+    public function pencatatanProduksi()
     {
-        // prefer 'tanggal_mulai' (exists in schema), fallback to null
-        return $this->attributes['tanggal_mulai'] ?? $this->attributes['tanggal'] ?? null;
+        return $this->hasMany(PencatatanProduksi::class, 'produksi_id');
     }
 }

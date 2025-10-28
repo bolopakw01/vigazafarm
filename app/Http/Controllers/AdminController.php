@@ -78,6 +78,7 @@ class AdminController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('batch_produksi_id', 'like', "%{$search}%")
                   ->orWhere('catatan', 'like', "%{$search}%")
+                  ->orWhere('tipe_produksi', 'like', "%{$search}%")
                   ->orWhereHas('kandang', function($q) use ($search) {
                       $q->where('nama_kandang', 'like', "%{$search}%");
                   });
