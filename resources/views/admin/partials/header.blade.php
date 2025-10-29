@@ -31,12 +31,13 @@
               'admin.pembesaran.recording.laporan.show' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Pembesaran', 'link' => route('admin.pembesaran'), 'class' => 'breadcrumb-link'], ['label' => 'Detail', 'link' => $pembesaranId ? route('admin.pembesaran.show', $pembesaranId) : '#', 'class' => 'breadcrumb-link'], ['label' => 'Catatan', 'link' => null]],
               'admin.produksi' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Produksi', 'link' => null]],
               'admin.produksi.create' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Produksi', 'link' => route('admin.produksi'), 'class' => 'breadcrumb-link'], ['label' => trim(View::yieldContent('title')) !== '' ? View::yieldContent('title') : 'Tambah Data', 'link' => null]],
+              'admin.produksi.show' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Produksi', 'link' => route('admin.produksi'), 'class' => 'breadcrumb-link'], ['label' => 'Detail Data', 'link' => null]],
               'admin.produksi.edit' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Produksi', 'link' => route('admin.produksi'), 'class' => 'breadcrumb-link'], ['label' => trim(View::yieldContent('title')) !== '' ? View::yieldContent('title') : 'Edit Data', 'link' => null]],
           ];
 
           // Untuk owner, tambahkan "Operasional" di breadcrumb operasional menu
       if ($userRole === 'owner') {
-        $operationalRoutes = ['admin.penetasan', 'admin.penetasan.create', 'admin.penetasan.edit', 'admin.pembesaran', 'admin.pembesaran.create', 'admin.pembesaran.createFromPenetasan', 'admin.pembesaran.show', 'admin.pembesaran.edit', 'admin.pembesaran.recording.laporan.show', 'admin.produksi', 'admin.produksi.create', 'admin.produksi.edit'];
+        $operationalRoutes = ['admin.penetasan', 'admin.penetasan.create', 'admin.penetasan.edit', 'admin.pembesaran', 'admin.pembesaran.create', 'admin.pembesaran.createFromPenetasan', 'admin.pembesaran.show', 'admin.pembesaran.edit', 'admin.pembesaran.recording.laporan.show', 'admin.produksi', 'admin.produksi.create', 'admin.produksi.show', 'admin.produksi.edit'];
               if (in_array($currentRoute, $operationalRoutes) && isset($breadcrumbMap[$currentRoute])) {
                   // Insert "Operasional" setelah "Backoffice"
                   $temp = $breadcrumbMap[$currentRoute];
