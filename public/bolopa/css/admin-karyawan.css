@@ -75,7 +75,7 @@
 /* Table - scoped to wrapper */
 .bolopa-tabel-wrapper .bolopa-tabel-table-responsive { width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
 .bolopa-tabel-wrapper table { width:100%; border-collapse:separate; border-spacing:0; margin-bottom:12px; table-layout:fixed; min-width:900px; }
-.bolopa-tabel-wrapper th, .bolopa-tabel-wrapper td { padding:12px 14px; text-align:left; border-bottom:1px solid #eef2f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bolopa-tabel-wrapper th, .bolopa-tabel-wrapper td { padding:12px 14px; text-align:left; border-bottom:1px solid #eef2f7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; }
 .bolopa-tabel-wrapper th { background:var(--bolopa-tabel-light); font-weight:700; position:sticky; top:0; z-index:1; font-size:0.95rem; padding-right:48px; }
 .bolopa-tabel-wrapper th[data-sort="no"] { width:72px; text-align:center; padding-right:20px; }
 
@@ -160,26 +160,57 @@
 .bolopa-tabel-wrapper .bolopa-tabel-form-group textarea { min-height:80px; }
 
 /* Profile picture styles */
+.bolopa-tabel-wrapper .employee-table-avatar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 46px;
+	height: 46px;
+	margin: 0 auto;
+	line-height: 0; /* remove inline baseline gaps */
+	box-sizing: border-box;
+}
+
+.bolopa-tabel-wrapper .employee-avatar-inner {
+	display: grid;
+	place-items: center;
+	width: 42px;
+	height: 42px;
+	box-sizing: border-box;
+}
+
+.bolopa-tabel-wrapper .employee-avatar-inner > .profile-avatar,
+.bolopa-tabel-wrapper .employee-avatar-inner > .profile-avatar-placeholder {
+	width: 42px;
+	height: 42px;
+	box-sizing: border-box;
+}
+
 .bolopa-tabel-wrapper .profile-avatar {
-	width: 40px;
-	height: 40px;
+	width: 42px;
+	height: 42px;
 	border-radius: 50%;
 	object-fit: cover;
 	border: 2px solid #e9ecef;
+	display: block;
+	box-sizing: border-box; /* include border in size calculations */
 }
 
 .bolopa-tabel-wrapper .profile-avatar-placeholder {
-	width: 40px;
-	height: 40px;
+	width: 42px;
+	height: 42px;
 	border-radius: 50%;
 	background: #6c757d;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	color: white;
-	font-weight: bold;
-	font-size: 14px;
+	font-weight: 600;
+	font-size: 16px;
 	border: 2px solid #e9ecef;
+	letter-spacing: 0;
+	line-height: 1;
+	box-sizing: border-box;
 }
 
 /* Custom filter for specific SVG icons in buttons */

@@ -95,10 +95,12 @@ class KaryawanController extends Controller
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        $removePhoto = $request->boolean('remove_profile_picture');
+        $destination = public_path('foto_profil');
+
         // Handle file upload
         if ($request->hasFile('foto_profil')) {
             // Delete old file if exists
-            $destination = public_path('foto_profil');
             if (!File::exists($destination)) {
                 File::makeDirectory($destination, 0755, true);
             }
@@ -114,6 +116,12 @@ class KaryawanController extends Controller
             $filename = (string) Str::uuid() . '.' . $file->getClientOriginalExtension();
             $file->move($destination, $filename);
             $data['foto_profil'] = $filename;
+        } elseif ($removePhoto && $karyawan->foto_profil) {
+            $existingPath = $destination . DIRECTORY_SEPARATOR . $karyawan->foto_profil;
+            if (File::exists($existingPath)) {
+                File::delete($existingPath);
+            }
+            $data['foto_profil'] = null;
         }
 
         // Only update password if provided

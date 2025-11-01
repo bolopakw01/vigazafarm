@@ -112,12 +112,20 @@
 					@forelse($karyawan as $i => $user)
 					<tr>
 						<td class="bolopa-tabel-text-center" style="text-align: center;">{{ $karyawan->firstItem() + $i }}</td>
+						@php
+							$employeeNameSource = $user->nama ?: $user->nama_pengguna ?: 'A';
+							$employeeInitial = mb_strtoupper(mb_substr($employeeNameSource, 0, 1));
+						@endphp
 						<td class="bolopa-tabel-text-center" style="text-align: center;">
-							@if($user->foto_profil)
-								<img src="{{ asset('foto_profil/' . $user->foto_profil) }}" alt="Foto {{ $user->nama }}" class="profile-avatar">
-							@else
-								<div class="profile-avatar-placeholder">{{ strtoupper(substr($user->nama, 0, 1)) }}</div>
-							@endif
+							<div class="employee-table-avatar">
+								<div class="employee-avatar-inner">
+									@if($user->foto_profil)
+										<img src="{{ asset('foto_profil/' . $user->foto_profil) }}" alt="Foto {{ $user->nama }}" class="profile-avatar">
+									@else
+										<div class="profile-avatar-placeholder">{{ $employeeInitial }}</div>
+									@endif
+								</div>
+							</div>
 						</td>
 						<td class="bolopa-tabel-text-left" style="text-align: left;">{{ $user->nama }}</td>
 						<td class="bolopa-tabel-text-left" style="text-align: left;">{{ $user->nama_pengguna }}</td>
