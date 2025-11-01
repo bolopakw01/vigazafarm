@@ -1,10 +1,24 @@
 <header class="bolopa-header-vigazafarm-header">
   <div class="bolopa-header-vigazafarm-header-top">
+    @php
+        $authUser = auth()->user();
+        $fullName = trim($authUser->nama ?? '');
+        $firstName = $fullName !== '' ? explode(' ', $fullName)[0] : 'Admin';
+        if ($firstName === '') {
+            $firstName = 'Admin';
+        }
+        $initialSource = $fullName !== '' ? $fullName : 'A';
+        $userInitial = function_exists('mb_substr')
+            ? mb_strtoupper(mb_substr($initialSource, 0, 1))
+            : strtoupper(substr($initialSource, 0, 1));
+  $profilePhotoPath = $authUser && $authUser->foto_profil ? asset('foto_profil/' . $authUser->foto_profil) : null;
+        $userRoleLabel = $authUser && $authUser->peran === 'owner' ? 'owner' : 'operator';
+    @endphp
     <div class="bolopa-header-vigazafarm-header-left">
       @php
           $currentRoute = request()->route()->getName();
           $breadcrumbs = [];
-          $userRole = auth()->user()->peran ?? 'operator';
+          $userRole = $authUser->peran ?? 'operator';
           
           // Get route parameters for dynamic links
           $routeParams = request()->route()->parameters();
@@ -81,10 +95,15 @@
         Online
       </div>
       <div class="bolopa-header-vigazafarm-user" id="userMenu">
-        <div class="bolopa-header-vigazafarm-user-avatar">{{ strtoupper(substr(auth()->user()->nama ?? 'A', 0, 1)) }}</div>
+        <div class="bolopa-header-vigazafarm-user-avatar">
+          @if($profilePhotoPath)
+            <img src="{{ $profilePhotoPath }}" alt="Foto Profil {{ $fullName !== '' ? $fullName : 'Pengguna' }}" onerror="this.style.display='none'; var fallback = this.nextElementSibling; if (fallback) { fallback.style.display='flex'; }">
+          @endif
+          <span class="avatar-initial" @if($profilePhotoPath) style="display:none;" @endif>{{ $userInitial }}</span>
+        </div>
         <div class="bolopa-header-vigazafarm-user-info">
-          <span>{{ explode(' ', auth()->user()->nama)[0] ?? 'Admin' }}</span>
-          <span class="bolopa-header-vigazafarm-role">{{ auth()->user()->peran === 'owner' ? 'owner' : 'operator' }}</span>
+          <span>{{ $firstName }}</span>
+          <span class="bolopa-header-vigazafarm-role">{{ $userRoleLabel }}</span>
         </div>
 
         <!-- Dropdown -->
@@ -118,10 +137,15 @@
       </svg>
     </button>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
-      <div class="bolopa-header-vigazafarm-user-avatar" style="width:46px;height:46px;font-size:18px;">{{ strtoupper(substr(auth()->user()->nama ?? 'A', 0, 1)) }}</div>
+      <div class="bolopa-header-vigazafarm-user-avatar bolopa-header-vigazafarm-user-avatar--mobile" style="width:46px;height:46px;font-size:18px;">
+        @if($profilePhotoPath)
+          <img src="{{ $profilePhotoPath }}" alt="Foto Profil {{ $fullName !== '' ? $fullName : 'Pengguna' }}" onerror="this.style.display='none'; var fallback = this.nextElementSibling; if (fallback) { fallback.style.display='flex'; }">
+        @endif
+        <span class="avatar-initial" @if($profilePhotoPath) style="display:none;" @endif>{{ $userInitial }}</span>
+      </div>
       <div style="display:flex;flex-direction:column;">
-        <strong>{{ explode(' ', auth()->user()->nama)[0] ?? 'Admin' }}</strong>
-        <small class="bolopa-header-vigazafarm-role">{{ auth()->user()->peran === 'owner' ? 'owner' : 'operator' }}</small>
+        <strong>{{ $firstName }}</strong>
+        <small class="bolopa-header-vigazafarm-role">{{ $userRoleLabel }}</small>
       </div>
     </div>
     <div class="bolopa-header-vigazafarm-menu-links">
@@ -219,8 +243,28 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
-      font-weight: bold;
+      color: #fff;
+      font-weight: 600;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bolopa-header-vigazafarm-user-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      display: block;
+    }
+
+    .bolopa-header-vigazafarm-user-avatar .avatar-initial {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
 
     .bolopa-header-vigazafarm-user-info {

@@ -7,8 +7,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -29,19 +30,32 @@ class ProfileController extends Controller
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $user = $request->user();
+        $photoDirectory = public_path('foto_profil');
+        $removePhoto = $request->boolean('remove_profile_picture');
 
         // Handle profile picture upload
         if ($request->hasFile('profile_picture')) {
-            // Delete old profile picture if exists
-            if ($user->foto_profil && Storage::exists('public/foto_profil/' . $user->foto_profil)) {
-                Storage::delete('public/foto_profil/' . $user->foto_profil);
+            if (!File::exists($photoDirectory)) {
+                File::makeDirectory($photoDirectory, 0755, true);
             }
 
-            // Store new profile picture
+            if ($user->foto_profil) {
+                $existingPath = $photoDirectory . DIRECTORY_SEPARATOR . $user->foto_profil;
+                if (File::exists($existingPath)) {
+                    File::delete($existingPath);
+                }
+            }
+
             $file = $request->file('profile_picture');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->storeAs('public/foto_profil', $filename);
+            $filename = (string) Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $file->move($photoDirectory, $filename);
             $user->foto_profil = $filename;
+        } elseif ($removePhoto && $user->foto_profil) {
+            $existingPath = $photoDirectory . DIRECTORY_SEPARATOR . $user->foto_profil;
+            if (File::exists($existingPath)) {
+                File::delete($existingPath);
+            }
+            $user->foto_profil = null;
         }
 
         // Update user data

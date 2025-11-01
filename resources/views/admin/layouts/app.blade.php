@@ -71,8 +71,8 @@
             /* allow the flex child to shrink below its content for correct scrolling */
             min-height: 0;
             /* ensure content is not hidden behind sticky header/footer */
-            padding-top: calc(var(--bolopa-header-height) + -30px);
-            padding-bottom: calc(var(--bolopa-footer-height) + 8px);
+            padding-top: calc(var(--bolopa-header-height) + -20px);
+            padding-bottom: calc(var(--bolopa-footer-height) + 4px);
         }
 
         @media (max-width: 420px) {

@@ -5,8 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class KaryawanController extends Controller
 {
@@ -49,14 +50,20 @@ class KaryawanController extends Controller
             'surel' => 'required|email|max:255|unique:pengguna,surel',
             'kata_sandi' => 'required|string|min:8',
             'peran' => 'required|string|in:owner,operator',
+            'alamat' => 'nullable|string|max:500',
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         // Handle file upload
         if ($request->hasFile('foto_profil')) {
+            $destination = public_path('foto_profil');
+            if (!File::exists($destination)) {
+                File::makeDirectory($destination, 0755, true);
+            }
+
             $file = $request->file('foto_profil');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->storeAs('public/foto_profil', $filename);
+            $filename = (string) Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $file->move($destination, $filename);
             $data['foto_profil'] = $filename;
         }
 
@@ -84,19 +91,28 @@ class KaryawanController extends Controller
             'nama_pengguna' => 'required|string|max:255|unique:pengguna,nama_pengguna,' . $karyawan->id,
             'surel' => 'required|email|max:255|unique:pengguna,surel,' . $karyawan->id,
             'peran' => 'required|string|in:owner,operator',
+            'alamat' => 'nullable|string|max:500',
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         // Handle file upload
         if ($request->hasFile('foto_profil')) {
             // Delete old file if exists
-            if ($karyawan->foto_profil && Storage::exists('public/foto_profil/' . $karyawan->foto_profil)) {
-                Storage::delete('public/foto_profil/' . $karyawan->foto_profil);
+            $destination = public_path('foto_profil');
+            if (!File::exists($destination)) {
+                File::makeDirectory($destination, 0755, true);
+            }
+
+            if ($karyawan->foto_profil) {
+                $existingPath = $destination . DIRECTORY_SEPARATOR . $karyawan->foto_profil;
+                if (File::exists($existingPath)) {
+                    File::delete($existingPath);
+                }
             }
 
             $file = $request->file('foto_profil');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->storeAs('public/foto_profil', $filename);
+            $filename = (string) Str::uuid() . '.' . $file->getClientOriginalExtension();
+            $file->move($destination, $filename);
             $data['foto_profil'] = $filename;
         }
 
@@ -116,8 +132,11 @@ class KaryawanController extends Controller
     public function destroy(User $karyawan)
     {
         // Delete profile picture if exists
-        if ($karyawan->foto_profil && Storage::exists('public/foto_profil/' . $karyawan->foto_profil)) {
-            Storage::delete('public/foto_profil/' . $karyawan->foto_profil);
+        if ($karyawan->foto_profil) {
+            $photoPath = public_path('foto_profil/' . $karyawan->foto_profil);
+            if (File::exists($photoPath)) {
+                File::delete($photoPath);
+            }
         }
 
         $karyawan->delete();

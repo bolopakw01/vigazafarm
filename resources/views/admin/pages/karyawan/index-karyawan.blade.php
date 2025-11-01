@@ -98,6 +98,13 @@
 								<img class="bolopa-tabel-sort-icon bolopa-tabel-sort-down" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down" width="10" height="9">
 							</span>
 						</th>
+						<th data-sort="alamat" style="width: 20%; min-width: 150px;" class="bolopa-tabel-text-left">
+							Alamat
+							<span class="bolopa-tabel-sort-wrap">
+								<img class="bolopa-tabel-sort-icon bolopa-tabel-sort-up" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up" width="10" height="9">
+								<img class="bolopa-tabel-sort-icon bolopa-tabel-sort-down" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down" width="10" height="9">
+							</span>
+						</th>
 						<th data-sort="aksi" style="width: 15%; min-width: 180px;" class="bolopa-tabel-text-center">Aksi</th>
 					</tr>
 				</thead>
@@ -107,7 +114,7 @@
 						<td class="bolopa-tabel-text-center" style="text-align: center;">{{ $karyawan->firstItem() + $i }}</td>
 						<td class="bolopa-tabel-text-center" style="text-align: center;">
 							@if($user->foto_profil)
-								<img src="{{ asset('storage/foto_profil/' . $user->foto_profil) }}" alt="Foto {{ $user->nama }}" class="profile-avatar">
+								<img src="{{ asset('foto_profil/' . $user->foto_profil) }}" alt="Foto {{ $user->nama }}" class="profile-avatar">
 							@else
 								<div class="profile-avatar-placeholder">{{ strtoupper(substr($user->nama, 0, 1)) }}</div>
 							@endif
@@ -122,8 +129,9 @@
 								<span class="bolopa-tabel-badge bolopa-tabel-badge-success">Operator</span>
 							@endif
 						</td>
+						<td class="bolopa-tabel-text-left" style="text-align: left;">{{ $user->alamat ?: '-' }}</td>
 						<td class="bolopa-tabel-text-center" style="text-align: center;">
-								<button type="button" data-id="{{ $user->id }}" data-nama="{{ $user->nama }}" data-username="{{ $user->nama_pengguna }}" data-email="{{ $user->surel }}" data-peran="{{ $user->peran }}" data-foto="{{ $user->foto_profil }}" class="bolopa-tabel-btn bolopa-tabel-btn-action bolopa-tabel-btn-info btn-view" title="Lihat">
+								<button type="button" data-id="{{ $user->id }}" data-nama="{{ $user->nama }}" data-username="{{ $user->nama_pengguna }}" data-email="{{ $user->surel }}" data-peran="{{ $user->peran }}" data-alamat="{{ $user->alamat }}" data-foto="{{ $user->foto_profil }}" class="bolopa-tabel-btn bolopa-tabel-btn-action bolopa-tabel-btn-info btn-view" title="Lihat">
 									<img src="{{ asset('bolopa/img/icon/el--eye-open.svg') }}" alt="View">
 								</button>
 								<a href="{{ route('admin.karyawan.edit', $user->id) }}" class="bolopa-tabel-btn bolopa-tabel-btn-action bolopa-tabel-btn-warning" title="Edit">
@@ -139,7 +147,7 @@
 					</tr>
 					@empty
 					<tr>
-						<td colspan="7" style="text-align: center; padding: 40px;">
+						<td colspan="8" style="text-align: center; padding: 40px;">
 							<img src="{{ asset('bolopa/img/icon/fluent--person-note-20-filled.svg') }}" alt="No Data" width="64" height="64" style="opacity: 0.3;">
 							<p style="margin-top: 16px; color: #6c757d;">Tidak ada data karyawan</p>
 						</td>
@@ -377,6 +385,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			const username = this.getAttribute('data-username') || '-';
 			const email = this.getAttribute('data-email') || '-';
 			const peran = this.getAttribute('data-peran') || '-';
+			const alamat = this.getAttribute('data-alamat') || '-';
 			const foto = this.getAttribute('data-foto');
 
 			const peranBadge = (() => {
@@ -386,7 +395,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			})();
 
 			const fotoHtml = foto ?
-				`<img src="{{ asset('storage/foto_profil/') }}/${foto}" alt="Foto ${nama}" class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #e9ecef;">` :
+				`<img src="{{ asset('foto_profil/') }}/${foto}" alt="Foto ${nama}" class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #e9ecef;">` :
 				`<div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 32px; font-weight: bold; color: white;">${nama.charAt(0).toUpperCase()}</div>`;
 
 			Swal.fire({
@@ -454,6 +463,17 @@ document.addEventListener('DOMContentLoaded', function() {
 										<div>
 											<small class="text-muted d-block">Bergabung</small>
 											<span class="fw-semibold">{{ \Carbon\Carbon::parse($user->dibuat_pada ?? now())->format('d/m/Y') }}</span>
+										</div>
+									</div>
+								</div>
+
+								<!-- Alamat -->
+								<div class="col-12">
+									<div class="d-flex align-items-start bg-light rounded p-3 h-100">
+										<i class="fa-solid fa-map-marker-alt text-danger fa-lg me-3 mt-1"></i>
+										<div class="flex-grow-1">
+											<small class="text-muted d-block">Alamat</small>
+											<span class="fw-semibold">${alamat}</span>
 										</div>
 									</div>
 								</div>

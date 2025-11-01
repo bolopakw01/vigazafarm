@@ -96,6 +96,17 @@
             @enderror
           </div>
 
+          <!-- Alamat -->
+          <div class="col-12">
+            <label class="form-label fw-semibold">
+              <i class="fa-solid fa-map-marker-alt text-danger me-1"></i>Alamat
+            </label>
+            <textarea name="alamat" class="form-control @error('alamat') is-invalid @enderror" rows="3" placeholder="Masukkan alamat lengkap">{{ old('alamat') }}</textarea>
+            @error('alamat')
+              <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+          </div>
+
         </div>
 
         <!-- Tombol Aksi -->

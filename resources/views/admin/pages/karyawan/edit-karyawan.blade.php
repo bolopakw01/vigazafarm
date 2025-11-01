@@ -96,10 +96,21 @@
             @if($karyawan->foto_profil)
               <div class="mt-2">
                 <small class="text-muted">Foto saat ini:</small><br>
-                <img src="{{ asset('storage/foto_profil/' . $karyawan->foto_profil) }}" alt="Foto Profil" class="rounded mt-1" style="width: 80px; height: 80px; object-fit: cover; border: 2px solid #dee2e6;">
+                <img src="{{ asset('foto_profil/' . $karyawan->foto_profil) }}" alt="Foto Profil" class="rounded mt-1" style="width: 80px; height: 80px; object-fit: cover; border: 2px solid #dee2e6;">
               </div>
             @endif
             @error('foto_profil')
+              <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+          </div>
+
+          <!-- Alamat -->
+          <div class="col-12">
+            <label class="form-label fw-semibold">
+              <i class="fa-solid fa-map-marker-alt text-danger me-1"></i>Alamat
+            </label>
+            <textarea name="alamat" class="form-control @error('alamat') is-invalid @enderror" rows="3" placeholder="Masukkan alamat lengkap">{{ old('alamat', $karyawan->alamat) }}</textarea>
+            @error('alamat')
               <div class="invalid-feedback">{{ $message }}</div>
             @enderror
           </div>
