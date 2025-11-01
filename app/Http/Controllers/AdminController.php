@@ -148,8 +148,7 @@ class AdminController extends Controller
     // Minimal placeholder for showing a produksi record
     public function produksiShow($id)
     {
-        // Attempt to load a produksi model if exists, otherwise show simple message
-        return view('admin.pages.produksi.show-produksi', ['id' => $id]);
+        return redirect()->route('admin.produksi.show', $id);
     }
 
     // Minimal placeholder for editing a produksi record

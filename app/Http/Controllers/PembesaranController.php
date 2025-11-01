@@ -42,9 +42,7 @@ class PembesaranController extends Controller
         }
 
         // Ambil kandang pembesaran
-        $kandangList = Kandang::where('tipe_kandang', 'pembesaran')
-            ->where('status', 'aktif')
-            ->get();
+        $kandangList = Kandang::orderBy('nama_kandang')->get();
 
         return view('admin.pages.pembesaran.create-from-penetasan', compact('penetasan', 'kandangList'));
     }
@@ -215,9 +213,7 @@ class PembesaranController extends Controller
      */
     public function edit(Pembesaran $pembesaran)
     {
-        $kandangList = Kandang::where('tipe_kandang', 'pembesaran')
-            ->where('status', 'aktif')
-            ->get();
+        $kandangList = Kandang::orderBy('nama_kandang')->get();
 
         return view('admin.pages.pembesaran.edit-pembesaran', compact('pembesaran', 'kandangList'));
     }
@@ -240,7 +236,7 @@ class PembesaranController extends Controller
         ]);
 
         // Owner atau Super Admin bisa update status
-        $user = auth()->user();
+    $user = Auth::user();
         if ($user && ($user->peran === 'owner' || $user->peran === 'super_admin')) {
             $validated = array_merge($validated, $request->validate([
                 'status_batch' => 'nullable|in:Aktif,Selesai',
@@ -260,7 +256,7 @@ class PembesaranController extends Controller
     public function selesaikanBatch(Pembesaran $pembesaran)
     {
         // Cek apakah user adalah owner atau super admin
-        $user = auth()->user();
+    $user = Auth::user();
         $isOwnerOrSuperAdmin = $user && ($user->peran === 'owner' || $user->peran === 'super_admin');
         
         if (!$isOwnerOrSuperAdmin) {

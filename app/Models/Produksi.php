@@ -23,6 +23,8 @@ class Produksi extends Model
         'tanggal', 
         'jumlah_telur', 
         'jumlah_indukan',
+        'jumlah_jantan',
+        'jumlah_betina',
         'umur_mulai_produksi',
         'berat_rata_rata', 
         'berat_rata_telur',

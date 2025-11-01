@@ -14,13 +14,21 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'nama' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', Rule::unique('pengguna', 'nama_pengguna')->ignore($this->user()->id)],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('pengguna', 'surel')->ignore($this->user()->id)],
             'password' => ['nullable', 'string', 'min:8'],
+            'alamat' => ['nullable', 'string', 'max:500'],
             'profile_picture' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ];
+
+        // Username hanya required untuk owner
+        if ($this->user()->peran === 'owner') {
+            $rules['username'] = ['required', 'string', 'max:255', Rule::unique('pengguna', 'nama_pengguna')->ignore($this->user()->id)];
+            $rules['profile_picture'] = ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'];
+        }
+
+        return $rules;
     }
 
     /**
@@ -37,6 +45,7 @@ class ProfileUpdateRequest extends FormRequest
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
             'email.unique' => 'Email sudah digunakan.',
+            'alamat.max' => 'Alamat maksimal 500 karakter.',
             'password.min' => 'Password minimal 8 karakter.',
             'profile_picture.image' => 'File harus berupa gambar.',
             'profile_picture.mimes' => 'Format gambar harus JPG, PNG, atau GIF.',

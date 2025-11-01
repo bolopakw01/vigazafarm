@@ -5,14 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Penetasan;
 use App\Models\Kandang;
+use Illuminate\Support\Facades\Auth;
 
 class PenetasanController extends Controller
 {
     public function create()
     {
-        $kandang = Kandang::where('tipe_kandang', 'penetasan')
-                         ->where('status', 'aktif')
-                         ->get();
+        $kandang = Kandang::orderBy('nama_kandang')->get();
         return view('admin.pages.penetasan.create-penetasan', compact('kandang'));
     }
 
@@ -72,9 +71,7 @@ class PenetasanController extends Controller
 
     public function edit(Penetasan $penetasan)
     {
-        $kandang = Kandang::where('tipe_kandang', 'penetasan')
-                         ->where('status', 'aktif')
-                         ->get();
+        $kandang = Kandang::orderBy('nama_kandang')->get();
         return view('admin.pages.penetasan.edit-penetasan', compact('penetasan', 'kandang'));
     }
 
@@ -112,7 +109,7 @@ class PenetasanController extends Controller
     public function updateStatus(Request $request, Penetasan $penetasan)
     {
         // Only owner can update status
-        if (auth()->user()->peran !== 'owner') {
+    if (Auth::user()->peran !== 'owner') {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 

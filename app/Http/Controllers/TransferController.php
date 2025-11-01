@@ -157,7 +157,7 @@ class TransferController extends Controller
                 'jumlah_telur' => $request->jumlah_telur,
                 'harga_per_pcs' => $request->harga_per_pcs ?? 0,
                 'tanggal_mulai' => Carbon::now(),
-                'status' => 'selesai', // Langsung selesai karena hanya record penjualan
+                'status' => 'tidak_aktif', // Langsung dinonaktifkan karena hanya record penjualan
                 'catatan' => 'Telur infertil dari penetasan. ' . ($request->catatan ?? ''),
             ]);
 

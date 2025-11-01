@@ -63,10 +63,26 @@
                             </label>
                             <select name="kandang_id" id="kandang_id" class="form-control" required>
                                 <option value="">-- Pilih Kandang --</option>
-                                @php $availableKandangs = $kandangs ?? ($kandang ?? collect()); @endphp
+                                @php
+                                    if (isset($kandang) && $kandang instanceof \Illuminate\Support\Collection && $kandang->isNotEmpty()) {
+                                        $availableKandangs = $kandang;
+                                    } elseif (isset($kandang) && is_array($kandang) && !empty($kandang)) {
+                                        $availableKandangs = collect($kandang);
+                                    } elseif (isset($kandangList) && $kandangList instanceof \Illuminate\Support\Collection && $kandangList->isNotEmpty()) {
+                                        $availableKandangs = $kandangList;
+                                    } elseif (isset($kandangList) && is_array($kandangList) && !empty($kandangList)) {
+                                        $availableKandangs = collect($kandangList);
+                                    } elseif (isset($kandangs) && $kandangs instanceof \Illuminate\Support\Collection && $kandangs->isNotEmpty()) {
+                                        $availableKandangs = $kandangs;
+                                    } elseif (isset($kandangs) && is_array($kandangs) && !empty($kandangs)) {
+                                        $availableKandangs = collect($kandangs);
+                                    } else {
+                                        $availableKandangs = collect();
+                                    }
+                                @endphp
                                 @foreach($availableKandangs as $k)
                                 <option value="{{ $k->id }}" {{ old('kandang_id', $penetasan->kandang_id) == $k->id ? 'selected' : '' }}>
-                                    {{ $k->nama_kandang }} @if(isset($k->kapasitas)) (Kapasitas: {{ number_format($k->kapasitas) }}) @endif
+                                    {{ $k->nama_dengan_detail }}
                                 </option>
                                 @endforeach
                             </select>

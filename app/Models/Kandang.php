@@ -27,6 +27,29 @@ class Kandang extends Model
     ];
 
     /**
+     * Nama kandang lengkap beserta tipe dan kapasitas.
+     */
+    public function getNamaDenganDetailAttribute(): string
+    {
+        $typeRaw = $this->tipe_kandang ?? $this->tipe ?? '';
+        $typeRaw = is_string($typeRaw) ? trim($typeRaw) : '';
+        $typeLabel = $typeRaw !== '' ? ucwords(strtolower($typeRaw)) : 'Tidak diketahui';
+
+        $capacityRaw = $this->kapasitas_maksimal ?? $this->kapasitas ?? null;
+        $capacityLabel = '-';
+        if ($capacityRaw !== null && $capacityRaw !== '') {
+            $capacityNumeric = is_numeric($capacityRaw) ? (float) $capacityRaw : null;
+            if ($capacityNumeric !== null) {
+                $capacityLabel = number_format($capacityNumeric) . ' ekor';
+            }
+        }
+
+        $name = $this->nama_kandang ?? '-';
+
+        return sprintf('%s (%s, %s)', $name, $typeLabel, $capacityLabel);
+    }
+
+    /**
      * Relasi ke tabel penetasan
      */
     public function penetasan()
@@ -39,7 +62,7 @@ class Kandang extends Model
      */
     public function batchProduksi()
     {
-        return $this->hasMany(BatchProduksi::class, 'kandang_id');
+        return $this->hasMany('App\Models\BatchProduksi', 'kandang_id');
     }
 
     /**

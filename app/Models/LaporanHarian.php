@@ -21,6 +21,14 @@ class LaporanHarian extends Model
         'produksi_telur',
         'jumlah_kematian',
         'konsumsi_pakan_kg',
+        'sisa_pakan_kg',
+        'sisa_tray_bal',
+        'sisa_tray_lembar',
+        'sisa_vitamin_liter',
+        'sisa_telur',
+        'penjualan_telur_butir',
+        'penjualan_puyuh_ekor',
+        'pendapatan_harian',
         'fcr',
         'hen_day_production',
         'mortalitas_kumulatif',
@@ -34,6 +42,14 @@ class LaporanHarian extends Model
         'produksi_telur' => 'integer',
         'jumlah_kematian' => 'integer',
         'konsumsi_pakan_kg' => 'decimal:2',
+        'sisa_pakan_kg' => 'decimal:2',
+        'sisa_tray_bal' => 'decimal:2',
+        'sisa_tray_lembar' => 'integer',
+        'sisa_vitamin_liter' => 'decimal:2',
+        'sisa_telur' => 'integer',
+        'penjualan_telur_butir' => 'integer',
+        'penjualan_puyuh_ekor' => 'integer',
+        'pendapatan_harian' => 'decimal:2',
         'fcr' => 'decimal:2',
         'hen_day_production' => 'decimal:2',
         'mortalitas_kumulatif' => 'decimal:2',
@@ -46,7 +62,7 @@ class LaporanHarian extends Model
      */
     public function batchProduksi()
     {
-        return $this->belongsTo(BatchProduksi::class, 'batch_produksi_id');
+    return $this->belongsTo(Produksi::class, 'batch_produksi_id', 'batch_produksi_id');
     }
 
     /**

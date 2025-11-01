@@ -94,7 +94,7 @@
                             <option value="">Pilih Kandang</option>
                             @foreach($kandangList as $kandang)
                                 <option value="{{ $kandang->id }}" {{ old('kandang_id') == $kandang->id ? 'selected' : '' }}>
-                                    {{ $kandang->nama_kandang }} (Kapasitas: {{ number_format($kandang->kapasitas_maksimal) }})
+                                    {{ $kandang->nama_dengan_detail }}
                                 </option>
                             @endforeach
                         </select>

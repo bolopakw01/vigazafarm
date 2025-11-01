@@ -130,7 +130,7 @@
                                 <option value="">-- Pilih Kandang --</option>
                                 @foreach($kandangList as $k)
                                 <option value="{{ $k->id }}" {{ old('kandang_id', $pembesaran->kandang_id) == $k->id ? 'selected' : '' }}>
-                                    {{ $k->nama_kandang }} (Kapasitas: {{ number_format($k->kapasitas) }} ekor)
+                                    {{ $k->nama_dengan_detail }}
                                 </option>
                                 @endforeach
                             </select>
@@ -277,10 +277,11 @@
                                 Status saat ini: 
                                 @php
                                     $statusBadge = [
-                                        'Aktif' => ['text' => 'Aktif', 'class' => 'primary'],
-                                        'Selesai' => ['text' => 'Selesai', 'class' => 'success'],
+                                        'aktif' => ['text' => 'Aktif', 'class' => 'primary'],
+                                        'selesai' => ['text' => 'Selesai', 'class' => 'success'],
                                     ];
-                                    $current = $statusBadge[$pembesaran->status_batch ?? 'Aktif'];
+                                    $statusKey = strtolower($pembesaran->status_batch ?? 'aktif');
+                                    $current = $statusBadge[$statusKey] ?? $statusBadge['aktif'];
                                 @endphp
                                 <span class="badge bg-{{ $current['class'] }}">{{ $current['text'] }}</span>
                             </small>

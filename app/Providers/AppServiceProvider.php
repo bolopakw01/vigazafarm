@@ -23,7 +23,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Share list of kandang to admin views so forms can access them
         try {
-            $kandangs = Kandang::orderBy('nama_kandang')->get(['id', 'nama_kandang']);
+            $kandangs = Kandang::orderBy('nama_kandang')->get();
         } catch (\Exception $e) {
             // In case of migration/DB not ready, provide empty collection to avoid breaking views
             $kandangs = collect();

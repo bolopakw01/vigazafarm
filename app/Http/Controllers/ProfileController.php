@@ -46,8 +46,11 @@ class ProfileController extends Controller
 
         // Update user data
         $user->nama = $request->nama;
-        $user->nama_pengguna = $request->username;
+        if (Auth::user()->peran === 'owner') {
+            $user->nama_pengguna = $request->username;
+        }
         $user->surel = $request->email;
+        $user->alamat = $request->alamat;
 
         // Handle password update
         if ($request->filled('password')) {

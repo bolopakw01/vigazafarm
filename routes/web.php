@@ -116,6 +116,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/produksi/create', [App\Http\Controllers\ProduksiController::class, 'create'])->name('admin.produksi.create');
     Route::post('/admin/produksi', [App\Http\Controllers\ProduksiController::class, 'store'])->name('admin.produksi.store');
     Route::get('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'show'])->name('admin.produksi.show');
+    Route::post('/admin/produksi/{produksi}/laporan-harian', [App\Http\Controllers\ProduksiController::class, 'storeDailyReport'])->name('admin.produksi.laporan.store');
     Route::get('/admin/produksi/{produksi}/edit', [App\Http\Controllers\ProduksiController::class, 'edit'])->name('admin.produksi.edit');
     Route::patch('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'update'])->name('admin.produksi.update');
     Route::patch('/admin/produksi/{produksi}/status', [App\Http\Controllers\ProduksiController::class, 'updateStatus'])->name('admin.produksi.updateStatus');

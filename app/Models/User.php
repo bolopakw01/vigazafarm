@@ -29,6 +29,7 @@ class User extends Authenticatable
         'kata_sandi',
         'peran',
         'foto_profil',
+        'alamat',
     ];
 
     /**
