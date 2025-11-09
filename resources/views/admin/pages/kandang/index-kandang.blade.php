@@ -49,7 +49,7 @@
 					<img src="{{ asset('bolopa/img/icon/line-md--file-export-filled.svg') }}" alt="Export" width="20" height="20" style="vertical-align: middle;">
 					Export
 				</button>
-				<button class="bolopa-tabel-btn bolopa-tabel-btn-primary" id="btnPrint" onclick="window.print()">
+				<button class="bolopa-tabel-btn bolopa-tabel-btn-primary" id="btnPrint">
 					<img src="{{ asset('bolopa/img/icon/line-md--cloud-alt-print-twotone-loop.svg') }}" alt="Print" width="20" height="20" style="vertical-align: middle;">
 					Print
 				</button>
@@ -237,10 +237,147 @@
         });
     }
 
-    // Export functionality
-    document.getElementById('btnExport')?.addEventListener('click', function() {
-        showToast('Fitur export sedang dalam pengembangan', 'info');
-    });
+	const tableUtils = (() => {
+		const sanitize = (value = '') => value.replace(/\s+/g, ' ').trim();
+
+		const collectHeaders = (table) => {
+			const skipIndexes = new Set();
+			const headers = [];
+
+			table.querySelectorAll('thead th').forEach((th, index) => {
+				const text = sanitize(th.innerText || th.textContent || '');
+				if (!text || ['aksi', 'harga'].includes(text.toLowerCase())) {
+					skipIndexes.add(index);
+					return;
+				}
+				headers.push(text);
+			});
+
+			return { headers, skipIndexes };
+		};
+
+		const collectRows = (table, skipIndexes) => {
+			const rows = [];
+			table.querySelectorAll('tbody tr').forEach((tr) => {
+				const cells = tr.querySelectorAll('td');
+				if (cells.length <= 1) {
+					return;
+				}
+				const row = [];
+				cells.forEach((td, index) => {
+					if (skipIndexes.has(index)) {
+						return;
+					}
+					row.push(sanitize(td.innerText || td.textContent || ''));
+				});
+				if (row.some((item) => item !== '')) {
+					rows.push(row);
+				}
+			});
+			return rows;
+		};
+
+		const toCSV = (rows) => rows
+			.map((row) => row.map((value) => {
+				const needsQuotes = /[",\n;]/.test(value);
+				const escaped = value.replace(/"/g, '""');
+				return needsQuotes ? `"${escaped}"` : escaped;
+			}).join(','))
+			.join('\r\n');
+
+		const downloadCSV = (content, filename) => {
+			const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = filename;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			URL.revokeObjectURL(url);
+		};
+
+		const escapeHtml = (value = '') => value
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#039;');
+
+		const buildTable = (headers, rows) => {
+			let html = '<table class="print-table"><thead><tr>';
+			headers.forEach((header) => {
+				html += `<th>${escapeHtml(header)}</th>`;
+			});
+			html += '</tr></thead><tbody>';
+			rows.forEach((row) => {
+				html += '<tr>';
+				row.forEach((cell) => {
+					html += `<td>${escapeHtml(cell)}</td>`;
+				});
+				html += '</tr>';
+			});
+			html += '</tbody></table>';
+			return html;
+		};
+
+		const printTable = (title, headers, rows) => {
+			const printWindow = window.open('', '_blank');
+			if (!printWindow) {
+				showToast('Popup diblokir. Izinkan pop-up untuk mencetak.', 'error');
+				return;
+			}
+			const doc = printWindow.document;
+			doc.write('<html><head><title>' + title + '</title>');
+			doc.write('<style>body{font-family:Arial,sans-serif;padding:24px;color:#111;}h1{margin-bottom:18px;font-size:20px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #444;padding:8px;font-size:12px;text-align:left;}th{background:#f1f5f9;}</style>');
+			doc.write('</head><body>');
+			doc.write('<h1>' + escapeHtml(title) + '</h1>');
+			if (!rows.length) {
+				doc.write('<p>Tidak ada data yang dapat dicetak.</p>');
+			} else {
+				doc.write(buildTable(headers, rows));
+			}
+			doc.write('<p style="margin-top:16px;font-size:12px;color:#555;">Dicetak pada ' + new Date().toLocaleString('id-ID') + '</p>');
+			doc.write('</body></html>');
+			doc.close();
+			printWindow.focus();
+			printWindow.print();
+		};
+
+		const timestamp = () => {
+			const now = new Date();
+			const pad = (num) => num.toString().padStart(2, '0');
+			return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+		};
+
+		return { collectHeaders, collectRows, toCSV, downloadCSV, printTable, timestamp };
+	})();
+
+	(function setupExportAndPrint() {
+		const table = document.getElementById('dataTable');
+		if (!table) {
+			return;
+		}
+		const exportBtn = document.getElementById('btnExport');
+		const printBtn = document.getElementById('btnPrint');
+		const { headers, skipIndexes } = tableUtils.collectHeaders(table);
+
+		exportBtn?.addEventListener('click', () => {
+			const rows = tableUtils.collectRows(table, skipIndexes);
+			if (!rows.length) {
+				showToast('Tidak ada data untuk diekspor', 'info');
+				return;
+			}
+			const csv = tableUtils.toCSV([headers, ...rows]);
+			tableUtils.downloadCSV(csv, `kandang-${tableUtils.timestamp()}.csv`);
+			showToast('File CSV berhasil disiapkan', 'success');
+		});
+
+		printBtn?.addEventListener('click', () => {
+			const rows = tableUtils.collectRows(table, skipIndexes);
+			tableUtils.printTable('Data Kandang', headers, rows);
+		});
+	})();
 
     // Toast notification
     function showToast(message, type = 'success') {
