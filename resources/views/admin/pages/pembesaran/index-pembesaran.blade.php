@@ -203,6 +203,26 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const triggerFlashToast = (icon, title, message, timer = 3500) => {
+        if (!message) {
+            return;
+        }
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon,
+            title,
+            text: message,
+            showConfirmButton: false,
+            timer,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+    };
+
     const searchInput = document.getElementById('searchInput');
     const entriesSelect = document.getElementById('entriesSelect');
 
@@ -549,29 +569,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     @if(session('success'))
-        Swal.fire({
-            icon: 'success',
-            title: 'Berhasil!',
-            text: '{{ session("success") }}',
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true
-        });
+        triggerFlashToast('success', 'Berhasil!', @json(session('success')));
     @endif
 
     @if(session('error'))
-        Swal.fire({
-            icon: 'error',
-            title: 'Gagal!',
-            text: '{{ session("error") }}',
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true
-        });
+        triggerFlashToast('error', 'Gagal!', @json(session('error')));
     @endif
 });
 </script>

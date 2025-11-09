@@ -68,7 +68,7 @@ class PembesaranController extends Controller
                 ->withErrors(['jumlah_anak_ayam' => 'Jumlah anak ayam tidak boleh melebihi jumlah DOC yang tersedia (' . $penetasan->jumlah_doc . ')']);
         }
 
-        Pembesaran::create([
+        $pembesaran = Pembesaran::create([
             'penetasan_id' => $penetasan->id,
             'kandang_id' => $validated['kandang_id'],
             'tanggal_masuk' => $validated['tanggal_masuk'],
@@ -79,7 +79,10 @@ class PembesaranController extends Controller
         ]);
 
         return redirect()->route('admin.pembesaran')
-            ->with('success', 'Data pembesaran berhasil ditambahkan dari penetasan batch: ' . $penetasan->batch);
+            ->with(
+                'success',
+                'Data pembesaran berhasil ditambahkan dengan batch: ' . ($pembesaran->batch_produksi_id ?? $penetasan->batch ?? ('ID ' . $pembesaran->id))
+            );
     }
 
     /**
@@ -140,10 +143,10 @@ class PembesaranController extends Controller
         $validated['status_batch'] = 'Aktif';
         $validated['jenis_kelamin'] = $validated['jenis_kelamin'] ?? 'campuran';
 
-        Pembesaran::create($validated);
+        $pembesaran = Pembesaran::create($validated);
 
         return redirect()->route('admin.pembesaran')
-            ->with('success', 'Data pembesaran berhasil ditambahkan dengan batch: ' . $validated['batch_produksi_id']);
+            ->with('success', 'Data pembesaran berhasil ditambahkan dengan batch: ' . ($pembesaran->batch_produksi_id ?? $validated['batch_produksi_id']));
     }
 
     /**
@@ -247,7 +250,7 @@ class PembesaranController extends Controller
         $pembesaran->update($validated);
 
         return redirect()->route('admin.pembesaran')
-            ->with('success', 'Data pembesaran berhasil diperbarui.');
+            ->with('success', 'Data pembesaran dengan batch: ' . ($pembesaran->batch_produksi_id ?? ('ID ' . $pembesaran->id)) . ' berhasil diperbarui.');
     }
 
     /**
@@ -280,7 +283,7 @@ class PembesaranController extends Controller
             'tanggal_selesai' => \Carbon\Carbon::now()
         ]);
         
-        return back()->with('success', 'Batch pembesaran berhasil diselesaikan.');
+    return back()->with('success', 'Batch pembesaran ' . ($pembesaran->batch_produksi_id ?? ('ID ' . $pembesaran->id)) . ' berhasil diselesaikan.');
     }
 
     /**
@@ -288,9 +291,15 @@ class PembesaranController extends Controller
      */
     public function destroy(Pembesaran $pembesaran)
     {
+        $batchLabel = $pembesaran->batch_produksi_id ?? null;
+        $identifier = 'ID: ' . $pembesaran->id;
+
         $pembesaran->delete();
 
         return redirect()->route('admin.pembesaran')
-            ->with('success', 'Data pembesaran berhasil dihapus.');
+            ->with(
+                'success',
+                'Data pembesaran ' . $identifier . ($batchLabel ? ' (Batch: ' . $batchLabel . ')' : '') . ' berhasil dihapus.'
+            );
     }
 }

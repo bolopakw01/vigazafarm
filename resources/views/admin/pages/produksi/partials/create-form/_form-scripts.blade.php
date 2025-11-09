@@ -1,4 +1,25 @@
 <script>
+  function triggerFlashToast(icon, title, message, timer = 3500) {
+    if (!message) {
+      return;
+    }
+
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon,
+      title,
+      text: message,
+      showConfirmButton: false,
+      timer,
+      timerProgressBar: true,
+      didOpen: toast => {
+        toast.addEventListener('mouseenter', Swal.stopTimer);
+        toast.addEventListener('mouseleave', Swal.resumeTimer);
+      }
+    });
+  }
+
   // GLOBAL helpers so resetForm can call toggleSections()
   const FORM_STATE_KEY = 'produksi_form_state';
 
@@ -572,6 +593,14 @@
   }
 
   document.addEventListener('DOMContentLoaded', function() {
+    @if(session('success'))
+    triggerFlashToast('success', 'Berhasil!', @json(session('success')));
+    @endif
+
+    @if(session('error'))
+    triggerFlashToast('error', 'Gagal!', @json(session('error')));
+    @endif
+
     // Set default date to today for tanggal_mulai
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('tanggal_mulai').value = today;
@@ -805,40 +834,66 @@
     }, 10);
   });
 
-  function resetForm() {
+  function performFormReset() {
     document.getElementById('produksiForm').reset();
-    // Clear saved form state from localStorage
+
     try {
       localStorage.removeItem(FORM_STATE_KEY);
     } catch (e) {
       console.warn('Failed to clear form state from localStorage:', e);
     }
-    // Reset tanggal_mulai to today
+
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('tanggal_mulai').value = today;
-    // Reset auto-filled styling (only for actual form fields, not info fields)
+    const tanggalMulaiField = document.getElementById('tanggal_mulai');
+    tanggalMulaiField.value = today;
+    tanggalMulaiField.dispatchEvent(new Event('input'));
+
     document.querySelectorAll('.field-auto-fill').forEach(field => {
       field.classList.remove('auto-filled');
     });
-    // Reset info fields in pembesaran section
+
     document.getElementById('umur_burung_pembesaran').value = '';
     document.getElementById('berat_rata_burung_pembesaran').value = '';
-    // Hide info fields container
+
     const fieldInfoPembesaran = document.getElementById('field_info_pembesaran_container');
-    if (fieldInfoPembesaran) fieldInfoPembesaran.style.display = 'none';
-    // Reset validation alerts
+    if (fieldInfoPembesaran) {
+      fieldInfoPembesaran.style.display = 'none';
+    }
+
     document.getElementById('campuranValidationAlert').style.display = 'none';
     document.getElementById('campuranSuccessAlert').style.display = 'none';
     document.getElementById('campuranErrorAlert').style.display = 'none';
-    // Reset persentase_fertil for penetasan
+
     document.getElementById('persentase_fertil').value = '';
-    // Reset catatan textarea
     document.getElementById('catatan').value = '';
-    // Clear campuran fields
     document.getElementById('jumlah_jantan').value = '';
     document.getElementById('jumlah_betina').value = '';
-    // Remove name attributes from campuran fields
     document.getElementById('jumlah_jantan').removeAttribute('name');
     document.getElementById('jumlah_betina').removeAttribute('name');
+
+    toggleSections();
+    toggleCampuranFields();
+    generateBatchId();
+    validateTanggalAkhir();
+    saveFormState();
+
+    triggerFlashToast('success', 'Berhasil!', 'Form produksi berhasil direset.', 2200);
+  }
+
+  function resetForm() {
+    Swal.fire({
+      title: 'Reset Form?',
+      text: 'Semua data yang telah diisi akan dibersihkan.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#f59e0b',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Ya, Reset',
+      cancelButtonText: 'Batal'
+    }).then(result => {
+      if (result.isConfirmed) {
+        performFormReset();
+      }
+    });
   }
 </script>

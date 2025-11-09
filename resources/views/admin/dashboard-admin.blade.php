@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Dashboard — Main Chart & Goals')
+@section('title', 'Backoffice')
 
 @push('styles')
 	<link rel="stylesheet" href="{{ asset('bolopa/css/admin-dashboard.css') }}">

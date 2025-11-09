@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Kandang - Daftar Kandang')
+@section('title', 'Data Kandang')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-kandang.css') }}">

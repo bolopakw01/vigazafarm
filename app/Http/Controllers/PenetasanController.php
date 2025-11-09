@@ -41,9 +41,11 @@ class PenetasanController extends Controller
         // Set status default to 'proses'
         $data['status'] = 'proses';
 
-        Penetasan::create($data);
+        $penetasan = Penetasan::create($data);
 
-        return redirect()->route('admin.penetasan')->with('success', 'Data penetasan berhasil ditambahkan.');
+        return redirect()
+            ->route('admin.penetasan')
+            ->with('success', sprintf('Penetasan batch %s berhasil ditambahkan.', $penetasan->batch));
     }
 
     /**
@@ -103,7 +105,11 @@ class PenetasanController extends Controller
 
         $penetasan->update($data);
 
-        return redirect()->route('admin.penetasan')->with('success', 'Data berhasil diperbarui.');
+        $identifier = $penetasan->batch ? 'batch ' . $penetasan->batch : '#' . $penetasan->id;
+
+        return redirect()
+            ->route('admin.penetasan')
+            ->with('success', sprintf('Penetasan %s berhasil diperbarui.', $identifier));
     }
 
     public function updateStatus(Request $request, Penetasan $penetasan)
@@ -129,7 +135,11 @@ class PenetasanController extends Controller
 
     public function destroy(Penetasan $penetasan)
     {
+        $identifier = $penetasan->batch ? 'batch ' . $penetasan->batch : '#' . $penetasan->id;
         $penetasan->delete();
-        return redirect()->route('admin.penetasan')->with('success', 'Data berhasil dihapus.');
+
+        return redirect()
+            ->route('admin.penetasan')
+            ->with('success', sprintf('Penetasan %s berhasil dihapus.', $identifier));
     }
 }

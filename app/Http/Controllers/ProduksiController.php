@@ -333,8 +333,13 @@ class ProduksiController extends Controller
             Log::info('Transaction committed successfully');
             $redirectUrl = route('admin.produksi');
             Log::info('Redirecting to: ' . $redirectUrl);
+            $message = sprintf(
+                'Produksi batch %s berhasil ditambahkan.',
+                $produksi->batch_produksi_id ?? ('#' . $produksi->id)
+            );
+
             return redirect()->route('admin.produksi')
-                           ->with('success', 'Data produksi berhasil ditambahkan!');
+                           ->with('success', $message);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -519,8 +524,10 @@ class ProduksiController extends Controller
         try {
             $produksi->update($validated);
 
+            $identifier = $produksi->batch_produksi_id ? 'batch ' . $produksi->batch_produksi_id : '#' . $produksi->id;
+
             return redirect()->route('admin.produksi')
-                           ->with('success', 'Data produksi berhasil diperbarui!');
+                           ->with('success', sprintf('Produksi %s berhasil diperbarui.', $identifier));
 
         } catch (\Exception $e) {
             return redirect()->back()
@@ -551,11 +558,13 @@ class ProduksiController extends Controller
                 }
             }
 
+            $identifier = $produksi->batch_produksi_id ? 'batch ' . $produksi->batch_produksi_id : '#' . $produksi->id;
+
             $produksi->delete();
 
             DB::commit();
             return redirect()->route('admin.produksi')
-                           ->with('success', 'Data produksi berhasil dihapus!');
+                           ->with('success', sprintf('Produksi %s berhasil dihapus.', $identifier));
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -577,8 +586,10 @@ class ProduksiController extends Controller
         try {
             $produksi->update($validated);
 
+            $identifier = $produksi->batch_produksi_id ? 'batch ' . $produksi->batch_produksi_id : '#' . $produksi->id;
+
             return redirect()->back()
-                           ->with('success', 'Status produksi berhasil diperbarui!');
+                           ->with('success', sprintf('Status produksi %s berhasil diperbarui.', $identifier));
 
         } catch (\Exception $e) {
             return redirect()->back()

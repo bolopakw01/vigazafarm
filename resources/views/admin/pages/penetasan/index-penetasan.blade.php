@@ -537,37 +537,33 @@
         }, 3000);
     }
 
-    // Show success/error messages with SweetAlert2
-    @if(session('success'))
+    const triggerFlashToast = (icon, title, message, timer = 3500) => {
+        if (!message) {
+            return;
+        }
+
         Swal.fire({
             toast: true,
             position: 'top-end',
-            icon: 'success',
-            title: '{{ session('success') }}',
+            icon,
+            title,
+            text: message,
             showConfirmButton: false,
-            timer: 3000,
+            timer,
             timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer)
-                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            didOpen: toast => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
             }
         });
+    };
+
+    @if(session('success'))
+    triggerFlashToast('success', 'Berhasil!', @json(session('success')));
     @endif
 
     @if(session('error'))
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'error',
-            title: '{{ session('error') }}',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true,
-            didOpen: (toast) => {
-                toast.addEventListener('mouseenter', Swal.stopTimer)
-                toast.addEventListener('mouseleave', Swal.resumeTimer)
-            }
-        });
+    triggerFlashToast('error', 'Gagal!', @json(session('error')), 4500);
     @endif
 
     // Table sorting (client-side)

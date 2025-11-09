@@ -20,19 +20,6 @@
             </a>
         </div>
 
-        <!-- Alert Messages -->
-        @if(session('success'))
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-        @endif
-
-        @if(session('error'))
-        <div class="alert alert-danger">
-            {{ session('error') }}
-        </div>
-        @endif
-
         @if($errors->any())
         <div class="alert alert-danger">
             <strong>Terdapat kesalahan:</strong>
@@ -733,6 +720,35 @@ textarea.form-control {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const triggerFlashToast = (icon, title, message, timer = 3500) => {
+        if (!message) {
+            return;
+        }
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon,
+            title,
+            text: message,
+            showConfirmButton: false,
+            timer,
+            timerProgressBar: true,
+            didOpen: toast => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+    };
+
+    @if(session('success'))
+    triggerFlashToast('success', 'Berhasil!', @json(session('success')));
+    @endif
+
+    @if(session('error'))
+    triggerFlashToast('error', 'Gagal!', @json(session('error')));
+    @endif
+
     const tanggalSimpanInput = document.getElementById('tanggal_simpan_telur');
     const estimasiMenetasInput = document.getElementById('estimasi_menetas');
     const estimasiInfo = document.getElementById('estimasiInfo');
@@ -832,7 +848,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const tanggalMenetas = new Date(tanggalMenetasInput.value);
             
             if (tanggalMenetas < tanggalSimpan) {
-                alert('⚠️ Tanggal menetas tidak boleh lebih awal dari tanggal mulai penetasan!');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Tanggal tidak valid',
+                    text: 'Tanggal menetas tidak boleh lebih awal dari tanggal mulai penetasan.'
+                });
                 tanggalMenetasInput.value = '';
             }
         });
@@ -848,7 +868,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (!kandangId || !tanggalSimpan || !jumlahTelur) {
                 e.preventDefault();
-                alert('⚠️ Harap lengkapi semua field yang wajib diisi (bertanda *)');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Data belum lengkap',
+                    text: 'Harap lengkapi semua field yang wajib diisi (bertanda *).'
+                });
                 return false;
             }
         });

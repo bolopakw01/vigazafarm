@@ -1,84 +1,11 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Produksi - Daftar Produksi')
+@section('title', 'Data Produksi')
 
 @push('styles')
+    <link rel="stylesheet" href="{{ asset('bolopa/css/admin-penetasan.css') }}">
     <link rel="stylesheet" href="{{ asset('bolopa/css/admin-produksi.css') }}">
     <style>
-        /* SVG Icon Styling */
-        .bolopa-icon-svg {
-            width: 20px;
-            height: 20px;
-            display: inline-block;
-            vertical-align: middle;
-        }
-
-        h1 .bolopa-icon-svg {
-            width: 28px;
-            height: 28px;
-        }
-
-        .bolopa-tabel-sort-icon-svg {
-            width: 12px;
-            height: 12px;
-            display: block;
-        }
-
-        /* Right control icons (Tambah Data, Export, Print) color filter */
-        .bolopa-tabel-right-controls .bolopa-icon-svg {
-            filter: invert(100%) sepia(3%) saturate(14%) hue-rotate(112deg) brightness(107%) contrast(105%);
-        }
-
-        /* Tambah Produksi button icon color filter */
-        header a.bolopa-tabel-btn-primary .bolopa-icon-svg {
-            filter: invert(76%) sepia(100%) saturate(0%) hue-rotate(177deg) brightness(114%) contrast(101%);
-        }
-
-        /* Action icons (View, Edit, Delete) color filter */
-        .bolopa-tabel-actions .bolopa-icon-svg {
-            filter: invert(76%) sepia(100%) saturate(0%) hue-rotate(177deg) brightness(114%) contrast(101%);
-        }
-
-        /* Sort icons: stack much closer vertically and show as black when active */
-        .bolopa-tabel-sort-wrap {
-            display: inline-flex;
-            flex-direction: column;
-            gap: 0px;
-            /* remove gap to bring icons adjacent */
-            align-items: center;
-            justify-content: center;
-            line-height: 0;
-            padding-left: 6px;
-            /* slight separation from header text */
-        }
-
-        .bolopa-tabel-sort-icon {
-            display: block;
-            line-height: 0;
-            opacity: 0.7;
-            margin: 0;
-            padding: 0;
-            transform: translateY(0);
-            transition: filter 0.12s ease, opacity 0.12s ease, transform 0.12s ease;
-        }
-
-        /* Slightly overlap icons so they're visually closer */
-        .bolopa-tabel-sort-icon.bolopa-tabel-sort-up {
-            transform: translateY(1px);
-        }
-
-        .bolopa-tabel-sort-icon.bolopa-tabel-sort-down {
-            transform: translateY(-1px);
-        }
-
-        /* When a sort icon is active, make it visually black and more prominent */
-        .bolopa-tabel-sort-icon.bolopa-tabel-active {
-            /* Make icon appear black regardless of original color */
-            filter: brightness(0) saturate(100%);
-            opacity: 1;
-            transform: translateY(0);
-        }
-
         /* Popup Produksi Styles */
         .popup-content {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -179,7 +106,7 @@
                 <h1>
                     <img src="{{ asset('bolopa/img/icon/streamline-sharp--archive-box-solid.svg') }}" alt="Egg"
                         class="bolopa-icon-svg">
-                    Produksi
+                    Data Produksi
                 </h1>
                 <a href="{{ route('admin.produksi.create') }}" class="bolopa-tabel-btn bolopa-tabel-btn-primary">
                     <img src="{{ asset('bolopa/img/icon/line-md--plus-square-filled.svg') }}" alt="Add"
@@ -238,10 +165,13 @@
                     <div class="bolopa-tabel-entries-select">
                         <span>Tampilkan</span>
                         <select id="entriesSelect">
+                            <option value="5" {{ request('per_page', 5) == 5 ? 'selected' : '' }}>5</option>
                             <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
+                            <option value="15" {{ request('per_page') == 15 ? 'selected' : '' }}>15</option>
+                            <option value="20" {{ request('per_page') == 20 ? 'selected' : '' }}>20</option>
                             <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
                             <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
-                            <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
+                            <option value="all" {{ request('per_page') == 'all' ? 'selected' : '' }}>Semua</option>
                         </select>
                         <span>entri</span>
                     </div>
@@ -274,80 +204,79 @@
                 <table id="dataTable">
                     <thead>
                         <tr>
-                            <th data-sort="no">
+                            <th data-sort="no" class="bolopa-tabel-text-center" style="width: 60px;">
                                 No
                                 <span class="bolopa-tabel-sort-wrap">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up" width="10" height="9">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down" width="10" height="9">
                                 </span>
                             </th>
-                            <th data-sort="batch">
+                            <th data-sort="batch" class="bolopa-tabel-text-left">
                                 Batch
                                 <span class="bolopa-tabel-sort-wrap">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up" width="10" height="9">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down" width="10" height="9">
                                 </span>
                             </th>
-                            <th data-sort="kandang">
+                            <th data-sort="kandang" class="bolopa-tabel-text-left">
                                 Kandang
                                 <span class="bolopa-tabel-sort-wrap">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up" width="10" height="9">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down" width="10" height="9">
                                 </span>
                             </th>
-                            <th data-sort="tipe_produksi">
+                            <th data-sort="tipe_produksi" class="bolopa-tabel-text-center">
                                 Tipe
                                 <span class="bolopa-tabel-sort-wrap">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up" width="10" height="9">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down" width="10" height="9">
                                 </span>
                             </th>
-                            <th data-sort="tanggal">
+                            <th data-sort="tanggal" class="bolopa-tabel-text-center">
                                 Tanggal Masuk
                                 <span class="bolopa-tabel-sort-wrap">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up" width="10" height="9">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down" width="10" height="9">
                                 </span>
                             </th>
-                            <th data-sort="expired">
+                            <th data-sort="expired" class="bolopa-tabel-text-center">
                                 Expired
                                 <span class="bolopa-tabel-sort-wrap">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up" width="10" height="9">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down" width="10" height="9">
                                 </span>
                             </th>
-                            <th data-sort="harga">
+                            <th data-sort="harga" class="bolopa-tabel-text-right">
                                 Harga
                                 <span class="bolopa-tabel-sort-wrap">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up" width="10" height="9">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down" width="10" height="9">
                                 </span>
                             </th>
-                            <th data-sort="status">
+                            <th data-sort="status" class="bolopa-tabel-text-center">
                                 Status
                                 <span class="bolopa-tabel-sort-wrap">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up">
-                                    <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}"
-                                        alt="Sort Down"
-                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down">
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-up" width="10" height="9">
+                                    <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down"
+                                        class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down" width="10" height="9">
                                 </span>
                             </th>
-                            <th>Aksi</th>
+                            <th class="bolopa-tabel-text-center" style="width: 160px;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -418,22 +347,28 @@
                                         }
                                     }
                                 @endphp
-                                <td>{{ $produksi->firstItem() + $i }}</td>
-                                <td>{{ $row->batch_produksi_id ?? '-' }}</td>
-                                <td>{{ $row->kandang->nama_kandang ?? '-' }}</td>
-                                <td>
-                                    @if ($row->tipe_produksi == 'telur')
-                                        <span class="badge bg-info">Telur</span>
-                                    @elseif($row->tipe_produksi == 'puyuh')
-                                        <span class="badge bg-warning">Puyuh</span>
+                                <td class="bolopa-tabel-text-center">{{ $produksi->firstItem() + $i }}</td>
+                                <td class="bolopa-tabel-text-left">{{ $row->batch_produksi_id ?? '-' }}</td>
+                                <td class="bolopa-tabel-text-left">{{ $row->kandang->nama_kandang ?? '-' }}</td>
+                                <td class="bolopa-tabel-text-center">
+                                    @if ($row->tipe_produksi === 'telur')
+                                        <span class="bolopa-tabel-badge bolopa-tabel-badge-info">Telur</span>
+                                    @elseif ($row->tipe_produksi === 'puyuh')
+                                        <span class="bolopa-tabel-badge bolopa-tabel-badge-warning">Puyuh</span>
                                     @else
-                                        <span class="badge bg-secondary">{{ $row->tipe_produksi ?? 'Unknown' }}</span>
+                                        <span class="bolopa-tabel-badge bolopa-tabel-badge-secondary">{{ $row->tipe_produksi ?? 'Unknown' }}</span>
                                     @endif
                                 </td>
-                                <td>{{ $startDateFormatted }}</td>
-                                <td>{{ $endDateFormatted }}</td>
-                                <td>{{ number_format($row->harga_per_kg ?? 0, 0, ',', '.') }}</td>
-                                <td>
+                                <td class="bolopa-tabel-text-center">{{ $startDateFormatted }}</td>
+                                <td class="bolopa-tabel-text-center">{{ $endDateFormatted }}</td>
+                                <td class="bolopa-tabel-text-right">
+                                    @if (!is_null($row->harga_per_kg))
+                                        Rp {{ number_format($row->harga_per_kg, 0, ',', '.') }} / Kg
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td class="bolopa-tabel-text-center">
                                     @php
                                         $statusLabel = $row->status;
                                         if (in_array($statusLabel, ['selesai', 'dibatalkan'])) {
@@ -441,14 +376,14 @@
                                         }
                                     @endphp
                                     @if ($statusLabel === 'aktif')
-                                        <span class="badge bg-success">Aktif</span>
-                                    @elseif($statusLabel === 'tidak_aktif')
-                                        <span class="badge bg-secondary">Tidak Aktif</span>
+                                        <span class="bolopa-tabel-badge bolopa-tabel-badge-green">Aktif</span>
+                                    @elseif ($statusLabel === 'tidak_aktif')
+                                        <span class="bolopa-tabel-badge bolopa-tabel-badge-gray">Tidak Aktif</span>
                                     @else
-                                        <span class="badge bg-secondary">{{ $row->status ?? 'Unknown' }}</span>
+                                        <span class="bolopa-tabel-badge bolopa-tabel-badge-secondary">{{ $row->status ?? 'Unknown' }}</span>
                                     @endif
                                 </td>
-                                <td>
+                                <td class="bolopa-tabel-text-center">
                                     <div class="bolopa-tabel-actions">
                                         <button class="bolopa-tabel-btn bolopa-tabel-btn-action bolopa-tabel-btn-info btn-view"
                                             title="Lihat Detail"
@@ -510,47 +445,23 @@
             <!-- Pagination -->
             <div class="bolopa-tabel-pagination">
                 <div class="bolopa-tabel-pagination-info">
-                    Menampilkan {{ $produksi->firstItem() ?? 0 }} - {{ $produksi->lastItem() ?? 0 }} dari
+                    Menampilkan {{ $produksi->firstItem() ?? 0 }} Sampai {{ $produksi->lastItem() ?? 0 }} dari
                     {{ $produksi->total() ?? 0 }} entri
                 </div>
                 <div class="bolopa-tabel-pagination-buttons">
-                    @if ($produksi->onFirstPage())
-                        <button disabled>
-                            <img src="{{ asset('bolopa/img/icon/line-md--chevron-small-left.svg') }}" alt="Previous"
-                                class="bolopa-icon-svg">
-                        </button>
-                    @else
-                        <a href="{{ $produksi->previousPageUrl() }}" style="text-decoration: none;">
-                            <button>
-                                <img src="{{ asset('bolopa/img/icon/line-md--chevron-small-left.svg') }}" alt="Previous"
-                                    class="bolopa-icon-svg">
-                            </button>
-                        </a>
-                    @endif
+                    <a href="{{ $produksi->previousPageUrl() }}" class="bolopa-tabel-pagination-btn {{ $produksi->onFirstPage() ? 'disabled' : '' }}">
+                        <img src="{{ asset('bolopa/img/icon/line-md--chevron-small-left.svg') }}" alt="Previous" width="18" height="18">
+                    </a>
 
-                    @foreach (range(1, $produksi->lastPage()) as $page)
-                        @if ($page == $produksi->currentPage())
-                            <button class="bolopa-tabel-active">{{ $page }}</button>
-                        @else
-                            <a href="{{ $produksi->url($page) }}" style="text-decoration: none;">
-                                <button>{{ $page }}</button>
-                            </a>
-                        @endif
+                    @foreach ($produksi->getUrlRange(1, $produksi->lastPage()) as $page => $url)
+                        <a href="{{ $url }}" class="bolopa-tabel-pagination-btn {{ $page == $produksi->currentPage() ? 'bolopa-tabel-active' : '' }}">
+                            {{ $page }}
+                        </a>
                     @endforeach
 
-                    @if ($produksi->hasMorePages())
-                        <a href="{{ $produksi->nextPageUrl() }}" style="text-decoration: none;">
-                            <button>
-                                <img src="{{ asset('bolopa/img/icon/line-md--chevron-small-right.svg') }}" alt="Next"
-                                    class="bolopa-icon-svg">
-                            </button>
-                        </a>
-                    @else
-                        <button disabled>
-                            <img src="{{ asset('bolopa/img/icon/line-md--chevron-small-right.svg') }}" alt="Next"
-                                class="bolopa-icon-svg">
-                        </button>
-                    @endif
+                    <a href="{{ $produksi->nextPageUrl() }}" class="bolopa-tabel-pagination-btn {{ !$produksi->hasMorePages() ? 'disabled' : '' }}">
+                        <img src="{{ asset('bolopa/img/icon/line-md--chevron-small-right.svg') }}" alt="Next" width="18" height="18">
+                    </a>
                 </div>
             </div>
         </div>
@@ -872,7 +783,7 @@
             function sortTable(column) {
                 if (!tbody) return;
 
-                const rows = Array.from(tbody.querySelectorAll('tr:not(:last-child)'));
+                const rows = Array.from(tbody.querySelectorAll('tr'));
 
                 // Toggle sort direction
                 if (sortState.column === column) {
@@ -977,37 +888,33 @@
                 });
             }
 
-            // Toast notification
-            @if (session('success'))
+            const triggerFlashToast = (icon, title, message, timer = 3500) => {
+                if (!message) {
+                    return;
+                }
+
                 Swal.fire({
                     toast: true,
                     position: 'top-end',
+                    icon,
+                    title,
+                    text: message,
                     showConfirmButton: false,
-                    timer: 3000,
+                    timer,
                     timerProgressBar: true,
-                    icon: 'success',
-                    title: '{{ session('success') }}',
-                    didOpen: (toast) => {
-                        toast.addEventListener('mouseenter', Swal.stopTimer)
-                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    didOpen: toast => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                        toast.addEventListener('mouseleave', Swal.resumeTimer);
                     }
                 });
+            };
+
+            @if (session('success'))
+            triggerFlashToast('success', 'Berhasil!', @json(session('success')));
             @endif
 
             @if (session('error'))
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 5000,
-                    timerProgressBar: true,
-                    icon: 'error',
-                    title: '{{ session('error') }}',
-                    didOpen: (toast) => {
-                        toast.addEventListener('mouseenter', Swal.stopTimer)
-                        toast.addEventListener('mouseleave', Swal.resumeTimer)
-                    }
-                });
+            triggerFlashToast('error', 'Gagal!', @json(session('error')), 4500);
             @endif
         });
     </script>

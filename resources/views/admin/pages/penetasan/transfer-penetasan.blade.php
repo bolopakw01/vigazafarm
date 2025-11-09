@@ -387,3 +387,38 @@
 }
 </style>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const triggerFlashToast = (icon, title, message, timer = 3500) => {
+        if (!message) {
+            return;
+        }
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon,
+            title,
+            text: message,
+            showConfirmButton: false,
+            timer,
+            timerProgressBar: true,
+            didOpen: toast => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+    };
+
+    @if(session('success'))
+    triggerFlashToast('success', 'Berhasil!', @json(session('success')));
+    @endif
+
+    @if(session('error'))
+    triggerFlashToast('error', 'Gagal!', @json(session('error')), 4500);
+    @endif
+});
+</script>
+@endpush

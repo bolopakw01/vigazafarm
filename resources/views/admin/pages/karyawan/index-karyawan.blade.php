@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Karyawan - Daftar Karyawan')
+@section('title', 'Data Karyawan')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-karyawan.css') }}">

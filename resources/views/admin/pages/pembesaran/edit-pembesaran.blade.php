@@ -460,6 +460,34 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const triggerFlashToast = (icon, title, message, timer = 3500) => {
+        if (!message) {
+            return;
+        }
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon,
+            title,
+            text: message,
+            showConfirmButton: false,
+            timer,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+    };
+
+    @if(session('success'))
+    triggerFlashToast('success', 'Berhasil!', @json(session('success')));
+    @endif
+
+    @if(session('error'))
+    triggerFlashToast('error', 'Gagal!', @json(session('error')));
+    @endif
+
     const form = document.getElementById('formPembesaran');
     const btnSubmit = document.getElementById('btnSubmit');
     const tanggalMasuk = document.getElementById('tanggal_masuk');
@@ -528,14 +556,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 form.reset();
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Form direset',
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 2000
-                });
+                triggerFlashToast('success', 'Berhasil!', 'Form pembesaran berhasil direset.', 2200);
             }
         });
     });
