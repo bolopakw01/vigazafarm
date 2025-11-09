@@ -5,97 +5,6 @@
 @push('styles')
     <link rel="stylesheet" href="{{ asset('bolopa/css/admin-penetasan.css') }}">
     <link rel="stylesheet" href="{{ asset('bolopa/css/admin-produksi.css') }}">
-    <style>
-        /* Popup Produksi Styles */
-        .popup-content {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 14px;
-            line-height: 1.4;
-        }
-        .data-section {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-            border: 1px solid #e9ecef;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-        }
-        .data-section h6 {
-            color: #495057;
-            margin-bottom: 10px;
-            font-weight: 600;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            border-bottom: 2px solid #e9ecef;
-            padding-bottom: 6px;
-        }
-        .data-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px 15px;
-        }
-        .data-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 8px;
-            border-radius: 4px;
-        }
-        .data-label {
-            font-weight: 600;
-            color: #6c757d;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .data-value {
-            color: #212529;
-            font-weight: 500;
-            font-size: 13px;
-        }
-        .status-badge {
-            padding: 3px 10px;
-            border-radius: 15px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .status-aktif {
-            background: linear-gradient(135deg, #28a745, #20c997);
-            color: white;
-            box-shadow: 0 2px 4px rgba(40,167,69,0.3);
-        }
-        .batch-id {
-            background: linear-gradient(135deg, #007bff, #6610f2);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            font-size: 12px;
-            box-shadow: 0 2px 4px rgba(0,123,255,0.3);
-        }
-        .price-highlight {
-            color: #28a745;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        .notes-section {
-            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            padding: 10px;
-            font-size: 13px;
-            color: #6c757d;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-            max-height: 80px;
-            overflow-y: auto;
-        }
-    </style>
 @endpush
 
 @section('content')
@@ -258,7 +167,7 @@
                                         class="bolopa-tabel-sort-icon bolopa-tabel-sort-icon-svg bolopa-tabel-sort-down" width="10" height="9">
                                 </span>
                             </th>
-                            <th data-sort="harga" class="bolopa-tabel-text-right">
+                            <th data-sort="harga" class="bolopa-tabel-text-right" style="display: none;">
                                 Harga
                                 <span class="bolopa-tabel-sort-wrap">
                                     <img src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up"
@@ -361,7 +270,7 @@
                                 </td>
                                 <td class="bolopa-tabel-text-center">{{ $startDateFormatted }}</td>
                                 <td class="bolopa-tabel-text-center">{{ $endDateFormatted }}</td>
-                                <td class="bolopa-tabel-text-right">
+                                <td class="bolopa-tabel-text-right" style="display: none;">
                                     @if (!is_null($row->harga_per_kg))
                                         Rp {{ number_format($row->harga_per_kg, 0, ',', '.') }} / Kg
                                     @else
@@ -431,7 +340,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" style="text-align: center; padding: 40px;">
+                                <td colspan="8" style="text-align: center; padding: 40px;">
                                     <img src="{{ asset('bolopa/img/icon/iconoir--box-iso.svg') }}" alt="No Data"
                                         style="width: 60px; height: 60px; opacity: 0.3; margin-bottom: 10px;">
                                     <p style="color: var(--bolopa-tabel-gray);">Tidak ada data produksi</p>
@@ -636,7 +545,7 @@
 
                     tableEl.querySelectorAll('thead th').forEach((th, index) => {
                         const text = sanitize(th.innerText || th.textContent || '');
-                        if (!text || text.toLowerCase() === 'aksi') {
+                        if (!text || text.toLowerCase() === 'aksi' || text.toLowerCase() === 'harga') {
                             skipIndexes.add(index);
                             return;
                         }
@@ -834,8 +743,7 @@
                     'tipe_produksi': 3,
                     'tanggal': 4,
                     'expired': 5,
-                    'harga': 6,
-                    'status': 7
+                    'status': 6
                 };
                 return mapping[sortKey] ?? -1;
             }

@@ -9,6 +9,579 @@
     font-display: swap;
 }
 
+/* Penetasan Popup Styles */
+:root {
+    --bg: #f1f5f9;
+    --panel: #fff;
+    --muted: #64748b;
+    --text: #0f172a;
+    --accent: #2563eb;
+    --swal-pad: 20px;
+}
+
+.swal2-popup.bolopa-popup-swal2-popup {
+    width: 960px !important;
+    max-width: 96vw !important;
+    border-radius: 14px;
+    padding: 0;
+    box-sizing: border-box;
+    max-height: 92vh;
+    overflow: auto;
+}
+
+div:where(.swal2-container) div:where(.swal2-html-container) {
+    padding: 0 !important;
+    margin: 0;
+}
+
+.bolopa-popup-content {
+    box-sizing: border-box;
+    text-align: left;
+    font-size: 13px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+.bolopa-popup-content h5 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.bolopa-popup-content .label {
+    font-size: 0.82rem;
+}
+
+.bolopa-popup-content .stat-body .label {
+    font-size: 0.85rem;
+}
+
+.bolopa-popup-content .stat-body .desc {
+    font-size: 0.72rem;
+}
+
+.bolopa-popup-content .stat-item .value {
+    font-size: 0.92rem;
+}
+
+.bolopa-popup-content .card-simple .value {
+    font-size: 1.25rem;
+}
+
+.bolopa-popup-content .footer-row {
+    font-size: 0.78rem;
+}
+
+.bolopa-popup-content button {
+    font-size: 0.82rem;
+}
+
+.bolopa-popup-content .swal-body {
+    display: flex;
+    gap: 18px;
+    padding: var(--swal-pad);
+    flex-wrap: wrap;
+    align-items: flex-start;
+    width: 100%;
+    flex: 0 0 auto;
+}
+
+.bolopa-popup-content .left,
+.bolopa-popup-content .right {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-sizing: border-box;
+}
+
+.bolopa-popup-content .left {
+    flex: 1 1 520px;
+    min-width: 360px;
+}
+
+.bolopa-popup-content .right {
+    flex: 0 0 300px;
+    min-width: 260px;
+}
+
+.bolopa-popup-content .panel {
+    background: var(--panel);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.05);
+}
+
+.bolopa-popup-content .card-summary {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.bolopa-popup-content .card-header {
+    padding: 0.9rem 1rem;
+    background: #f9fafb;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bolopa-popup-content .subtle-date {
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+.bolopa-popup-content .card-header .id-val {
+    font-weight: 700;
+    color: #000;
+}
+
+.bolopa-popup-content .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    padding: 1rem;
+}
+
+.bolopa-popup-content .stat-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.5rem 0.6rem;
+    display: grid;
+    grid-template-columns: 44px 1fr min-content;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 64px;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.bolopa-popup-content .stat-item .stat-icon i,
+.bolopa-popup-content .stat-item .value {
+    transition: transform 180ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.bolopa-popup-content .stat-item .stat-icon i {
+    transform-origin: center;
+    will-change: transform;
+}
+
+.bolopa-popup-content .stat-item .value {
+    transform-origin: center right;
+    will-change: transform;
+}
+
+.bolopa-popup-content .stat-item:hover .stat-icon i {
+    transform: scale(1.4);
+}
+
+.bolopa-popup-content .stat-item:hover .value {
+    transform: scale(1.4);
+}
+
+.bolopa-popup-content .stat-body {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    min-width: 0;
+}
+
+.bolopa-popup-content .stat-body .label {
+    font-weight: 600;
+    white-space: nowrap;
+    color: #000;
+    display: inline-block;
+    flex: 0 0 auto;
+}
+
+.bolopa-popup-content .stat-body .desc {
+    font-size: 0.76rem;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: inline-block;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.bolopa-popup-content .stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+}
+
+.bolopa-popup-content .icon.total {
+    background: linear-gradient(135deg, #60a5fa, #3b82f6);
+}
+
+.bolopa-popup-content .icon.menetas {
+    background: linear-gradient(135deg, #34d399, #059669);
+}
+
+.bolopa-popup-content .icon.doc {
+    background: linear-gradient(135deg, #a78bfa, #7c3aed);
+}
+
+.bolopa-popup-content .icon.fertil {
+    background: linear-gradient(135deg, #fcd34d, #f59e0b);
+}
+
+.bolopa-popup-content .icon.gagal {
+    background: linear-gradient(135deg, #fb7185, #ef4444);
+}
+
+.bolopa-popup-content .stat-item .value {
+    text-align: right;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text);
+    white-space: nowrap;
+    min-width: 90px;
+}
+
+.bolopa-popup-content .percent-row {
+    border-top: 1px solid #e2e8f0;
+    padding: 0.9rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.bolopa-popup-content .progress {
+    height: 10px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #e5e7eb;
+    width: 100%;
+}
+
+.bolopa-popup-content .progress-bar {
+    background: linear-gradient(90deg, #06b6d4, #3b82f6);
+    height: 100%;
+    transition: width 400ms ease;
+    display: block;
+}
+
+.bolopa-popup-content .metrics-row {
+    display: flex;
+    gap: 10px;
+}
+
+.bolopa-popup-content .card-simple {
+    flex: 1;
+    border-radius: 12px;
+    padding: 1rem 1.6rem 1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: #fff;
+    position: relative;
+    min-width: 140px;
+}
+
+.bolopa-popup-content .card-simple .icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none !important;
+    width: auto !important;
+    height: auto !important;
+    border-radius: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.bolopa-popup-content .card-simple .icon i {
+    font-size: 1.25rem;
+    transition: transform 180ms cubic-bezier(0.2, 0.9, 0.2, 1);
+    transform-origin: top right;
+}
+
+.bolopa-popup-content .card-simple:hover .icon i {
+    transform: scale(1.18);
+}
+
+.bolopa-popup-content .card-simple .icon.temp i,
+.bolopa-popup-content .card-simple .icon.hum i {
+    color: #fff;
+}
+
+.bolopa-popup-content #cardTemp {
+    background: linear-gradient(135deg, #ef6b6b, #d64545);
+}
+
+.bolopa-popup-content #cardHum {
+    background: linear-gradient(135deg, #6fb3ff, #3b82f6);
+}
+
+.bolopa-popup-content .card-simple .label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    opacity: 0.9;
+}
+
+.bolopa-popup-content .card-simple .value {
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+.bolopa-popup-content .card-simple .value span {
+    transition: opacity 200ms ease;
+}
+
+.bolopa-popup-content .timeline-panel .card-clean {
+    padding: 1rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+}
+
+.bolopa-popup-content .timeline-panel .mini-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    text-align: center;
+    display: block;
+}
+
+.bolopa-popup-content .entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0;
+    border-top: 1px solid #f1f5f9;
+}
+
+.bolopa-popup-content .entry .label {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.bolopa-popup-content .result-box {
+    background: #f8fafc;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    min-width: 140px;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.bolopa-popup-content .timeline-panel .entry .result-box .value {
+    color: #000;
+    font-weight: 600;
+    font-size: 0.88rem;
+}
+
+.bolopa-popup-content .timeline-panel .entry .result-box .time {
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 400;
+}
+
+.bolopa-popup-content .entry-icon {
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+.bolopa-popup-content .note-card {
+    background: #f9fafb;
+    padding: 0.75rem;
+    border-radius: 10px;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    border: 1px solid #e2e8f0;
+}
+
+.bolopa-popup-content .icon.note {
+    background: #ede9fe;
+    color: #3730a3;
+}
+
+.bolopa-popup-content .note-card .note-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.bolopa-popup-content .note-card .note-title {
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: var(--text);
+}
+
+.bolopa-popup-content .note-card .note-desc {
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.2;
+}
+
+.bolopa-popup-content .footer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.9rem 1.2rem;
+    border-top: 1px solid #e2e8f0;
+    background: #f9fafb;
+    font-size: 0.8rem;
+    color: var(--muted);
+    position: relative;
+    z-index: 2;
+}
+
+.bolopa-popup-content > .footer-row {
+    align-self: stretch;
+    width: 100%;
+    box-sizing: border-box;
+    margin-left: calc(var(--swal-pad) * -1);
+    margin-right: calc(var(--swal-pad) * -1);
+    padding-left: calc(0.9rem + var(--swal-pad));
+    padding-right: calc(1.2rem + var(--swal-pad));
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.bolopa-popup-content .btn {
+    padding: 0.45rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 180ms ease;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.bolopa-popup-content .btn-ghost {
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #374151;
+}
+
+.bolopa-popup-content .btn-ghost:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.bolopa-popup-content .btn-outline-secondary {
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #6b7280;
+}
+
+.bolopa-popup-content .btn-outline-secondary:hover {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.bolopa-popup-content .btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+    border: none;
+}
+
+.bolopa-popup-content .btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+}
+
+.bolopa-popup-content .btn i {
+    font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+    :root {
+        --swal-pad: 14px;
+    }
+
+    .bolopa-popup-content .swal-body {
+        padding: 14px;
+        gap: 12px;
+    }
+
+    .bolopa-popup-content .left,
+    .bolopa-popup-content .right {
+        min-width: 0;
+    }
+
+    .bolopa-popup-content .left,
+    .bolopa-popup-content .right {
+        flex: 1 1 100%;
+    }
+
+    .bolopa-popup-content .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+
+    .bolopa-popup-content .metrics-row {
+        flex-direction: row;
+    }
+}
+
+@media (max-width: 520px) {
+    :root {
+        --swal-pad: 10px;
+    }
+
+    .bolopa-popup-content .swal-body {
+        padding: 10px;
+        gap: 10px;
+        flex-direction: column;
+    }
+
+    .bolopa-popup-content .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .bolopa-popup-content .stat-item {
+        grid-template-columns: 36px 1fr min-content;
+        padding: 0.5rem;
+        min-height: 56px;
+    }
+
+    .bolopa-popup-content .card-simple {
+        padding: 0.75rem;
+    }
+
+    .bolopa-popup-content .card-simple .value {
+        font-size: 1.3rem;
+    }
+
+    .bolopa-popup-content .metrics-row {
+        flex-direction: column;
+    }
+
+    .bolopa-popup-content > .footer-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .bolopa-popup-content > .footer-row > div:last-child {
+        display: flex;
+        gap: 8px;
+        flex-direction: column;
+    }
+
+    .bolopa-popup-content > .footer-row button {
+        width: 100%;
+    }
+}
+
 /* CSS Variables */
 .bolopa-tabel-wrapper {
     --bolopa-tabel-primary: #4361ee;
