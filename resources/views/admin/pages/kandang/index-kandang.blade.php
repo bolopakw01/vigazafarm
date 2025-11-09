@@ -191,7 +191,9 @@
             confirmButtonColor: '#dc2626',
             cancelButtonColor: '#6c757d',
             confirmButtonText: 'Ya, Hapus',
-            cancelButtonText: 'Batal'
+			cancelButtonText: 'Batal',
+			reverseButtons: true,
+			focusCancel: true
         }).then((result) => {
             if (result.isConfirmed) {
                 const form = document.createElement('form');

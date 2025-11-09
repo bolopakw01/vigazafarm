@@ -358,6 +358,8 @@ document.addEventListener('DOMContentLoaded', function() {
             showCancelButton: true,
             confirmButtonColor: '#3b82f6',
             cancelButtonColor: '#6b7280',
+            reverseButtons: true,
+            focusCancel: true,
             confirmButtonText: 'Ya, Simpan!',
             cancelButtonText: 'Periksa Lagi'
         }).then((result) => {

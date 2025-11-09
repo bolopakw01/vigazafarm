@@ -156,8 +156,6 @@
 
 /* SVG Icon Styling */
 .bolopa-icon-svg {
-    width: 18px;
-    height: 18px;
     display: inline-block;
     vertical-align: middle;
     flex-shrink: 0;
@@ -177,14 +175,19 @@ h1 .bolopa-icon-svg {
     height: 16px;
 }
 
-.bolopa-tabel-btn .bolopa-icon-svg {
-    width: 16px;
-    height: 16px;
+.bolopa-tabel-btn:not(.bolopa-tabel-btn-action) .bolopa-icon-svg {
+    width: 20px;
+    height: 20px;
 }
 
 .bolopa-tabel-btn-action .bolopa-icon-svg {
     width: 14px;
     height: 14px;
+}
+
+.bolopa-tabel-pagination-buttons .bolopa-icon-svg {
+    width: 18px;
+    height: 18px;
 }
 
 .bolopa-tabel-sort-icon-svg {
