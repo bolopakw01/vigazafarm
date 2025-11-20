@@ -71,7 +71,7 @@
             /* allow the flex child to shrink below its content for correct scrolling */
             min-height: 0;
             /* ensure content is not hidden behind sticky header/footer */
-            padding-top: calc(var(--bolopa-header-height) + -20px);
+            padding-top: var(--bolopa-header-height);
             padding-bottom: calc(var(--bolopa-footer-height) + 4px);
         }
 

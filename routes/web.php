@@ -117,6 +117,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/produksi', [App\Http\Controllers\ProduksiController::class, 'store'])->name('admin.produksi.store');
     Route::get('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'show'])->name('admin.produksi.show');
     Route::post('/admin/produksi/{produksi}/laporan-harian', [App\Http\Controllers\ProduksiController::class, 'storeDailyReport'])->name('admin.produksi.laporan.store');
+    Route::get('/admin/produksi/{produksi}/laporan/generate-summary', [App\Http\Controllers\ProduksiController::class, 'generateDailyReportSummary'])->name('admin.produksi.laporan.generate-summary');
+    Route::delete('/admin/produksi/{produksi}/laporan/{laporan}', [App\Http\Controllers\ProduksiController::class, 'destroyLaporan'])->name('admin.produksi.laporan.destroy');
+    Route::patch('/admin/produksi/{produksi}/laporan/{laporan}/reset', [App\Http\Controllers\ProduksiController::class, 'resetLaporan'])->name('admin.produksi.laporan.reset');
     Route::get('/admin/produksi/{produksi}/edit', [App\Http\Controllers\ProduksiController::class, 'edit'])->name('admin.produksi.edit');
     Route::patch('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'update'])->name('admin.produksi.update');
     Route::patch('/admin/produksi/{produksi}/status', [App\Http\Controllers\ProduksiController::class, 'updateStatus'])->name('admin.produksi.updateStatus');

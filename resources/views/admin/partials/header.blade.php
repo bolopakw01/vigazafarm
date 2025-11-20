@@ -88,13 +88,13 @@
 
     <div class="bolopa-header-vigazafarm-info">
       <div class="bolopa-header-vigazafarm-date-time">
-        <span id="date"></span> | <span id="clock"></span>
+        <span id="bolopaHeaderDate"></span> | <span id="bolopaHeaderClock"></span>
       </div>
       <div class="bolopa-header-vigazafarm-status">
         <div class="bolopa-header-vigazafarm-status-dot"></div>
         Online
       </div>
-      <div class="bolopa-header-vigazafarm-user" id="userMenu">
+      <div class="bolopa-header-vigazafarm-user" id="bolopaHeaderUserMenu">
         <div class="bolopa-header-vigazafarm-user-avatar">
           @if($profilePhotoPath)
             <img src="{{ $profilePhotoPath }}" alt="Foto Profil {{ $fullName !== '' ? $fullName : 'Pengguna' }}" onerror="this.style.display='none'; var fallback = this.nextElementSibling; if (fallback) { fallback.style.display='flex'; }">
@@ -107,10 +107,10 @@
         </div>
 
         <!-- Dropdown -->
-        <div class="bolopa-header-vigazafarm-dropdown" id="dropdownMenu">
+        <div class="bolopa-header-vigazafarm-dropdown" id="bolopaHeaderDropdown">
           <a href="{{ route('profile.edit') }}">👤 Profile</a>
-          <a href="#" class="bolopa-header-vigazafarm-logout" onclick="event.preventDefault(); document.getElementById('header-logout-form').submit();">🚪 Logout</a>
-          <form id="header-logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
+          <a href="#" class="bolopa-header-vigazafarm-logout" onclick="event.preventDefault(); document.getElementById('bolopaHeaderLogoutForm').submit();">🚪 Logout</a>
+          <form id="bolopaHeaderLogoutForm" action="{{ route('logout') }}" method="POST" style="display:none;">
             @csrf
           </form>
         </div>
@@ -120,7 +120,7 @@
   </div>
 
   <!-- Hamburger (mobile) -->
-  <button class="bolopa-header-vigazafarm-hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+  <button class="bolopa-header-vigazafarm-hamburger" id="bolopaHeaderHamburger" aria-label="Open menu" aria-expanded="false">
     <svg class="bolopa-header-vigazafarm-hamburger-icon" width="24" height="24" viewBox="0 0 24 24">
       <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5L12 12L19 5M12 12H12M5 19L12 12L19 19">
         <animate fill="freeze" attributeName="d" dur="0.4s" values="M5 5L12 12L19 5M12 12H12M5 19L12 12L19 19;M5 5L12 5L19 5M5 12H19M5 19L12 19L19 19"/>
@@ -128,8 +128,8 @@
     </svg>
   </button>
 
-  <nav class="bolopa-header-vigazafarm-mobile-menu" id="mobileMenu" aria-hidden="true" inert>
-    <button class="bolopa-header-vigazafarm-close" id="mobileClose" aria-label="Close menu">
+  <nav class="bolopa-header-vigazafarm-mobile-menu" id="bolopaHeaderMobileMenu" aria-hidden="true" inert>
+    <button class="bolopa-header-vigazafarm-close" id="bolopaHeaderMobileClose" aria-label="Close menu">
       <svg width="20" height="20" viewBox="0 0 24 24">
         <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5L12 5L19 5M5 12H19M5 19L12 19L19 19">
           <animate fill="freeze" attributeName="d" dur="0.4s" values="M5 5L12 5L19 5M5 12H19M5 19L12 19L19 19;M5 5L12 12L19 5M12 12H12M5 19L12 12L19 19"/>
@@ -150,11 +150,11 @@
     </div>
     <div class="bolopa-header-vigazafarm-menu-links">
       <a href="{{ route('profile.edit') }}">👤 Profile</a>
-      <a href="#" class="bolopa-header-vigazafarm-logout" onclick="event.preventDefault(); document.getElementById('header-logout-form').submit();">🚪 Logout</a>
+      <a href="#" class="bolopa-header-vigazafarm-logout" onclick="event.preventDefault(); document.getElementById('bolopaHeaderLogoutForm').submit();">🚪 Logout</a>
     </div>
     <div style="flex:1"></div>
     <div style="font-size:13px;color:#666;border-top:1px solid #eee;padding-top:10px;">
-      <div id="mobileDate"></div>
+      <div id="bolopaHeaderMobileDate"></div>
     </div>
   </nav>
 
@@ -440,119 +440,188 @@
   </style>
 
   <script>
-    // Update date & clock
-    function updateDateTime() {
-      const now = new Date();
-      const options = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
-      document.getElementById("date").textContent = now.toLocaleDateString('en-US', options);
-      document.getElementById("clock").textContent = now.toLocaleTimeString();
-    }
-    setInterval(updateDateTime, 1000);
-    updateDateTime();
-
-    // Dropdown toggle
-    const userMenu = document.getElementById("userMenu");
-    const dropdownMenu = document.getElementById("dropdownMenu");
-
-    userMenu.addEventListener("click", () => {
-      dropdownMenu.classList.toggle("bolopa-header-vigazafarm-show");
-    });
-
-    // Mobile menu toggles
-    const hamburger = document.getElementById('hamburger');
-    const mobileMenu = document.getElementById('mobileMenu');
-    const mobileClose = document.getElementById('mobileClose');
-
-    function openMobile() {
-      mobileMenu.classList.add('bolopa-header-vigazafarm-open');
-      hamburger.classList.add('bolopa-header-vigazafarm-open');
-      hamburger.setAttribute('aria-expanded', 'true');
-      mobileMenu.setAttribute('aria-hidden', 'false');
-      mobileMenu.removeAttribute('inert');
-      // Trigger SVG animation
-      const svg = hamburger.querySelector('svg');
-      const animate = svg.querySelector('animate');
-      if (animate) {
-        animate.beginElement();
+    (function () {
+      const headerRoot = document.querySelector('.bolopa-header-vigazafarm-header');
+      if (!headerRoot) {
+        return;
       }
-      // set mobile date/time
-      document.getElementById('mobileDate').textContent = document.getElementById('date').textContent;
-    }
 
-    function closeMobile() {
-      mobileMenu.classList.remove('bolopa-header-vigazafarm-open');
-      hamburger.classList.remove('bolopa-header-vigazafarm-open');
-      hamburger.setAttribute('aria-expanded', 'false');
-      // Blur any focused element in the menu before hiding
-      if (mobileMenu.contains(document.activeElement)) {
-        document.activeElement.blur();
-      }
-      mobileMenu.setAttribute('aria-hidden', 'true');
-      mobileMenu.setAttribute('inert', '');
-      // Trigger SVG animation
-      const svg = hamburger.querySelector('svg');
-      const animate = svg.querySelector('animate');
-      if (animate) {
-        animate.beginElement();
-      }
-    }
+      const dateEl = document.getElementById('bolopaHeaderDate');
+      const clockEl = document.getElementById('bolopaHeaderClock');
+      const mobileDateEl = document.getElementById('bolopaHeaderMobileDate');
+      const userMenu = document.getElementById('bolopaHeaderUserMenu');
+      const dropdownMenu = document.getElementById('bolopaHeaderDropdown');
+      const hamburger = document.getElementById('bolopaHeaderHamburger');
+      const mobileMenu = document.getElementById('bolopaHeaderMobileMenu');
+      const mobileClose = document.getElementById('bolopaHeaderMobileClose');
 
-    hamburger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (mobileMenu.classList.contains('bolopa-header-vigazafarm-open')) closeMobile(); else openMobile();
-    });
-
-    mobileClose.addEventListener('click', closeMobile);
-
-    // close mobile when clicking outside
-    document.addEventListener('click', (e) => {
-      if (!mobileMenu.contains(e.target) && !hamburger.contains(e.target)) {
-        closeMobile();
-      }
-    });
-
-    // close on ESC
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeMobile();
-    });
-
-    // Klik di luar dropdown untuk menutup
-    document.addEventListener("click", (e) => {
-      if (!userMenu.contains(e.target)) {
-        dropdownMenu.classList.remove("bolopa-header-vigazafarm-show");
-      }
-    });
-
-    // breadcrumb category link handler: toggle sidebar groups
-    document.querySelectorAll('.category-link').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const category = e.target.textContent.toLowerCase();
-        const sidebar = document.querySelector('.bolopa-sidebar-vigazafarm');
-        const miniMenus = document.querySelectorAll('.mini-menu');
-        miniMenus.forEach(menu => menu.classList.remove('active'));
-        if (category === 'master') {
-          if (miniMenus[1]) miniMenus[1].classList.add('active');
-          document.querySelectorAll('[data-group]').forEach(group => { group.style.display = group.getAttribute('data-group') === 'master' ? 'block' : 'none'; });
-          document.querySelector('.nav-list')?.setAttribute('data-active','master');
-          const sectionText = document.querySelector('.section-text'); if (sectionText) sectionText.textContent = 'Master';
-          localStorage.setItem('activeMenu','master');
-        } else if (category === 'operasional') {
-          if (miniMenus[0]) miniMenus[0].classList.add('active');
-          document.querySelectorAll('[data-group]').forEach(group => { group.style.display = group.getAttribute('data-group') === 'operasional' ? 'block' : 'none'; });
-          document.querySelector('.nav-list')?.setAttribute('data-active','operasional');
-          const sectionText = document.querySelector('.section-text'); if (sectionText) sectionText.textContent = 'Operasional';
-          localStorage.setItem('activeMenu','operasional');
+      const runDateTime = () => {
+        const now = new Date();
+        if (dateEl) {
+          dateEl.textContent = now.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          });
         }
-        if (sidebar && !sidebar.classList.contains('open')){
-          sidebar.classList.add('open');
-          document.querySelector('.home-section').style.left = '250px';
-          document.querySelector('.home-section').style.width = 'calc(100% - 250px)';
-          localStorage.setItem('sidebarOpen','true');
-          const menuBtn = document.querySelector('#btn'); if (menuBtn) menuBtn.src = '{{ asset("bolopa/img/icon/line-md--menu-fold-left.svg") }}';
+        if (clockEl) {
+          clockEl.textContent = now.toLocaleTimeString();
         }
+        if (mobileDateEl && dateEl) {
+          mobileDateEl.textContent = dateEl.textContent;
+        }
+      };
+
+      if (dateEl || clockEl) {
+        runDateTime();
+        setInterval(runDateTime, 1000);
+      }
+
+      if (userMenu && dropdownMenu) {
+        userMenu.addEventListener('click', (event) => {
+          event.stopPropagation();
+          dropdownMenu.classList.toggle('bolopa-header-vigazafarm-show');
+        });
+
+        document.addEventListener('click', (event) => {
+          const isInsideUserMenu = userMenu.contains(event.target);
+          const isInsideDropdown = dropdownMenu.contains(event.target);
+          if (!isInsideUserMenu && !isInsideDropdown) {
+            dropdownMenu.classList.remove('bolopa-header-vigazafarm-show');
+          }
+        });
+      }
+
+      const playHamburgerAnimation = () => {
+        if (!hamburger) {
+          return;
+        }
+        const svg = hamburger.querySelector('svg');
+        const animate = svg ? svg.querySelector('animate') : null;
+        if (animate) {
+          animate.beginElement();
+        }
+      };
+
+      const setMobileMenuAccessibility = (isOpen) => {
+        if (!mobileMenu) {
+          return;
+        }
+        mobileMenu.setAttribute('aria-hidden', String(!isOpen));
+        if (isOpen) {
+          mobileMenu.removeAttribute('inert');
+        } else {
+          mobileMenu.setAttribute('inert', '');
+        }
+      };
+
+      const openMobile = () => {
+        if (!mobileMenu || !hamburger) {
+          return;
+        }
+        mobileMenu.classList.add('bolopa-header-vigazafarm-open');
+        hamburger.classList.add('bolopa-header-vigazafarm-open');
+        hamburger.setAttribute('aria-expanded', 'true');
+        setMobileMenuAccessibility(true);
+        playHamburgerAnimation();
+        if (mobileDateEl && dateEl) {
+          mobileDateEl.textContent = dateEl.textContent;
+        }
+      };
+
+      const closeMobile = () => {
+        if (!mobileMenu || !hamburger) {
+          return;
+        }
+        mobileMenu.classList.remove('bolopa-header-vigazafarm-open');
+        hamburger.classList.remove('bolopa-header-vigazafarm-open');
+        hamburger.setAttribute('aria-expanded', 'false');
+        const activeElement = document.activeElement;
+        if (activeElement && mobileMenu.contains(activeElement) && typeof activeElement.blur === 'function') {
+          activeElement.blur();
+        }
+        setMobileMenuAccessibility(false);
+        playHamburgerAnimation();
+      };
+
+      if (hamburger && mobileMenu) {
+        hamburger.addEventListener('click', (event) => {
+          event.stopPropagation();
+          if (mobileMenu.classList.contains('bolopa-header-vigazafarm-open')) {
+            closeMobile();
+          } else {
+            openMobile();
+          }
+        });
+
+        if (mobileClose) {
+          mobileClose.addEventListener('click', closeMobile);
+        }
+
+        document.addEventListener('click', (event) => {
+          if (!mobileMenu.contains(event.target) && !hamburger.contains(event.target)) {
+            closeMobile();
+          }
+        });
+
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') {
+            closeMobile();
+          }
+        });
+      }
+
+      const sidebar = document.querySelector('.bolopa-sidebar-vigazafarm');
+      const miniMenus = document.querySelectorAll('.mini-menu');
+      const groupedMenus = document.querySelectorAll('[data-group]');
+      const navList = document.querySelector('.nav-list');
+      const sectionText = document.querySelector('.section-text');
+      const homeSection = document.querySelector('.home-section');
+      const menuBtn = document.querySelector('#btn');
+
+      headerRoot.querySelectorAll('.category-link').forEach((link) => {
+        link.addEventListener('click', (event) => {
+          event.preventDefault();
+          const category = (link.textContent || '').trim().toLowerCase();
+          if (category !== 'master' && category !== 'operasional') {
+            return;
+          }
+
+          miniMenus.forEach((menu) => menu.classList.remove('active'));
+          const targetIndex = category === 'operasional' ? 0 : 1;
+          if (miniMenus[targetIndex]) {
+            miniMenus[targetIndex].classList.add('active');
+          }
+
+          groupedMenus.forEach((group) => {
+            group.style.display = group.getAttribute('data-group') === category ? 'block' : 'none';
+          });
+
+          if (navList) {
+            navList.setAttribute('data-active', category);
+          }
+
+          if (sectionText) {
+            sectionText.textContent = category === 'master' ? 'Master' : 'Operasional';
+          }
+
+          localStorage.setItem('activeMenu', category);
+
+          if (sidebar && !sidebar.classList.contains('open')) {
+            sidebar.classList.add('open');
+            if (homeSection) {
+              homeSection.style.left = '250px';
+              homeSection.style.width = 'calc(100% - 250px)';
+            }
+            localStorage.setItem('sidebarOpen', 'true');
+            if (menuBtn) {
+              menuBtn.src = '{{ asset("bolopa/img/icon/line-md--menu-fold-left.svg") }}';
+            }
+          }
+        });
       });
-    });
+    })();
   </script>
 
 </header>

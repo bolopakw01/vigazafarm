@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class ProduksiController extends Controller
@@ -49,6 +50,75 @@ class ProduksiController extends Controller
         }
 
         return view('admin.pages.produksi.index-produksi', compact('produksi'));
+    }
+
+    /**
+     * Delete a specific laporan_harian entry (history only).
+     */
+    public function destroyLaporan(Produksi $produksi, LaporanHarian $laporan)
+    {
+        try {
+            $laporan->delete();
+            return redirect()->route('admin.produksi.show', $produksi->id)
+                ->with('success', 'Histori berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()->route('admin.produksi.show', $produksi->id)
+                ->with('error', 'Gagal menghapus histori: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reset a laporan_harian entry: set produksi_telur/input_telur to 0 and update related fields.
+     */
+    public function resetLaporan(Produksi $produksi, LaporanHarian $laporan)
+    {
+        try {
+            // Reset egg production data if present
+            if ($laporan->produksi_telur > 0 || (Schema::hasColumn('laporan_harian', 'input_telur') && $laporan->input_telur > 0)) {
+                $laporan->produksi_telur = 0;
+                if (Schema::hasColumn('laporan_harian', 'input_telur')) {
+                    $laporan->input_telur = 0;
+                }
+                // Optionally clear sisa_telur so it doesn't carry stale value
+                if (Schema::hasColumn('laporan_harian', 'sisa_telur')) {
+                    $laporan->sisa_telur = null;
+                }
+            }
+
+            // Reset feed consumption data if present
+            if ($laporan->konsumsi_pakan_kg !== null) {
+                $laporan->konsumsi_pakan_kg = 0;
+                // Optionally clear sisa_pakan_kg so it doesn't carry stale value
+                if (Schema::hasColumn('laporan_harian', 'sisa_pakan_kg')) {
+                    $laporan->sisa_pakan_kg = null;
+                }
+            }
+
+            // Reset vitamin data if present
+            if ($laporan->vitamin_terpakai !== null) {
+                $laporan->vitamin_terpakai = 0;
+                // Optionally clear sisa_vitamin_liter so it doesn't carry stale value
+                if (Schema::hasColumn('laporan_harian', 'sisa_vitamin_liter')) {
+                    $laporan->sisa_vitamin_liter = null;
+                }
+            }
+
+            // Reset death data if present
+            if ($laporan->jumlah_kematian > 0) {
+                $laporan->jumlah_kematian = 0;
+                // Optionally clear related death fields
+                $laporan->jenis_kelamin_kematian = null;
+                $laporan->keterangan_kematian = null;
+            }
+
+            $laporan->save();
+
+            return redirect()->route('admin.produksi.show', $produksi->id)
+                ->with('success', 'Histori berhasil di-reset. Menu KAI akan otomatis ter-update.');
+        } catch (\Exception $e) {
+            return redirect()->route('admin.produksi.show', $produksi->id)
+                ->with('error', 'Gagal mereset histori: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -362,6 +432,7 @@ class ProduksiController extends Controller
         if (!empty($produksi->batch_produksi_id)) {
             $laporanHarian = LaporanHarian::where('batch_produksi_id', $produksi->batch_produksi_id)
                 ->orderByDesc('tanggal')
+                ->orderByDesc('dibuat_pada')
                 ->get();
         }
 
@@ -376,12 +447,74 @@ class ProduksiController extends Controller
             'laporan_count' => $laporanHarian->count(),
         ];
 
+        // Death impact per gender to update population and ratio in KAI
+        $deathByGender = [
+            'jantan' => $laporanHarian
+                ->where('jenis_kelamin_kematian', 'jantan')
+                ->sum('jumlah_kematian'),
+            'betina' => $laporanHarian
+                ->where('jenis_kelamin_kematian', 'betina')
+                ->sum('jumlah_kematian'),
+            'campuran' => $laporanHarian
+                ->where('jenis_kelamin_kematian', 'campuran')
+                ->sum('jumlah_kematian'),
+        ];
+
+        $initialMale = $produksi->jumlah_jantan;
+        $initialFemale = $produksi->jumlah_betina;
+        $jenisKelaminProduksi = strtolower($produksi->jenis_kelamin ?? '');
+
+        if ($jenisKelaminProduksi === 'jantan' && $initialMale === null) {
+            $initialMale = $produksi->jumlah_indukan ?? 0;
+            $initialFemale = $initialFemale ?? 0;
+        }
+
+        if ($jenisKelaminProduksi === 'betina' && $initialFemale === null) {
+            $initialFemale = $produksi->jumlah_indukan ?? 0;
+            $initialMale = $initialMale ?? 0;
+        }
+
+        if ($jenisKelaminProduksi === 'campuran') {
+            $fallbackTotal = $produksi->jumlah_indukan ?? 0;
+
+            if ($initialMale === null && $initialFemale === null) {
+                $initialMale = (int) floor($fallbackTotal / 2);
+                $initialFemale = max($fallbackTotal - $initialMale, 0);
+            } elseif ($initialMale === null) {
+                $initialMale = max($fallbackTotal - $initialFemale, 0);
+            } elseif ($initialFemale === null) {
+                $initialFemale = max($fallbackTotal - $initialMale, 0);
+            }
+        }
+
+        $initialMale = $initialMale ?? 0;
+        $initialFemale = $initialFemale ?? 0;
+
+        $currentMale = max($initialMale - $deathByGender['jantan'], 0);
+        $currentFemale = max($initialFemale - $deathByGender['betina'], 0);
+        $currentPopulationFromGender = max($currentMale + $currentFemale, 0);
+
+        if ($currentPopulationFromGender === 0 && ($produksi->jumlah_indukan ?? 0) > 0) {
+            $currentPopulationFromGender = max(($produksi->jumlah_indukan ?? 0) - $summary['total_kematian'], 0);
+        }
+
+        $summary['total_kematian_jantan'] = $deathByGender['jantan'];
+        $summary['total_kematian_betina'] = $deathByGender['betina'];
+        $summary['total_kematian_campuran'] = $deathByGender['campuran'];
+        $summary['initial_jantan'] = $initialMale;
+        $summary['initial_betina'] = $initialFemale;
+        $summary['current_jantan'] = $currentMale;
+        $summary['current_betina'] = $currentFemale;
+        $summary['current_population'] = $currentPopulationFromGender;
+
         $latestLaporan = $laporanHarian->first();
         $todayLaporan = $laporanHarian->firstWhere('tanggal', Carbon::today()->toDateString());
 
         $pencatatanProduksi = $produksi->pencatatanProduksi()
             ->orderByDesc('tanggal')
             ->get();
+
+        $historyClearRoute = false; // Route not implemented yet
 
         $view = $produksi->tipe_produksi === 'telur'
             ? 'admin.pages.produksi.show-telur'
@@ -393,7 +526,8 @@ class ProduksiController extends Controller
             'summary',
             'latestLaporan',
             'todayLaporan',
-            'pencatatanProduksi'
+            'pencatatanProduksi',
+            'historyClearRoute'
         ));
     }
 
@@ -406,16 +540,35 @@ class ProduksiController extends Controller
             return redirect()->back()->with('error', 'Produksi ini belum memiliki kode batch. Tambahkan batch terlebih dahulu sebelum mencatat laporan.');
         }
 
+        // Handle comma decimal separator for pakan fields before validation
+        $requestData = $request->all();
+        if (isset($requestData['konsumsi_pakan_kg']) && is_string($requestData['konsumsi_pakan_kg'])) {
+            $requestData['konsumsi_pakan_kg'] = str_replace(',', '.', $requestData['konsumsi_pakan_kg']);
+        }
+        if (isset($requestData['sisa_pakan_kg']) && is_string($requestData['sisa_pakan_kg'])) {
+            $requestData['sisa_pakan_kg'] = str_replace(',', '.', $requestData['sisa_pakan_kg']);
+        }
+        if (isset($requestData['vitamin_terpakai']) && is_string($requestData['vitamin_terpakai'])) {
+            $requestData['vitamin_terpakai'] = str_replace(',', '.', $requestData['vitamin_terpakai']);
+        }
+        if (isset($requestData['sisa_vitamin_liter']) && is_string($requestData['sisa_vitamin_liter'])) {
+            $requestData['sisa_vitamin_liter'] = str_replace(',', '.', $requestData['sisa_vitamin_liter']);
+        }
+        $request->merge($requestData);
+
         $validated = $request->validate([
             'tanggal' => 'required|date',
-            'jumlah_burung' => 'required|integer|min:0',
+            'active_tab' => 'required|in:telur,pakan,vitamin,kematian,laporan',
             'produksi_telur' => 'nullable|integer|min:0',
             'jumlah_kematian' => 'nullable|integer|min:0',
+            'jenis_kelamin_kematian' => 'nullable|in:jantan,betina,campuran',
+            'keterangan_kematian' => 'nullable|string|max:1000',
             'konsumsi_pakan_kg' => 'nullable|numeric|min:0',
             'sisa_pakan_kg' => 'nullable|numeric|min:0',
             'sisa_tray_bal' => 'nullable|numeric|min:0',
             'sisa_tray_lembar' => 'nullable|integer|min:0',
             'sisa_vitamin_liter' => 'nullable|numeric|min:0',
+            'vitamin_terpakai' => 'nullable|numeric|min:0',
             'sisa_telur' => 'nullable|integer|min:0',
             'penjualan_telur_butir' => 'nullable|integer|min:0',
             'penjualan_puyuh_ekor' => 'nullable|integer|min:0',
@@ -423,32 +576,213 @@ class ProduksiController extends Controller
             'catatan_kejadian' => 'nullable|string|max:1000',
         ]);
 
-        $laporan = LaporanHarian::updateOrCreate(
-            [
+        $activeTab = $validated['active_tab'];
+
+        // Find existing record or create new one
+        $existingLaporan = LaporanHarian::where('batch_produksi_id', $produksi->batch_produksi_id)
+            ->where('tanggal', $validated['tanggal'])
+            ->first();
+
+        // For telur/pakan/vitamin/kematian inputs, always create a new record to track each submission
+        if (in_array($activeTab, ['telur', 'pakan', 'vitamin', 'kematian'], true)) {
+            $laporan = new LaporanHarian([
                 'batch_produksi_id' => $produksi->batch_produksi_id,
                 'tanggal' => $validated['tanggal'],
-            ],
-            [
-                'jumlah_burung' => $validated['jumlah_burung'],
-                'produksi_telur' => $validated['produksi_telur'] ?? 0,
-                'jumlah_kematian' => $validated['jumlah_kematian'] ?? 0,
-                'konsumsi_pakan_kg' => $validated['konsumsi_pakan_kg'] ?? 0,
-                'sisa_pakan_kg' => $validated['sisa_pakan_kg'] ?? null,
-                'sisa_tray_bal' => $validated['sisa_tray_bal'] ?? null,
-                'sisa_tray_lembar' => $validated['sisa_tray_lembar'] ?? null,
-                'sisa_vitamin_liter' => $validated['sisa_vitamin_liter'] ?? null,
-                'sisa_telur' => $validated['sisa_telur'] ?? null,
-                'penjualan_telur_butir' => $validated['penjualan_telur_butir'] ?? null,
-                'penjualan_puyuh_ekor' => $validated['penjualan_puyuh_ekor'] ?? null,
-                'pendapatan_harian' => $validated['pendapatan_harian'] ?? null,
-                'catatan_kejadian' => $validated['catatan_kejadian'] ?? null,
-                'pengguna_id' => Auth::id(),
-            ]
-        );
+                'jumlah_burung' => $produksi->jumlah_indukan ?? 0,
+            ]);
+        } else {
+            $laporan = $existingLaporan ?: new LaporanHarian([
+                'batch_produksi_id' => $produksi->batch_produksi_id,
+                'tanggal' => $validated['tanggal'],
+                'jumlah_burung' => $produksi->jumlah_indukan ?? 0,
+            ]);
+        }
+
+        $isNewRecord = !$laporan->exists;
+
+        // Only update fields that are relevant to the active tab
+        $updateData = ['pengguna_id' => Auth::id()];
+
+        switch ($activeTab) {
+            case 'telur':
+                if (isset($validated['produksi_telur']) && $validated['produksi_telur'] !== null && $validated['produksi_telur'] !== '') {
+                    // For telur, store the input amount directly (each input creates a new record)
+                    $updateData['produksi_telur'] = $validated['produksi_telur'];
+                    $updateData['input_telur'] = $validated['produksi_telur'];
+                }
+                break;
+
+            case 'pakan':
+                if (isset($validated['konsumsi_pakan_kg']) && $validated['konsumsi_pakan_kg'] !== null && $validated['konsumsi_pakan_kg'] !== '') {
+                    $updateData['konsumsi_pakan_kg'] = (float) $validated['konsumsi_pakan_kg'];
+                    $updateData['sisa_pakan_kg'] = isset($validated['sisa_pakan_kg']) && $validated['sisa_pakan_kg'] !== null && $validated['sisa_pakan_kg'] !== '' ? (float) $validated['sisa_pakan_kg'] : null;
+                }
+                break;
+
+            case 'vitamin':
+                if (isset($validated['vitamin_terpakai']) && $validated['vitamin_terpakai'] !== null && $validated['vitamin_terpakai'] !== '') {
+                    $updateData['vitamin_terpakai'] = (float) $validated['vitamin_terpakai'];
+                    $updateData['sisa_vitamin_liter'] = isset($validated['sisa_vitamin_liter']) && $validated['sisa_vitamin_liter'] !== ''
+                        ? (float) $validated['sisa_vitamin_liter']
+                        : null;
+                }
+                break;
+
+            case 'kematian':
+                if (isset($validated['jumlah_kematian']) && $validated['jumlah_kematian'] !== null && $validated['jumlah_kematian'] !== '') {
+                    $updateData['jumlah_kematian'] = (int) $validated['jumlah_kematian'];
+                    $updateData['jenis_kelamin_kematian'] = $validated['jenis_kelamin_kematian'] ?? null;
+                    $updateData['keterangan_kematian'] = $validated['keterangan_kematian'] ?? null;
+                }
+                break;
+
+            case 'laporan':
+                if (isset($validated['catatan_kejadian']) && $validated['catatan_kejadian'] !== null && $validated['catatan_kejadian'] !== '') {
+                    $updateData['catatan_kejadian'] = $validated['catatan_kejadian'];
+                }
+                break;
+        }
+
+        // Handle other fields that might be submitted from any tab
+        $otherFields = ['sisa_tray_bal', 'sisa_tray_lembar', 'sisa_telur', 'penjualan_telur_butir', 'penjualan_puyuh_ekor', 'pendapatan_harian'];
+        foreach ($otherFields as $field) {
+            if (isset($validated[$field]) && $validated[$field] !== null && $validated[$field] !== '') {
+                $updateData[$field] = $validated[$field];
+            }
+        }
+
+        $laporan->fill($updateData);
+        $laporan->save();
+
+        $wasCreated = $isNewRecord;
+
+        // Generate specific success message based on active tab
+        $tabNames = [
+            'telur' => 'Telur',
+            'pakan' => 'Pakan',
+            'vitamin' => 'Vitamin',
+            'kematian' => 'Kematian',
+            'laporan' => 'Laporan'
+        ];
+
+        $tabName = $tabNames[$activeTab] ?? 'Laporan';
+        $action = $wasCreated ? 'ditambahkan' : 'diperbarui';
+        $message = "Laporan harian {$tabName} berhasil {$action}.";
 
         return redirect()
             ->route('admin.produksi.show', $produksi->id)
-            ->with('success', $laporan->wasRecentlyCreated ? 'Laporan harian berhasil ditambahkan.' : 'Laporan harian berhasil diperbarui.');
+            ->with('success', $message);
+    }
+
+    /**
+     * Generate auto summary text for the laporan tab based on the day's inputs.
+     */
+    public function generateDailyReportSummary(Request $request, Produksi $produksi)
+    {
+        $validated = $request->validate([
+            'tanggal' => 'required|date',
+        ]);
+
+        if (empty($produksi->batch_produksi_id)) {
+            return response()->json([
+                'message' => 'Produksi ini belum memiliki kode batch.',
+            ], 422);
+        }
+
+        $tanggal = Carbon::parse($validated['tanggal'])->toDateString();
+
+        $laporanHarian = LaporanHarian::where('batch_produksi_id', $produksi->batch_produksi_id)
+            ->whereDate('tanggal', $tanggal)
+            ->orderByDesc('dibuat_pada')
+            ->get();
+
+        if ($laporanHarian->isEmpty()) {
+            return response()->json([
+                'message' => 'Belum ada pencatatan lain pada tanggal tersebut.',
+            ], 404);
+        }
+
+        $formatNumber = function ($value, $decimals = 0) {
+            return number_format((float) ($value ?? 0), $decimals, ',', '.');
+        };
+
+        $segments = [];
+
+        // Telur summary
+        $totalTelur = $laporanHarian->sum('produksi_telur');
+        $penjualanTelur = $laporanHarian->sum('penjualan_telur_butir');
+        $sisaTelur = optional($laporanHarian->first(fn ($item) => $item->sisa_telur !== null))->sisa_telur;
+        if ($totalTelur > 0 || $penjualanTelur > 0 || $sisaTelur !== null) {
+            $line = 'Telur: ' . $formatNumber($totalTelur) . ' butir dipanen';
+            if ($penjualanTelur > 0) {
+                $line .= ', ' . $formatNumber($penjualanTelur) . ' butir terjual';
+            }
+            if ($sisaTelur !== null) {
+                $line .= ', sisa ' . $formatNumber($sisaTelur) . ' butir';
+            }
+            $segments[] = $line . '.';
+        }
+
+        // Pakan summary
+        $totalPakan = $laporanHarian->sum('konsumsi_pakan_kg');
+        $sisaPakan = optional($laporanHarian->first(fn ($item) => $item->sisa_pakan_kg !== null))->sisa_pakan_kg;
+        if ($totalPakan > 0 || $sisaPakan !== null) {
+            $line = 'Pakan: ' . $formatNumber($totalPakan, 2) . ' kg terpakai';
+            if ($sisaPakan !== null) {
+                $line .= ' (sisa ' . $formatNumber($sisaPakan, 2) . ' kg)';
+            }
+            $segments[] = $line . '.';
+        }
+
+        // Vitamin summary
+        $totalVitamin = $laporanHarian->sum('vitamin_terpakai');
+        $sisaVitamin = optional($laporanHarian->first(fn ($item) => $item->sisa_vitamin_liter !== null))->sisa_vitamin_liter;
+        if ($totalVitamin > 0 || $sisaVitamin !== null) {
+            $line = 'Vitamin: ' . $formatNumber($totalVitamin, 2) . ' L terpakai';
+            if ($sisaVitamin !== null) {
+                $line .= ' (sisa ' . $formatNumber($sisaVitamin, 2) . ' L)';
+            }
+            $segments[] = $line . '.';
+        }
+
+        // Death summary
+        $totalKematian = $laporanHarian->sum('jumlah_kematian');
+        if ($totalKematian > 0) {
+            $genderBreakdown = [];
+            $genderMap = ['jantan' => 'jantan', 'betina' => 'betina', 'campuran' => 'campuran'];
+            foreach ($genderMap as $genderKey => $label) {
+                $amount = $laporanHarian
+                    ->where('jenis_kelamin_kematian', $genderKey)
+                    ->sum('jumlah_kematian');
+                if ($amount > 0) {
+                    $genderBreakdown[] = $formatNumber($amount) . ' ' . $label;
+                }
+            }
+
+            $line = 'Kematian: ' . $formatNumber($totalKematian) . ' ekor';
+            if (!empty($genderBreakdown)) {
+                $line .= ' (' . implode(', ', $genderBreakdown) . ')';
+            }
+            $segments[] = $line . '.';
+        }
+
+        // Additional notes captured earlier in the day
+        $additionalNotes = $laporanHarian->pluck('catatan_kejadian')
+            ->filter()
+            ->unique()
+            ->values();
+        if ($additionalNotes->isNotEmpty()) {
+            $segments[] = 'Catatan lapangan: ' . $additionalNotes->implode('; ');
+        }
+
+        if (empty($segments)) {
+            $segments[] = 'Belum ada data otomatis untuk tanggal ini. Lengkapi pencatatan terlebih dahulu.';
+        }
+
+        return response()->json([
+            'summary' => implode("\n", $segments),
+            'date' => $tanggal,
+        ]);
     }
 
     /**
