@@ -162,7 +162,7 @@
                                 <label for="jumlah_kematian" class="form-label">Jumlah (ekor)</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fa-solid fa-dove"></i></span>
-                                    <input type="number" name="jumlah_kematian" id="jumlah_kematian" class="form-control" min="0" value="0">
+                                    <input type="number" name="jumlah_kematian" id="jumlah_kematian" class="form-control" min="1" placeholder="Masukkan jumlah" value="{{ old('jumlah_kematian') }}">
                                 </div>
                                 <div class="form-hint">Masukkan jumlah kematian pada hari ini (ekor).</div>
                             </div>
@@ -170,11 +170,10 @@
                                 <label for="jenis_kelamin_kematian" class="form-label">Jenis Kelamin</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fa-solid fa-venus-mars"></i></span>
-                                    <select name="jenis_kelamin_kematian" id="jenis_kelamin_kematian" class="form-select" required>
-                                        <option value="">Pilih jenis kelamin</option>
-                                        <option value="jantan" selected>Jantan</option>
-                                        <option value="betina">Betina</option>
-                                        <option value="campuran">Campuran</option>
+                                    <select name="jenis_kelamin_kematian" id="jenis_kelamin_kematian" class="form-select">
+                                        <option value="" disabled {{ old('jenis_kelamin_kematian') ? '' : 'selected' }}>Pilih jenis kelamin</option>
+                                        <option value="jantan" {{ old('jenis_kelamin_kematian') === 'jantan' ? 'selected' : '' }}>Jantan</option>
+                                        <option value="betina" {{ old('jenis_kelamin_kematian') === 'betina' ? 'selected' : '' }}>Betina</option>
                                     </select>
                                 </div>
                                 <div class="form-hint">Pilih jenis kelamin untuk pencatatan kematian.</div>
@@ -226,6 +225,24 @@
             </div>
         </form>
 
+        <style>
+            .btn.generating {
+                animation: ai-generate 1.5s ease-in-out infinite;
+                box-shadow: 0 0 20px rgba(0, 123, 255, 0.5);
+            }
+
+            @keyframes ai-generate {
+                0%, 100% {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+                50% {
+                    transform: scale(1.05);
+                    opacity: 0.8;
+                }
+            }
+        </style>
+
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const tabs = document.querySelectorAll('#pencatatanTabs .nav-link');
@@ -233,7 +250,17 @@
                 const generateButton = document.getElementById('generateLaporanBtn');
                 const catatanField = document.getElementById('catatan_kejadian');
                 const form = document.getElementById('pencatatanForm');
+                const activeTabInput = document.getElementById('activeTabInput');
                 const generateUrl = form?.dataset?.generateUrl;
+                const existingEntriesByTab = @json($existingEntriesByTab);
+
+                const tabLabels = {
+                    telur: 'Telur',
+                    pakan: 'Pakan',
+                    vitamin: 'Vitamin',
+                    kematian: 'Kematian',
+                    laporan: 'Laporan'
+                };
 
                 // Date input elements
                 const dateInputs = [
@@ -297,6 +324,15 @@
                     });
                 }
 
+                function syncAllDateInputs(value) {
+                    if (!value) return;
+                    dateInputs.forEach(input => {
+                        if (input) {
+                            input.value = value;
+                        }
+                    });
+                }
+
                 // Add event listeners to date inputs
                 dateInputs.forEach(input => {
                     if (input) {
@@ -326,7 +362,9 @@
                         toggleSaveAvailability(targetId);
                         
                         // Update hidden input with active tab
-                        document.getElementById('activeTabInput').value = targetId;
+                        if (activeTabInput) {
+                            activeTabInput.value = targetId;
+                        }
                     });
                 });
 
@@ -338,67 +376,81 @@
                     });
                 }
 
-                function showAlert(message, type = 'info') {
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: type,
-                            title: type === 'error' ? 'Gagal' : 'Informasi',
-                            text: message,
-                        });
-                    } else {
-                        alert(message);
-                    }
-                }
-
                 if (generateButton && generateUrl) {
                     generateButton.addEventListener('click', function() {
                         const tanggalField = document.getElementById('tanggal_laporan');
                         if (!tanggalField || !tanggalField.value) {
-                            showAlert('Isi tanggal laporan terlebih dahulu.', 'error');
+                            alert('Isi tanggal laporan terlebih dahulu.');
                             return;
                         }
 
-                        const params = new URLSearchParams({ tanggal: tanggalField.value });
-                        const originalLabel = generateButton.innerHTML;
-                        generateButton.disabled = true;
-                        generateButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Generate';
+                        // Check if textarea has content
+                        const hasExistingContent = catatanField && catatanField.value.trim().length > 0;
 
-                        fetch(`${generateUrl}?${params.toString()}`, {
-                            headers: { 'Accept': 'application/json' }
-                        })
-                        .then(async response => {
-                            const payload = await response.json().catch(() => ({}));
-                            if (!response.ok) {
-                                throw new Error(payload.message || 'Gagal mengenerate catatan.');
-                            }
-                            return payload;
-                        })
-                        .then(data => {
-                            if (catatanField) {
-                                catatanField.value = data.summary || '';
-                                catatanField.dispatchEvent(new Event('input'));
-                            }
-                            showAlert('Catatan laporan berhasil digenerate.', 'success');
-                        })
-                        .catch(error => {
-                            showAlert(error.message, 'error');
-                        })
-                        .finally(() => {
-                            generateButton.disabled = false;
-                            generateButton.innerHTML = originalLabel;
-                        });
+                        if (hasExistingContent) {
+                            // Show confirmation popup
+                            Swal.fire({
+                                title: 'Ganti Isi Laporan?',
+                                text: 'Inputan laporan sudah ada isinya. Apakah Anda ingin menggantinya dengan laporan yang di-generate?',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#3085d6',
+                                cancelButtonColor: '#d33',
+                                confirmButtonText: 'Ya, Ganti',
+                                cancelButtonText: 'Batal',
+                                reverseButtons: true
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    performGeneration();
+                                }
+                            });
+                        } else {
+                            // No existing content, generate directly
+                            performGeneration();
+                        }
+
+                        function performGeneration() {
+                            const params = new URLSearchParams({ tanggal: tanggalField.value });
+                            const originalLabel = generateButton.innerHTML;
+                            generateButton.disabled = true;
+                            generateButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Generating...';
+                            generateButton.classList.add('generating');
+
+                            fetch(`${generateUrl}?${params.toString()}`, {
+                                headers: { 'Accept': 'application/json' }
+                            })
+                            .then(async response => {
+                                const payload = await response.json().catch(() => ({}));
+                                if (!response.ok) {
+                                    throw new Error(payload.message || 'Gagal mengenerate catatan.');
+                                }
+                                return payload;
+                            })
+                            .then(data => {
+                                if (catatanField) {
+                                    // Ensure complete replacement of the textarea content
+                                    catatanField.value = data.summary || '';
+                                    catatanField.dispatchEvent(new Event('input'));
+                                }
+                            })
+                            .catch(error => {
+                                alert(error.message);
+                            })
+                            .finally(() => {
+                                generateButton.disabled = false;
+                                generateButton.innerHTML = originalLabel;
+                                generateButton.classList.remove('generating');
+                            });
+                        }
                     });
                 }
 
                 // Form submission handler
                 form.addEventListener('submit', function(e) {
-                    // Ensure all date fields have the same value before submission
-                    const mainDate = document.getElementById('tanggal').value;
-                    dateInputs.forEach(input => {
-                        if (input) {
-                            input.value = mainDate;
-                        }
-                    });
+                    if (activeTabInput) {
+                        activeTabInput.value = currentTabId;
+                    }
+                    syncAllDateInputs(document.getElementById('tanggal').value);
                 });
             });
         </script>

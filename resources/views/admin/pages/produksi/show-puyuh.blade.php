@@ -199,6 +199,9 @@
                             @else
                                 <div class="list-timeline">
                                     @foreach ($laporanHarian as $laporan)
+                                        @if ($laporan->tampilkan_di_histori === false)
+                                            @continue
+                                        @endif
                                         @php
                                             // Create separate entries for each data type that has values
                                             $entries = [];
@@ -234,6 +237,7 @@
                                                     'unit' => 'ekor kematian',
                                                     'meta' => [
                                                         'gender' => $laporan->jenis_kelamin_kematian,
+                                                        'keterangan' => $laporan->keterangan_kematian,
                                                     ],
                                                 ];
                                             }
@@ -288,6 +292,10 @@
                                                 $createdAtFormatted = $laporan->dibuat_pada
                                                     ? 'Tercatat ' . $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
                                                     : '—';
+
+                                                if ($entry['type'] === 'kematian' && !empty($entry['meta']['keterangan'])) {
+                                                    $createdAtFormatted .= ' (' . $entry['meta']['keterangan'] . ')';
+                                                }
                                             @endphp
                                             <div class="entry entry-{{ $entry['type'] }}">
                                                 <div class="entry-left">
@@ -308,18 +316,38 @@
                                                         @if ($entry['type'] === 'laporan')
                                                             @php
                                                                 $catatanDetail = $entry['meta']['catatan'] ?? $laporan->catatan_kejadian;
-                                                                $catatanTanggal = $entry['meta']['tanggal'] ?? $laporan->tanggal->locale('id')->translatedFormat('d F Y');
+                                                                $hariIndonesia = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                                                                $hariIndex = $laporan->tanggal ? $laporan->tanggal->dayOfWeek : 0;
+                                                                $namaHari = isset($hariIndonesia[$hariIndex]) ? $hariIndonesia[$hariIndex] : 'Unknown';
+                                                                $tanggalFormatted = $laporan->tanggal ? $laporan->tanggal->locale('id')->translatedFormat('d F Y') : 'Unknown';
+                                                                $catatanTanggal = $namaHari . ', ' . $tanggalFormatted;
                                                                 $catatanCreated = $entry['meta']['created_at'] ?? ($laporan->dibuat_pada
                                                                     ? $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
                                                                     : '—');
+                                                                $catatanUser = optional($laporan->pengguna)->username
+                                                                    ?? optional($laporan->pengguna)->nama_pengguna
+                                                                    ?? '—';
+                                                                $populasiValue = $formatNumber($laporan->jumlah_burung ?? ($produksi->jumlah_indukan ?? 0));
+                                                                $feedValue = $formatNumber($laporan->konsumsi_pakan_kg ?? 0, 2);
+                                                                $deathValue = $formatNumber($laporan->jumlah_kematian ?? 0);
+                                                                $telurValue = $formatNumber($laporan->jumlah_telur ?? 0);
+                                                                $vitaminValue = $formatNumber($laporan->konsumsi_vitamin_l ?? 0, 2);
+                                                                $mortalityPercent = ($laporan->jumlah_burung ?? 0) > 0
+                                                                    ? number_format((($laporan->jumlah_kematian ?? 0) / max($laporan->jumlah_burung, 1)) * 100, 2, ',', '.')
+                                                                    : '0,00';
                                                             @endphp
                                                             <button type="button"
-                                                                class="btn btn-sm btn-outline-info"
-                                                                data-bs-toggle="modal"
-                                                                data-bs-target="#detailCatatanModal"
+                                                                class="btn btn-sm btn-outline-info detail-catatan-btn"
                                                                 data-catatan="{{ e($catatanDetail) }}"
                                                                 data-tanggal="{{ e($catatanTanggal) }}"
-                                                                data-created="{{ e($catatanCreated) }}">
+                                                                data-created="{{ e($catatanCreated) }}"
+                                                                data-user="{{ e($catatanUser) }}"
+                                                                data-populasi="{{ e($populasiValue) }}"
+                                                                data-feed="{{ e($feedValue) }}"
+                                                                data-death="{{ e($deathValue) }}"
+                                                                data-telur="{{ e($telurValue) }}"
+                                                                data-vitamin="{{ e($vitaminValue) }}"
+                                                                data-mortality="{{ e($mortalityPercent) }}">
                                                                 Detail
                                                             </button>
 
@@ -354,35 +382,146 @@
             </div>
         </div>
     </div>
-    
-    <div class="modal fade" id="detailCatatanModal" tabindex="-1" aria-labelledby="detailCatatanModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="detailCatatanModalLabel">
-                        Detail Catatan Laporan
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-3">Tanggal</dt>
-                        <dd class="col-sm-9" id="detailCatatanTanggal">-</dd>
-                        <dt class="col-sm-3">Tercatat</dt>
-                        <dd class="col-sm-9" id="detailCatatanCreated">-</dd>
-                        <dt class="col-sm-3">Catatan</dt>
-                        <dd class="col-sm-9">
-                            <div id="detailCatatanContent" class="border rounded p-3 bg-light" style="white-space: pre-wrap;"></div>
-                        </dd>
-                    </dl>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                </div>
-            </div>
-        </div>
-    </div>
 @endsection
+
+@push('styles')
+    <style>
+        .swal2-popup.swal-detail-laporan {
+            padding: 0;
+            background: transparent;
+            max-width: 760px;
+        }
+
+        .swal-detail-card {
+            background: #fff;
+            border-radius: 0.75rem;
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+        }
+
+        .swal-detail-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .swal-detail-header .title {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .swal-detail-header .btn-close {
+            margin-left: auto;
+        }
+
+        .swal-detail-body {
+            padding: 1.5rem;
+        }
+
+        .swal-detail-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .swal-detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .swal-detail-divider {
+            margin: 1rem 0;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .swal-detail-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+
+        .swal-detail-stat-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 60px;
+        }
+
+        .swal-detail-stat-card.combined {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 60px;
+        }
+
+        .swal-detail-stat-card .stat-label {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.15rem;
+            line-height: 1.2;
+        }
+
+        .swal-detail-stat-card .stat-value {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #1e293b;
+            line-height: 1.2;
+        }
+
+        .swal-detail-note-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.65rem;
+            background: #fff;
+        }
+
+        .swal-detail-note-card .card-body {
+            padding: 1rem 1.25rem;
+        }
+
+        .swal-detail-note-card .note-content {
+            white-space: pre-line;
+            color: #1e293b;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        .swal-detail-footer {
+            margin-top: 1.25rem;
+            font-size: 0.82rem;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        @media (max-width: 576px) {
+            .swal2-popup.swal-detail-laporan {
+                max-width: 95vw;
+            }
+
+            .swal-detail-header,
+            .swal-detail-body {
+                padding: 1rem;
+            }
+        }
+    </style>
+@endpush
 
 @push('scripts')
     <script>
@@ -452,7 +591,7 @@
                                 shouldShow = entryData.includes('ekor kematian') && entry.classList.contains('entry-kematian');
                                 break;
                             case 'laporan':
-                                shouldShow = entry.classList.contains('entry-laporan');
+                                shouldShow = entry.querySelector('.badge') !== null || entry.classList.contains('entry-laporan');
                                 break;
                         }
                     }
@@ -525,7 +664,7 @@
                     
                     Swal.fire({
                         title: 'Konfirmasi Reset',
-                        text: 'Yakin ingin mereset entri ini? Nilai pada entri ini akan dikembalikan ke 0 dan Menu KAI akan terupdate.',
+                        text: 'Yakin ingin mereset entri ini? Nilai pada entri ini akan dikembalikan.',
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonColor: '#ffc107',
@@ -547,7 +686,7 @@
                     
                     Swal.fire({
                         title: 'Konfirmasi Hapus',
-                        text: 'Yakin ingin menghapus histori ini? Aksi ini akan menghapus entri dari rekap, tetapi tidak mengubah total kumulatif lain selain mengurangi kontribusi entri yang dihapus.',
+                        text: 'Yakin ingin menghapus histori ini? Nilai pada Menu KAI tidak akan berubah, dan histori akan dihapus secara permanen.',
                         icon: 'error',
                         showCancelButton: true,
                         confirmButtonColor: '#dc3545',
@@ -562,34 +701,109 @@
                     });
                 });
             });
+        
+            const detailButtons = document.querySelectorAll('.detail-catatan-btn');
+            const escapeHtml = (unsafe = '') => unsafe
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
 
-            const detailModalEl = document.getElementById('detailCatatanModal');
-            if (detailModalEl) {
-                detailModalEl.addEventListener('show.bs.modal', function(event) {
-                    const button = event.relatedTarget;
-                    if (!button) {
-                        return;
-                    }
+            detailButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const data = this.dataset;
+                    const tanggal = data.tanggal || '-';
+                    const created = data.created || '-';
+                    const user = data.user || '—';
+                    const populasi = data.populasi || '-';
+                    const feed = data.feed || '-';
+                    const mortality = data.mortality || '0,00';
+                    const death = data.death || '0';
+                    const telur = data.telur || '0';
+                    const vitamin = data.vitamin || '0,00';
+                    const catatanRaw = data.catatan || '-';
+                    const catatanHtml = escapeHtml(catatanRaw).replace(/\n/g, '<br>');
 
-                    const catatan = button.getAttribute('data-catatan') || '-';
-                    const tanggal = button.getAttribute('data-tanggal') || '-';
-                    const created = button.getAttribute('data-created') || '-';
+                    const detailHtml = `
+                        <div class="swal-detail-card">
+                            <div class="swal-detail-header">
+                                <div class="title">
+                                    <i class="fa-solid fa-clipboard-list"></i>
+                                    <span>Detail Laporan Harian</span>
+                                </div>
+                            </div>
+                            <div class="swal-detail-body">
+                                <div class="swal-detail-section">
+                                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
+                                        <div class="text-start">
+                                            <small class="text-muted"><i class="fa-solid fa-calendar-days me-1"></i>Tanggal Laporan</small>
+                                            <div class="fw-semibold">${escapeHtml(tanggal)}</div>
+                                        </div>
+                                        <div class="text-md-end">
+                                            <small class="text-muted"><i class="fa-solid fa-user me-1"></i>Dibuat Oleh</small>
+                                            <div class="fw-semibold">${escapeHtml(user)}</div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                    const contentEl = detailModalEl.querySelector('#detailCatatanContent');
-                    const tanggalEl = detailModalEl.querySelector('#detailCatatanTanggal');
-                    const createdEl = detailModalEl.querySelector('#detailCatatanCreated');
+                                <div class="swal-detail-section">
+                                    <div class="swal-detail-stats">
+                                        <div class="swal-detail-stat-card">
+                                            <div class="stat-label">Mortalitas</div>
+                                            <div class="stat-value">${escapeHtml(mortality)}<small class="text-muted">%</small></div>
+                                        </div>
+                                        <div class="swal-detail-stat-card">
+                                            <div class="stat-label">Jumlah Puyuh</div>
+                                            <div class="stat-value">${escapeHtml(populasi)}</div>
+                                        </div>
+                                        <div class="swal-detail-stat-card">
+                                            <div class="stat-label">Jumlah Telur</div>
+                                            <div class="stat-value">${escapeHtml(telur)}</div>
+                                        </div>
+                                        <div class="swal-detail-stat-card combined">
+                                            <div class="stat-label">Pakan & Vitamin</div>
+                                            <div class="stat-value">${escapeHtml(feed)}<small class="text-muted">kg</small> <span class="text-muted">/</span> ${escapeHtml(vitamin)}<small class="text-muted">L</small></div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                    if (contentEl) {
-                        contentEl.textContent = catatan;
-                    }
-                    if (tanggalEl) {
-                        tanggalEl.textContent = tanggal;
-                    }
-                    if (createdEl) {
-                        createdEl.textContent = created;
-                    }
+                                <div class="swal-detail-section">
+                                    <div class="fw-semibold mb-2">Catatan Lengkap</div>
+                                    <div class="swal-detail-note-card">
+                                        <div class="card-body">
+                                            <div class="note-content">${catatanHtml}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="swal-detail-footer">
+                                    <div>Dibuat ${escapeHtml(created)}</div>
+                                    <button type="button" class="btn btn-sm btn-primary" data-action="close-detail">
+                                        Tutup
+                                    </button>
+                                </div>
+                            </div>
+                        </div>`;
+
+                    Swal.fire({
+                        html: detailHtml,
+                        width: 760,
+                        customClass: {
+                            popup: 'swal-detail-laporan'
+                        },
+                        showConfirmButton: false,
+                        showCloseButton: false,
+                        focusConfirm: false,
+                        didRender: () => {
+                            const closeBtn = Swal.getPopup()?.querySelector('[data-action="close-detail"]');
+                            if (closeBtn) {
+                                closeBtn.addEventListener('click', () => Swal.close());
+                            }
+                        }
+                    });
                 });
-            }
+            });
         });
     </script>
 @endpush

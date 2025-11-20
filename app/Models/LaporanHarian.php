@@ -36,6 +36,7 @@ class LaporanHarian extends Model
         'hen_day_production',
         'mortalitas_kumulatif',
         'catatan_kejadian',
+        'tampilkan_di_histori',
         'pengguna_id',
     ];
 
@@ -59,6 +60,7 @@ class LaporanHarian extends Model
         'fcr' => 'decimal:2',
         'hen_day_production' => 'decimal:2',
         'mortalitas_kumulatif' => 'decimal:2',
+        'tampilkan_di_histori' => 'boolean',
         'dibuat_pada' => 'datetime',
         'diperbarui_pada' => 'datetime',
     ];
