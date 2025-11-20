@@ -262,6 +262,16 @@
                     laporan: 'Laporan'
                 };
 
+                const dateFieldByTab = {
+                    telur: 'tanggal',
+                    pakan: 'tanggal_pakan',
+                    vitamin: 'tanggal_vitamin',
+                    kematian: 'tanggal_kematian',
+                    laporan: 'tanggal_laporan'
+                };
+
+                let bypassDuplicateCheck = false;
+
                 // Date input elements
                 const dateInputs = [
                     document.getElementById('tanggal'), // telur tab
@@ -445,13 +455,50 @@
                     });
                 }
 
-                // Form submission handler
-                form.addEventListener('submit', function(e) {
-                    if (activeTabInput) {
-                        activeTabInput.value = currentTabId;
-                    }
-                    syncAllDateInputs(document.getElementById('tanggal').value);
-                });
+                // Form submission handler with duplicate-date confirmation
+                if (form) {
+                    form.addEventListener('submit', function(e) {
+                        if (activeTabInput) {
+                            activeTabInput.value = currentTabId;
+                        }
+
+                        const tanggalUmum = document.getElementById('tanggal');
+                        if (tanggalUmum) {
+                            syncAllDateInputs(tanggalUmum.value);
+                        }
+
+                        if (bypassDuplicateCheck) {
+                            bypassDuplicateCheck = false;
+                            return;
+                        }
+
+                        const dateFieldId = dateFieldByTab[currentTabId];
+                        const dateField = dateFieldId ? document.getElementById(dateFieldId) : null;
+                        const selectedDate = dateField?.value;
+                        const tabEntries = (existingEntriesByTab && existingEntriesByTab[currentTabId]) || {};
+                        const alreadyRecorded = selectedDate && tabEntries[selectedDate];
+
+                        if (alreadyRecorded) {
+                            e.preventDefault();
+                            Swal.fire({
+                                title: 'Tambah Catatan Lagi?',
+                                text: `${tabLabels[currentTabId] || 'Pencatatan'} untuk tanggal ${selectedDate} sudah tersimpan. Lanjutkan menambahkan data baru?`,
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#0d6efd',
+                                cancelButtonColor: '#6c757d',
+                                confirmButtonText: 'Ya, Tambahkan',
+                                cancelButtonText: 'Batal',
+                                reverseButtons: true
+                            }).then(result => {
+                                if (result.isConfirmed) {
+                                    bypassDuplicateCheck = true;
+                                    form.submit();
+                                }
+                            });
+                        }
+                    });
+                }
             });
         </script>
     </div>
