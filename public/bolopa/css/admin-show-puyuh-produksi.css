@@ -351,6 +351,22 @@ h5 small {
 	background: #7c3aed !important;
 }
 
+.btn-save.btn-tray {
+	background: #0ea5e9 !important;
+}
+
+.btn-save.btn-tray:hover {
+	background: #0284c7 !important;
+}
+
+.btn-save.btn-penjualan {
+	background: #f59e0b !important;
+}
+
+.btn-save.btn-penjualan:hover {
+	background: #d97706 !important;
+}
+
 .btn-save.btn-kematian {
 	background: #ef4444 !important;
 }
@@ -449,6 +465,30 @@ h5 small {
 #vitamin.show .input-group:focus-within .input-group-text {
 	background: #faf5ff;
 	color: #6b21a8;
+}
+
+#tray.show .form-control:focus,
+#tray.show .input-group .form-control:focus,
+#tray.show textarea:focus {
+	border-color: #0ea5e9;
+	box-shadow: 0 0 0 0.15rem rgba(14, 165, 233, 0.12);
+}
+
+#tray.show .input-group:focus-within .input-group-text {
+	background: #f0f9ff;
+	color: #075985;
+}
+
+#penjualan.show .form-control:focus,
+#penjualan.show .input-group .form-control:focus,
+#penjualan.show textarea:focus {
+	border-color: #f59e0b;
+	box-shadow: 0 0 0 0.15rem rgba(245, 158, 11, 0.12);
+}
+
+#penjualan.show .input-group:focus-within .input-group-text {
+	background: #fffbeb;
+	color: #92400e;
 }
 
 .tab-pane {

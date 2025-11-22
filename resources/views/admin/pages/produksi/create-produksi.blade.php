@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Produksi - Tambah Data Produksi')
+@section('title', 'Tambah Data Produksi')
 
 @push('styles')
 <style>

@@ -158,6 +158,8 @@
                 'defaultProduksiTelur' => old('produksi_telur', optional($todayLaporan)->produksi_telur),
                 'defaultPenjualanTelur' => old('penjualan_telur_butir', optional($todayLaporan)->penjualan_telur_butir),
                 'defaultSisaTelur' => old('sisa_telur', optional($todayLaporan)->sisa_telur),
+                'defaultSisaTrayBal' => old('sisa_tray_bal', optional($todayLaporan)->sisa_tray_bal),
+                'defaultSisaTrayLembar' => old('sisa_tray_lembar', optional($todayLaporan)->sisa_tray_lembar),
                 'defaultKonsumsiPakan' => old('konsumsi_pakan_kg', optional($todayLaporan)->konsumsi_pakan_kg),
                 'defaultSisaPakan' => old('sisa_pakan_kg', optional($todayLaporan)->sisa_pakan_kg),
                 'defaultVitaminTerpakai' => old('vitamin_terpakai', optional($todayLaporan)->vitamin_terpakai),
@@ -166,6 +168,7 @@
                 'defaultPenjualanPuyuh' => old('penjualan_puyuh_ekor', optional($todayLaporan)->penjualan_puyuh_ekor),
                 'defaultPendapatan' => old('pendapatan_harian', optional($todayLaporan)->pendapatan_harian),
                 'defaultCatatan' => old('catatan_kejadian', optional($todayLaporan)->catatan_kejadian),
+                'tabVariant' => 'puyuh',
             ])
 
             <div class="card mb-4" id="history-card">

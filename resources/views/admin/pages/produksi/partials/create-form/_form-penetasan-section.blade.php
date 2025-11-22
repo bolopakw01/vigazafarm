@@ -12,9 +12,10 @@
       <select id="penetasan_id" name="penetasan_id" class="form-select">
         <option value="">Pilih Penetasan</option>
         @foreach($penetasanList as $penetasan)
-          <option value="{{ $penetasan->id }}"
-                  data-tanggal-menetas="{{ $penetasan->tanggal_menetas ? $penetasan->tanggal_menetas->format('Y-m-d') : '' }}"
-                  data-stok-tersedia="{{ $penetasan->telur_tidak_fertil - ($penetasan->telur_infertil_ditransfer ?? 0) }}">
+            <option value="{{ $penetasan->id }}"
+              data-tanggal-menetas="{{ $penetasan->tanggal_menetas ? $penetasan->tanggal_menetas->format('Y-m-d') : '' }}"
+              data-stok-tersedia="{{ $penetasan->telur_tidak_fertil - ($penetasan->telur_infertil_ditransfer ?? 0) }}"
+              {{ old('penetasan_id') == $penetasan->id ? 'selected' : '' }}>
             {{ $penetasan->batch }} - {{ $penetasan->tanggal_menetas ? $penetasan->tanggal_menetas->format('d/m/Y') : 'TBA' }} - Telur Infertil: {{ $penetasan->telur_tidak_fertil - ($penetasan->telur_infertil_ditransfer ?? 0) }} butir (Selesai)
           </option>
         @endforeach

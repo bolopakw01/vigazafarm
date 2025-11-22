@@ -5,7 +5,7 @@
     <i class="fa-solid fa-info-circle me-1"></i>
     Tambahkan catatan penting tentang batch produksi ini (opsional).
   </p>
-  <textarea id="catatan" name="catatan" class="form-control" rows="3" placeholder="Tulis catatan tambahan..."></textarea>
+  <textarea id="catatan" name="catatan" class="form-control" rows="3" placeholder="Tulis catatan tambahan...">{{ old('catatan') }}</textarea>
   <div class="form-text">
     <small class="text-muted">Catatan tambahan tentang batch produksi ini (opsional)</small>
   </div>

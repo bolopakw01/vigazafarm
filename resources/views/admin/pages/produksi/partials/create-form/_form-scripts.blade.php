@@ -22,6 +22,7 @@
 
   // GLOBAL helpers so resetForm can call toggleSections()
   const FORM_STATE_KEY = 'produksi_form_state';
+  const hasValidationErrors = @json($errors->any());
 
   // Debounced save function to avoid excessive localStorage writes
   let saveTimeout;
@@ -111,9 +112,17 @@
     }
   }
 
-  function generateBatchId() {
+  function generateBatchId(force = false) {
     const tanggalMulaiEl = document.getElementById('tanggal_mulai');
     const batchIdEl = document.getElementById('batch_produksi_id');
+
+    if (!tanggalMulaiEl || !batchIdEl) {
+      return;
+    }
+
+    if (!force && batchIdEl.value && batchIdEl.value.trim().length > 0) {
+      return;
+    }
 
     const tanggalMulai = tanggalMulaiEl.value;
     if (!tanggalMulai) return;
@@ -125,13 +134,15 @@
                     date.getDate().toString().padStart(2, '0');
 
     // Determine prefix based on jenis_input and fokus_manual
-    const jenisInput = document.querySelector('input[name="jenis_input"]:checked').value;
+    const jenisInputRadio = document.querySelector('input[name="jenis_input"]:checked');
+    const jenisInput = jenisInputRadio ? jenisInputRadio.value : 'manual';
     let prefix = 'PROD';
 
     if (jenisInput === 'dari_penetasan') {
       prefix = 'PROD-TEL';
     } else if (jenisInput === 'manual') {
-      const fokusManual = document.querySelector('input[name="fokus_manual"]:checked').value;
+      const fokusManualRadio = document.querySelector('input[name="fokus_manual"]:checked');
+      const fokusManual = fokusManualRadio ? fokusManualRadio.value : 'burung';
       prefix = fokusManual === 'telur' ? 'PROD-TEL' : 'PROD-PUY';
     } else if (jenisInput === 'dari_pembesaran') {
       prefix = 'PROD-PUY';
@@ -171,7 +182,7 @@
     // Call toggleSections to update field visibility and required attributes
     toggleSections();
     // Regenerate batch ID when fokus_manual changes
-    generateBatchId();
+    generateBatchId(true);
     // Save form state
     saveFormState();
   }
@@ -282,7 +293,7 @@
         tanggalMulaiInput.classList.add('auto-filled');
         tanggalMulaiInput.dispatchEvent(new Event('input'));
         // Regenerate batch ID with new date
-        generateBatchId();
+        generateBatchId(true);
       }
     }
   }
@@ -299,7 +310,7 @@
         tanggalMulaiInput.classList.add('auto-filled');
         tanggalMulaiInput.dispatchEvent(new Event('input'));
         // Regenerate batch ID with new date
-        generateBatchId();
+        generateBatchId(true);
       }
     }
   }
@@ -358,6 +369,7 @@
         jumlahTelurField.required = false;
         persentaseFertilField.required = false;
         beratRataTelurField.required = false;
+        beratRataTelurField.removeAttribute('required');
         // Set jenis_kelamin as required for manual burung input
         jenisKelaminRadios.forEach(radio => radio.required = true);
       } else {
@@ -373,7 +385,8 @@
         jumlahBurungField.required = false;
         jumlahTelurField.required = true;
         persentaseFertilField.required = false;
-        beratRataTelurField.required = true;
+        beratRataTelurField.required = false;
+        beratRataTelurField.removeAttribute('required');
       }
 
       if (pembesaranIdField) {
@@ -468,7 +481,7 @@
     updateRequiredLabels();
 
     // regenerate batch id when jenis_input changes
-    generateBatchId();
+    generateBatchId(true);
   }
 
   function updateRequiredLabels() {
@@ -601,13 +614,15 @@
     triggerFlashToast('error', 'Gagal!', @json(session('error')));
     @endif
 
-    // Set default date to today for tanggal_mulai
+    const tanggalMulaiField = document.getElementById('tanggal_mulai');
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('tanggal_mulai').value = today;
-    document.getElementById('tanggal_mulai').dispatchEvent(new Event('input'));
+    if (tanggalMulaiField && !tanggalMulaiField.value) {
+      tanggalMulaiField.value = today;
+      tanggalMulaiField.dispatchEvent(new Event('input'));
+    }
 
-    // Generate initial batch ID
-    generateBatchId();
+    // Generate initial batch ID (only when empty)
+    generateBatchId(false);
 
     // Attach change listeners
     const jenisInputRadios = document.querySelectorAll('input[name="jenis_input"]');
@@ -644,11 +659,13 @@
     }
 
     // Update batch ID when tanggal_mulai changes
-    const tanggalMulaiField = document.getElementById('tanggal_mulai');
-    tanggalMulaiField.addEventListener('change', generateBatchId);
-    tanggalMulaiField.addEventListener('change', () => {
-      tanggalMulaiField.dispatchEvent(new Event('input'));
-    });
+    if (tanggalMulaiField) {
+      tanggalMulaiField.addEventListener('change', () => {
+        generateBatchId(true);
+        tanggalMulaiField.dispatchEvent(new Event('input'));
+        validateTanggalAkhir();
+      });
+    }
 
     initializeDatePlaceholders();
 
@@ -774,34 +791,18 @@
     document.getElementById('status').addEventListener('change', saveFormState);
 
     // Add date validation for tanggal_akhir (but don't save state on input)
-    document.getElementById('tanggal_akhir').addEventListener('change', function() {
-      validateTanggalAkhir();
-      // Don't save form state for input field changes
-    });
-
-    document.getElementById('tanggal_mulai').addEventListener('change', function() {
-      validateTanggalAkhir();
-      // Don't save form state for input field changes
-    });
+    const tanggalAkhirField = document.getElementById('tanggal_akhir');
+    if (tanggalAkhirField) {
+      tanggalAkhirField.addEventListener('change', function() {
+        validateTanggalAkhir();
+        // Don't save form state for input field changes
+      });
+    }
 
     // Initialize UI state after a short delay to ensure radio buttons are set
     setTimeout(function() {
       // First try to restore from localStorage (only control states)
-      const restoredFromStorage = restoreFormState();
-
-      // Clear all input fields to ensure fresh start (except tanggal_mulai which is set to today)
-      const inputFieldsToClear = [
-        'jumlah_burung', 'jumlah_telur', 'jumlah_jantan', 'jumlah_betina',
-        'tanggal_akhir', 'umur_burung', 'berat_rata_burung',
-        'persentase_fertil', 'berat_rata_telur', 'harga_per_kg', 'catatan'
-      ];
-
-      inputFieldsToClear.forEach(fieldId => {
-        const element = document.getElementById(fieldId);
-        if (element) {
-          element.value = '';
-        }
-      });
+      const restoredFromStorage = !hasValidationErrors && restoreFormState();
 
       // If not restored from storage, use Laravel old() values (for validation errors)
       if (!restoredFromStorage) {
@@ -873,7 +874,7 @@
 
     toggleSections();
     toggleCampuranFields();
-    generateBatchId();
+    generateBatchId(true);
     validateTanggalAkhir();
     saveFormState();
 

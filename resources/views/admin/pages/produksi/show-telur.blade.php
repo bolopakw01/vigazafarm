@@ -2,11 +2,819 @@
 
 @section('title', 'Detail Produksi Telur - ' . ($produksi->batch_produksi_id ?? 'Tanpa Kode Batch'))
 
+@push('styles')
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-puyuh-produksi.css') }}">
+@endpush
+
 @section('content')
-<div class="container my-4">
-    <!-- Placeholder: Fokus pengembangan di produksi puyuh terlebih dahulu -->
-    <div class="alert alert-info">
-        <i class="fa-solid fa-circle-info me-2"></i>Halaman detail produksi telur masih dalam pengembangan.
+    @php
+        $formatNumber = fn ($value, $decimals = 0) => number_format((float) ($value ?? 0), $decimals, ',', '.');
+
+        $startDate = $produksi->tanggal_mulai ?? $produksi->tanggal ?? optional($produksi->pembesaran)->tanggal_siap;
+        $startDateFormatted = $startDate ? \Carbon\Carbon::parse($startDate)->locale('id')->translatedFormat('d M Y') : '-';
+        $endDate = $produksi->tanggal_akhir;
+        $endDateFormatted = $endDate ? \Carbon\Carbon::parse($endDate)->locale('id')->translatedFormat('d M Y') : '-';
+
+        $kandangName = $produksi->kandang->nama_kandang ?? 'nama kandang';
+        $batchCode = $produksi->batch_produksi_id ?? 'Tanpa Kode Batch';
+        $initialPopulation = $produksi->jumlah_indukan ?? (($produksi->jumlah_jantan ?? 0) + ($produksi->jumlah_betina ?? 0));
+
+        $totalTelur = $summary['total_telur'] ?? 0;
+        $eggsPerTray = $summary['eggs_per_tray'] ?? 30;
+        $totalTray = $summary['total_tray'] ?? ($eggsPerTray > 0 ? $totalTelur / $eggsPerTray : 0);
+        $totalPendapatan = $summary['total_pendapatan'] ?? 0;
+        $totalTelurRusak = $summary['total_telur_rusak'] ?? 0;
+
+        $trayEntries = ($laporanHarian ?? collect())
+            ->filter(fn ($item) => ($item->produksi_telur ?? 0) > 0)
+            ->map(function ($item) use ($eggsPerTray) {
+                $trayEstimate = $eggsPerTray > 0 ? ($item->produksi_telur / $eggsPerTray) : 0;
+
+                return [
+                    'id' => $item->id,
+                    'tanggal' => $item->tanggal
+                        ? $item->tanggal->locale('id')->translatedFormat('d M Y')
+                        : '-',
+                    'jumlah_telur' => (int) ($item->produksi_telur ?? 0),
+                    'estimasi_tray' => $trayEstimate,
+                    'dibuat_pada' => $item->dibuat_pada
+                        ? $item->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
+                        : '—',
+                ];
+            })
+            ->values();
+    @endphp
+
+    <div class="container">
+        <div class="page-wrapper">
+            <div class="card pu_header mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="pu_icon">
+                                <i class="fa-solid fa-egg" aria-hidden="true"></i>
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                                    <span class="ref-badge hide-on-narrow">
+                                        <i class="fa-solid fa-tags"></i> {{ $batchCode }}
+                                    </span>
+                                    <span class="badge bg-success rounded-pill hide-on-narrow">{{ ucfirst($produksi->status ?? 'aktif') }}</span>
+                                </div>
+                                <h5 class="mb-0">
+                                    Produksi Telur
+                                    <small class="d-block">#{{ $kandangName }}</small>
+                                </h5>
+
+                                <div class="mt-2 d-flex flex-wrap gap-3 align-items-center">
+                                    <div class="text-muted small hide-on-narrow">
+                                        <i class="fa-regular fa-calendar-days me-1"></i>Mulai:
+                                        <span class="fw-semibold ms-1">{{ $startDateFormatted }}</span>
+                                    </div>
+                                    <div class="text-muted small hide-on-narrow">
+                                        <i class="fa-solid fa-clock me-1" aria-hidden="true"></i>Selesai:
+                                        <span class="fw-semibold ms-1">{{ $endDateFormatted }}</span>
+                                    </div>
+                                    <div class="text-muted small hide-on-narrow">
+                                        <i class="fa-solid fa-egg me-1" aria-hidden="true"></i>Populasi Awal Telur:
+                                        <span id="populasi-awal" class="fw-semibold ms-1">{{ $formatNumber($summary['total_telur_awal']) }} butir</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="{{ url()->previous() }}" class="back-btn" aria-label="Kembali">
+                                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                                <span class="back-label">Kembali</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="kai-cards mb-4">
+                <div class="row g-3">
+                    <div class="col-lg-3 col-md-6 col-6">
+                        <div class="card-kai kai-teal" id="kai-tray-card">
+                            <div>
+                                <div class="value" id="kai-tray-value">{{ $formatNumber($totalTray, 0) }}</div>
+                                <div class="label" id="kai-tray-label">Total Tray ({{ $eggsPerTray }} butir/tray)</div>
+                            </div>
+                            <i class="fa-solid fa-layer-group icon-faint"></i>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6 col-6">
+                        <div class="card-kai kai-indigo" id="kai-telur-card">
+                            <div>
+                                <div class="value" id="kai-telur-value">{{ $formatNumber($totalTelur) }}</div>
+                                <div class="label" id="kai-telur-label">Total Telur (butir)</div>
+                            </div>
+                            <i class="fa-solid fa-egg icon-faint"></i>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6 col-6">
+                        <div class="card-kai kai-red" id="kai-rusak-card">
+                            <div>
+                                <div class="value" id="kai-rusak-value">{{ $formatNumber($totalTelurRusak) }}</div>
+                                <div class="label" id="kai-rusak-label">Total Telur Rusak</div>
+                            </div>
+                            <i class="fa-solid fa-triangle-exclamation icon-faint"></i>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6 col-6">
+                        <div class="card-kai kai-green" id="kai-pendapatan-card">
+                            <div>
+                                <div class="value" id="kai-pendapatan-value">Rp {{ $formatNumber($totalPendapatan, 0) }}</div>
+                                <div class="label" id="kai-pendapatan-label">Total Pendapatan</div>
+                            </div>
+                            <i class="fa-solid fa-coins icon-faint"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @include('admin.pages.produksi.partials.show-form.daily-report-form', [
+                'produksi' => $produksi,
+                'defaultTanggal' => old(
+                    'tanggal',
+                    optional($todayLaporan?->tanggal)->format('Y-m-d') ?? optional($latestLaporan?->tanggal)->format('Y-m-d') ?? now()->format('Y-m-d')
+                ),
+                'defaultProduksiTelur' => old('produksi_telur', optional($todayLaporan)->produksi_telur),
+                'defaultPenjualanTelur' => old('penjualan_telur_butir', optional($todayLaporan)->penjualan_telur_butir),
+                'defaultSisaTelur' => old('sisa_telur', optional($todayLaporan)->sisa_telur),
+                'defaultSisaTrayBal' => old('sisa_tray_bal', optional($todayLaporan)->sisa_tray_bal),
+                'defaultSisaTrayLembar' => old('sisa_tray_lembar', optional($todayLaporan)->sisa_tray_lembar),
+                'defaultKonsumsiPakan' => old('konsumsi_pakan_kg', optional($todayLaporan)->konsumsi_pakan_kg),
+                'defaultSisaPakan' => old('sisa_pakan_kg', optional($todayLaporan)->sisa_pakan_kg),
+                'defaultVitaminTerpakai' => old('vitamin_terpakai', optional($todayLaporan)->vitamin_terpakai),
+                'defaultSisaVitamin' => old('sisa_vitamin_liter', optional($todayLaporan)->sisa_vitamin_liter),
+                'defaultJumlahKematian' => old('jumlah_kematian', optional($todayLaporan)->jumlah_kematian),
+                'defaultPenjualanPuyuh' => old('penjualan_puyuh_ekor', optional($todayLaporan)->penjualan_puyuh_ekor),
+                'defaultPendapatan' => old('pendapatan_harian', optional($todayLaporan)->pendapatan_harian),
+                'defaultCatatan' => old('catatan_kejadian', optional($todayLaporan)->catatan_kejadian),
+                'trayEntries' => $trayEntries,
+                'eggsPerTray' => $eggsPerTray,
+                'tabVariant' => 'telur',
+            ])
+
+            <div class="card mb-4" id="history-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h6 class="mb-0">Rekap Pencatatan <small id="history-title" class="text-telur ms-2">(Telur)</small></h6>
+                        <div class="d-flex align-items-center">
+                            <button class="btn btn-sm btn-outline-secondary me-2" id="history-toggle"
+                                type="button" data-bs-toggle="collapse" data-bs-target="#history-collapse"
+                                aria-expanded="true" aria-controls="history-collapse"
+                                data-hide-text="Sembunyikan" data-show-text="Tampilkan">
+                                Sembunyikan
+                            </button>
+
+                            @if ($historyClearRoute)
+                                <form action="{{ route('admin.produksi.laporan.clear', $produksi) }}" method="POST" class="m-0 p-0">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary" id="history-clear">Bersihkan</button>
+                                </form>
+                            @else
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="history-clear" disabled>Bersihkan</button>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div id="history-collapse" class="collapse show">
+                        <div id="history-content" class="mt-3">
+                            @if ($laporanHarian->isEmpty())
+                                <div class="text-muted small">Belum ada pencatatan.</div>
+                            @else
+                                <div class="list-timeline">
+                                    @foreach ($laporanHarian as $laporan)
+                                        @if ($laporan->tampilkan_di_histori === false)
+                                            @continue
+                                        @endif
+                                        @php
+                                            $entries = [];
+                                            
+                                            if (($laporan->produksi_telur ?? 0) > 0) {
+                                                $entries[] = [
+                                                    'type' => 'telur',
+                                                    'value' => $laporan->produksi_telur,
+                                                    'unit' => 'butir telur'
+                                                ];
+                                            }
+                                            
+                                            if (($laporan->konsumsi_pakan_kg ?? 0) > 0) {
+                                                $entries[] = [
+                                                    'type' => 'pakan',
+                                                    'value' => $laporan->konsumsi_pakan_kg,
+                                                    'unit' => 'kg pakan'
+                                                ];
+                                            }
+                                            
+                                            if (($laporan->vitamin_terpakai ?? 0) > 0) {
+                                                $entries[] = [
+                                                    'type' => 'vitamin',
+                                                    'value' => $laporan->vitamin_terpakai,
+                                                    'unit' => 'L vitamin'
+                                                ];
+                                            }
+                                            
+                                            if (($laporan->sisa_tray_bal ?? 0) > 0) {
+                                                $entries[] = [
+                                                    'type' => 'tray',
+                                                    'value' => $laporan->sisa_tray_bal,
+                                                    'unit' => 'bal tray'
+                                                ];
+                                            }
+                                            
+                                            if (($laporan->sisa_tray_lembar ?? 0) > 0) {
+                                                $entries[] = [
+                                                    'type' => 'tray',
+                                                    'value' => $laporan->sisa_tray_lembar,
+                                                    'unit' => 'lembar tray'
+                                                ];
+                                            }
+                                            
+                                            if (($laporan->sisa_telur ?? 0) > 0) {
+                                                $entries[] = [
+                                                    'type' => 'tray',
+                                                    'value' => $laporan->sisa_telur,
+                                                    'unit' => 'butir telur sisa'
+                                                ];
+                                            }
+                                            
+                                            if (($laporan->jumlah_kematian ?? 0) > 0) {
+                                                $entries[] = [
+                                                    'type' => 'kematian',
+                                                    'value' => $laporan->jumlah_kematian,
+                                                    'unit' => 'ekor kematian',
+                                                    'meta' => [
+                                                        'gender' => $laporan->jenis_kelamin_kematian,
+                                                        'keterangan' => $laporan->keterangan_kematian,
+                                                    ],
+                                                ];
+                                            }
+                                            
+                                            if (empty($entries) && $laporan->catatan_kejadian) {
+                                                $entries[] = [
+                                                    'type' => 'laporan',
+                                                    'value' => null,
+                                                    'unit' => 'laporan',
+                                                    'meta' => [
+                                                        'catatan' => $laporan->catatan_kejadian,
+                                                        'tanggal' => $laporan->tanggal->locale('id')->translatedFormat('d F Y'),
+                                                        'created_at' => $laporan->dibuat_pada
+                                                            ? $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
+                                                            : '—',
+                                                    ]
+                                                ];
+                                            }
+                                        @endphp
+                                        
+                                        @foreach ($entries as $entry)
+                                            @php
+                                                $entryIcon = [
+                                                    'telur' => 'fa-egg',
+                                                    'pakan' => 'fa-bowl-food',
+                                                    'vitamin' => 'fa-capsules',
+                                                    'tray' => 'fa-layer-group',
+                                                    'kematian' => 'fa-skull-crossbones',
+                                                    'laporan' => 'fa-file-lines',
+                                                ][$entry['type']] ?? 'fa-file-lines';
+
+                                                $tanggalEntry = $laporan->tanggal->locale('id')->translatedFormat('d F Y');
+                                                
+                                                if ($entry['type'] === 'pakan') {
+                                                    $consumed = $formatNumber($entry['value'], 2);
+                                                    $remaining = $formatNumber($laporan->sisa_pakan_kg ?? 0, 2);
+                                                    $ringkasan = $consumed . ' kg pakan (sisa: ' . $remaining . ' kg)';
+                                                } elseif ($entry['type'] === 'vitamin') {
+                                                    $consumed = $formatNumber($entry['value'], 2);
+                                                    $remaining = $formatNumber($laporan->sisa_vitamin_liter ?? 0, 2);
+                                                    $ringkasan = $consumed . ' L vitamin (sisa: ' . $remaining . ' L)';
+                                                } elseif ($entry['type'] === 'kematian') {
+                                                    $gender = $entry['meta']['gender'] ?? null;
+                                                    $genderLabel = $gender ? ' (' . ucfirst($gender) . ')' : '';
+                                                    $ringkasan = $formatNumber($entry['value']) . ' ekor kematian' . $genderLabel;
+                                                } else {
+                                                    $ringkasan = $entry['value'] 
+                                                        ? $formatNumber($entry['value'], $entry['type'] === 'pakan' || $entry['type'] === 'vitamin' ? 2 : 0) . ' ' . $entry['unit']
+                                                        : 'Laporan';
+                                                }
+
+                                                $createdAtFormatted = $laporan->dibuat_pada
+                                                    ? 'Tercatat ' . $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
+                                                    : '—';
+
+                                                if ($entry['type'] === 'kematian' && !empty($entry['meta']['keterangan'])) {
+                                                    $createdAtFormatted .= ' (' . $entry['meta']['keterangan'] . ')';
+                                                }
+                                            @endphp
+                                            <div class="entry entry-{{ $entry['type'] }}">
+                                                <div class="entry-left">
+                                                    <div class="dot">
+                                                        <i class="fa-solid {{ $entryIcon }}"></i>
+                                                    </div>
+                                                    <div class="entry-body">
+                                                        <div class="title">{{ $tanggalEntry }} — {{ $ringkasan }}</div>
+                                                        <small>{{ $createdAtFormatted }}</small>
+                                                    </div>
+                                                </div>
+                                                <div class="entry-right">
+                                                    <div class="d-flex gap-2 align-items-center">
+                                                        @if ($laporan->catatan_kejadian && $entry['type'] !== 'laporan')
+                                                            <span class="badge bg-light text-muted">{{ \Illuminate\Support\Str::limit($laporan->catatan_kejadian, 48) }}</span>
+                                                        @endif
+
+                                                        @if ($entry['type'] === 'laporan')
+                                                            @php
+                                                                $catatanDetail = $entry['meta']['catatan'] ?? $laporan->catatan_kejadian;
+                                                                $hariIndonesia = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                                                                $hariIndex = $laporan->tanggal ? $laporan->tanggal->dayOfWeek : 0;
+                                                                $namaHari = isset($hariIndonesia[$hariIndex]) ? $hariIndonesia[$hariIndex] : 'Unknown';
+                                                                $tanggalFormatted = $laporan->tanggal ? $laporan->tanggal->locale('id')->translatedFormat('d F Y') : 'Unknown';
+                                                                $catatanTanggal = $namaHari . ', ' . $tanggalFormatted;
+                                                                $catatanCreated = $entry['meta']['created_at'] ?? ($laporan->dibuat_pada
+                                                                    ? $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
+                                                                    : '—');
+                                                                $catatanUser = optional($laporan->pengguna)->username
+                                                                    ?? optional($laporan->pengguna)->nama_pengguna
+                                                                    ?? '—';
+                                                                $populasiValue = $formatNumber($laporan->jumlah_burung ?? ($produksi->jumlah_indukan ?? 0));
+                                                                $feedValue = $formatNumber($laporan->konsumsi_pakan_kg ?? 0, 2);
+                                                                $deathValue = $formatNumber($laporan->jumlah_kematian ?? 0);
+                                                                $telurValue = $formatNumber($laporan->jumlah_telur ?? 0);
+                                                                $vitaminValue = $formatNumber($laporan->konsumsi_vitamin_l ?? 0, 2);
+                                                                $mortalityPercent = ($laporan->jumlah_burung ?? 0) > 0
+                                                                    ? number_format((($laporan->jumlah_kematian ?? 0) / max($laporan->jumlah_burung, 1)) * 100, 2, ',', '.')
+                                                                    : '0,00';
+                                                            @endphp
+                                                            <button type="button"
+                                                                class="btn btn-sm btn-outline-info detail-catatan-btn"
+                                                                data-catatan="{{ e($catatanDetail) }}"
+                                                                data-tanggal="{{ e($catatanTanggal) }}"
+                                                                data-created="{{ e($catatanCreated) }}"
+                                                                data-user="{{ e($catatanUser) }}"
+                                                                data-populasi="{{ e($populasiValue) }}"
+                                                                data-feed="{{ e($feedValue) }}"
+                                                                data-death="{{ e($deathValue) }}"
+                                                                data-telur="{{ e($telurValue) }}"
+                                                                data-vitamin="{{ e($vitaminValue) }}"
+                                                                data-mortality="{{ e($mortalityPercent) }}">
+                                                                Detail
+                                                            </button>
+
+                                                            <form action="{{ route('admin.produksi.laporan.destroy', [$produksi->id, $laporan->id]) }}" method="POST" class="m-0 p-0 delete-laporan-form">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
+                                                            </form>
+                                                        @else
+                                                            <form action="{{ route('admin.produksi.laporan.reset', [$produksi->id, $laporan->id]) }}" method="POST" class="m-0 p-0 reset-laporan-form">
+                                                                @csrf
+                                                                @method('PATCH')
+                                                                <button type="submit" class="btn btn-sm btn-outline-warning">Reset</button>
+                                                            </form>
+
+                                                            <form action="{{ route('admin.produksi.laporan.destroy', [$produksi->id, $laporan->id]) }}" method="POST" class="m-0 p-0 delete-laporan-form">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
+                                                            </form>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 @endsection
+
+@push('styles')
+    <style>
+        .swal2-popup.swal-detail-laporan {
+            padding: 0;
+            background: transparent;
+            max-width: 760px;
+        }
+
+        .swal-detail-card {
+            background: #fff;
+            border-radius: 0.75rem;
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+        }
+
+        .swal-detail-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .swal-detail-header .title {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            font-weight: 600;
+        }
+
+        .swal-detail-header .btn-close {
+            margin-left: auto;
+        }
+
+        .swal-detail-body {
+            padding: 1.5rem;
+        }
+
+        .swal-detail-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .swal-detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .swal-detail-divider {
+            margin: 1rem 0;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .swal-detail-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+
+        .swal-detail-stat-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 60px;
+        }
+
+        .swal-detail-stat-card.combined {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 60px;
+        }
+
+        .swal-detail-stat-card .stat-label {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.15rem;
+            line-height: 1.2;
+        }
+
+        .swal-detail-stat-card .stat-value {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #1e293b;
+            line-height: 1.2;
+        }
+
+        .swal-detail-note-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.65rem;
+            background: #fff;
+        }
+
+        .swal-detail-note-card .card-body {
+            padding: 1rem 1.25rem;
+        }
+
+        .swal-detail-note-card .note-content {
+            white-space: pre-line;
+            color: #1e293b;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        .swal-detail-footer {
+            margin-top: 1.25rem;
+            font-size: 0.82rem;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        @media (max-width: 576px) {
+            .swal2-popup.swal-detail-laporan {
+                max-width: 95vw;
+            }
+
+            .swal-detail-header,
+            .swal-detail-body {
+                padding: 1rem;
+            }
+        }
+    </style>
+@endpush
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const toggleButton = document.getElementById('history-toggle');
+            const collapseElement = document.getElementById('history-collapse');
+            const historyTitle = document.getElementById('history-title');
+            const historyEntries = document.querySelectorAll('.list-timeline .entry');
+
+            if (toggleButton && collapseElement) {
+                collapseElement.addEventListener('hide.bs.collapse', function () {
+                    toggleButton.textContent = toggleButton.dataset.showText;
+                });
+
+                collapseElement.addEventListener('show.bs.collapse', function () {
+                    toggleButton.textContent = toggleButton.dataset.hideText;
+                });
+            }
+
+            function filterHistoryEntries(activeTabId) {
+                const tabTitles = {
+                    'telur': 'Telur',
+                    'tray': 'Tray',
+                    'pakan': 'Pakan',
+                    'vitamin': 'Vitamin',
+                    'kematian': 'Kematian',
+                    'laporan': 'Laporan'
+                };
+
+                const tabColors = {
+                    'telur': 'text-telur',
+                    'tray': 'text-info',
+                    'pakan': 'text-pakan',
+                    'vitamin': 'text-vitamin',
+                    'kematian': 'text-kematian',
+                    'laporan': 'text-laporan'
+                };
+
+                if (activeTabId && tabTitles[activeTabId]) {
+                    historyTitle.innerHTML = `(<span class="${tabColors[activeTabId]}">${tabTitles[activeTabId]}</span>)`;
+                } else {
+                    historyTitle.innerHTML = '(<span class="text-muted">Semua</span>)';
+                }
+
+                historyEntries.forEach(entry => {
+                    let shouldShow = false;
+
+                    if (!activeTabId) {
+                        shouldShow = true;
+                    } else {
+                        const entryData = entry.querySelector('.entry-body .title').textContent;
+
+                        switch (activeTabId) {
+                            case 'telur':
+                                shouldShow = entryData.includes('butir telur') && !entryData.includes('sisa') && entry.classList.contains('entry-telur');
+                                break;
+                            case 'tray':
+                                shouldShow = (entryData.includes('bal tray') || entryData.includes('lembar tray') || entryData.includes('butir telur sisa')) && entry.classList.contains('entry-tray');
+                                break;
+                            case 'pakan':
+                                shouldShow = entryData.includes('kg pakan') && entry.classList.contains('entry-pakan');
+                                break;
+                            case 'vitamin':
+                                shouldShow = entryData.includes('L vitamin') && entry.classList.contains('entry-vitamin');
+                                break;
+                            case 'kematian':
+                                shouldShow = entryData.includes('ekor kematian') && entry.classList.contains('entry-kematian');
+                                break;
+                            case 'laporan':
+                                shouldShow = entry.querySelector('.badge') !== null || entry.classList.contains('entry-laporan');
+                                break;
+                        }
+                    }
+
+                    entry.style.display = shouldShow ? 'flex' : 'none';
+                });
+            }
+
+            function updateActiveTabInput(tabId) {
+                const activeTabInput = document.getElementById('activeTabInput');
+                if (activeTabInput && tabId) {
+                    activeTabInput.value = tabId;
+                }
+            }
+
+            const savedActiveTab = localStorage.getItem('activeProduksiTab');
+            if (savedActiveTab) {
+                const savedTabElement = document.querySelector(`#pencatatanTabs .nav-link[data-bs-target="#${savedActiveTab}"]`);
+                if (savedTabElement) {
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+                        const tabInstance = bootstrap.Tab.getOrCreateInstance(savedTabElement);
+                        tabInstance.show();
+                    } else {
+                        document.querySelectorAll('#pencatatanTabs .nav-link').forEach(tab => {
+                            tab.classList.remove('active');
+                        });
+                        document.querySelectorAll('#pencatatanTabsContent .tab-pane').forEach(pane => {
+                            pane.classList.remove('active', 'show');
+                        });
+                        savedTabElement.classList.add('active');
+                        const targetPane = document.getElementById(savedActiveTab);
+                        if (targetPane) {
+                            targetPane.classList.add('active', 'show');
+                        }
+                        updateActiveTabInput(savedActiveTab);
+                        filterHistoryEntries(savedActiveTab);
+                    }
+                }
+            }
+
+            const formTabs = document.querySelectorAll('#pencatatanTabs .nav-link');
+            formTabs.forEach(tab => {
+                tab.addEventListener('shown.bs.tab', function(event) {
+                    const targetId = event.target.getAttribute('data-bs-target').substring(1);
+                    localStorage.setItem('activeProduksiTab', targetId);
+                    filterHistoryEntries(targetId);
+                });
+            });
+
+            const activeTab = document.querySelector('#pencatatanTabs .nav-link.active');
+            if (activeTab) {
+                const activeTabId = activeTab.getAttribute('data-bs-target').substring(1);
+                updateActiveTabInput(activeTabId);
+                filterHistoryEntries(activeTabId);
+            } else {
+                filterHistoryEntries('telur');
+                updateActiveTabInput('telur');
+            }
+
+            document.querySelectorAll('.reset-laporan-form').forEach(form => {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    
+                    Swal.fire({
+                        title: 'Konfirmasi Reset',
+                        text: 'Yakin ingin mereset entri ini? Nilai pada entri ini akan dikembalikan.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#ffc107',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ya, Reset',
+                        cancelButtonText: 'Batal',
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+
+            document.querySelectorAll('.delete-laporan-form').forEach(form => {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    
+                    Swal.fire({
+                        title: 'Konfirmasi Hapus',
+                        text: 'Yakin ingin menghapus histori ini? Nilai pada Menu KAI tidak akan berubah, dan histori akan dihapus secara permanen.',
+                        icon: 'error',
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ya, Hapus',
+                        cancelButtonText: 'Batal',
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+        
+            const detailButtons = document.querySelectorAll('.detail-catatan-btn');
+            const escapeHtml = (unsafe = '') => unsafe
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+
+            detailButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const data = this.dataset;
+                    const tanggal = data.tanggal || '-';
+                    const created = data.created || '-';
+                    const user = data.user || '—';
+                    const populasi = data.populasi || '-';
+                    const feed = data.feed || '-';
+                    const mortality = data.mortality || '0,00';
+                    const death = data.death || '0';
+                    const telur = data.telur || '0';
+                    const vitamin = data.vitamin || '0,00';
+                    const catatanRaw = data.catatan || '-';
+                    const catatanHtml = escapeHtml(catatanRaw).replace(/\n/g, '<br>');
+
+                    const detailHtml = `
+                        <div class="swal-detail-card">
+                            <div class="swal-detail-header">
+                                <div class="title">
+                                    <i class="fa-solid fa-clipboard-list"></i>
+                                    <span>Detail Laporan Harian</span>
+                                </div>
+                            </div>
+                            <div class="swal-detail-body">
+                                <div class="swal-detail-section">
+                                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
+                                        <div class="text-start">
+                                            <small class="text-muted"><i class="fa-solid fa-calendar-days me-1"></i>Tanggal Laporan</small>
+                                            <div class="fw-semibold">${escapeHtml(tanggal)}</div>
+                                        </div>
+                                        <div class="text-md-end">
+                                            <small class="text-muted"><i class="fa-solid fa-user me-1"></i>Dibuat Oleh</small>
+                                            <div class="fw-semibold">${escapeHtml(user)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="swal-detail-section">
+                                    <div class="swal-detail-stats">
+                                        <div class="swal-detail-stat-card">
+                                            <div class="stat-label">Mortalitas</div>
+                                            <div class="stat-value">${escapeHtml(mortality)}<small class="text-muted">%</small></div>
+                                        </div>
+                                        <div class="swal-detail-stat-card">
+                                            <div class="stat-label">Jumlah Puyuh</div>
+                                            <div class="stat-value">${escapeHtml(populasi)}</div>
+                                        </div>
+                                        <div class="swal-detail-stat-card">
+                                            <div class="stat-label">Jumlah Telur</div>
+                                            <div class="stat-value">${escapeHtml(telur)}</div>
+                                        </div>
+                                        <div class="swal-detail-stat-card combined">
+                                            <div class="stat-label">Pakan & Vitamin</div>
+                                            <div class="stat-value">${escapeHtml(feed)}<small class="text-muted">kg</small> <span class="text-muted">/</span> ${escapeHtml(vitamin)}<small class="text-muted">L</small></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="swal-detail-section">
+                                    <div class="fw-semibold mb-2">Catatan Lengkap</div>
+                                    <div class="swal-detail-note-card">
+                                        <div class="card-body">
+                                            <div class="note-content">${catatanHtml}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="swal-detail-footer">
+                                    <div>Dibuat ${escapeHtml(created)}</div>
+                                    <button type="button" class="btn btn-sm btn-primary" data-action="close-detail">
+                                        Tutup
+                                    </button>
+                                </div>
+                            </div>
+                        </div>`;
+
+                    Swal.fire({
+                        html: detailHtml,
+                        width: 760,
+                        customClass: {
+                            popup: 'swal-detail-laporan'
+                        },
+                        showConfirmButton: false,
+                        showCloseButton: false,
+                        focusConfirm: false,
+                        didRender: () => {
+                            const closeBtn = Swal.getPopup()?.querySelector('[data-action="close-detail"]');
+                            if (closeBtn) {
+                                closeBtn.addEventListener('click', () => Swal.close());
+                            }
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+@endpush

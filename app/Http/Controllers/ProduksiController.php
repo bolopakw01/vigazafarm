@@ -448,6 +448,8 @@ class ProduksiController extends Controller
                 ->get();
         }
 
+        $eggsPerTray = (int) config('produksi.eggs_per_tray', 30);
+
         $summary = [
             'total_telur' => $laporanHarian->sum('produksi_telur'),
             'total_kematian' => $laporanHarian->sum('jumlah_kematian'),
@@ -458,6 +460,12 @@ class ProduksiController extends Controller
             'last_sisa_telur' => optional($laporanHarian->first())->sisa_telur,
             'laporan_count' => $laporanHarian->count(),
         ];
+
+        $summary['total_telur_rusak'] = $laporanHarian->sum('telur_rusak');
+        $summary['eggs_per_tray'] = max($eggsPerTray, 1);
+        $summary['total_tray'] = $summary['eggs_per_tray'] > 0
+            ? $summary['total_telur'] / $summary['eggs_per_tray']
+            : 0;
 
         // Death impact per gender to update population and ratio in KAI
         $deathByGender = [
@@ -521,6 +529,8 @@ class ProduksiController extends Controller
 
         $existingEntriesByTab = [
             'telur' => [],
+            'tray' => [],
+            'penjualan' => [],
             'pakan' => [],
             'vitamin' => [],
             'kematian' => [],
@@ -550,6 +560,13 @@ class ProduksiController extends Controller
                 $existingEntriesByTab['kematian'][$dateKey] = true;
             }
 
+            if (
+                $laporanItem->penjualan_telur_butir !== null ||
+                $laporanItem->pendapatan_harian !== null
+            ) {
+                $existingEntriesByTab['penjualan'][$dateKey] = true;
+            }
+
             if (!empty($laporanItem->catatan_kejadian)) {
                 $existingEntriesByTab['laporan'][$dateKey] = true;
             }
@@ -561,6 +578,8 @@ class ProduksiController extends Controller
         $pencatatanProduksi = $produksi->pencatatanProduksi()
             ->orderByDesc('tanggal')
             ->get();
+
+        $summary['total_telur_awal'] = $produksi->jumlah_telur ?? 0;
 
         $historyClearRoute = false; // Route not implemented yet
 
@@ -611,7 +630,7 @@ class ProduksiController extends Controller
         // Build validation rules based on active tab
         $rules = [
             'tanggal' => 'required|date',
-            'active_tab' => 'required|in:telur,pakan,vitamin,kematian,laporan',
+            'active_tab' => 'required|in:telur,penjualan,pakan,vitamin,kematian,laporan',
             'produksi_telur' => 'nullable|integer|min:0',
             'jumlah_kematian' => 'nullable|integer|min:1',
             'jenis_kelamin_kematian' => 'nullable|in:jantan,betina',
@@ -633,6 +652,9 @@ class ProduksiController extends Controller
         switch ($activeTab) {
             case 'telur':
                 $rules['produksi_telur'] = 'required|integer|min:0';
+                break;
+            case 'penjualan':
+                $rules['penjualan_telur_butir'] = 'required|integer|min:0';
                 break;
             case 'pakan':
                 $rules['konsumsi_pakan_kg'] = 'required|numeric|min:0';
@@ -686,6 +708,8 @@ class ProduksiController extends Controller
             'pendapatan_harian.min' => 'Pendapatan harian tidak boleh negatif.',
             'catatan_kejadian.required' => 'Catatan kejadian harus diisi.',
             'catatan_kejadian.max' => 'Catatan kejadian maksimal 2500 karakter.',
+            'sisa_telur.required_without_all' => 'Isi minimal salah satu data stok telur atau tray.',
+            'penjualan_telur_butir.required' => 'Jumlah telur terjual harus diisi.',
         ]);
 
         $activeTab = $validated['active_tab'];
@@ -696,7 +720,7 @@ class ProduksiController extends Controller
             ->first();
 
         // For telur/pakan/vitamin/kematian/laporan inputs, always create a new record to track each submission
-        if (in_array($activeTab, ['telur', 'pakan', 'vitamin', 'kematian', 'laporan'], true)) {
+        if (in_array($activeTab, ['telur', 'penjualan', 'pakan', 'vitamin', 'kematian', 'laporan'], true)) {
             $laporan = new LaporanHarian([
                 'batch_produksi_id' => $produksi->batch_produksi_id,
                 'tanggal' => $validated['tanggal'],
@@ -715,6 +739,15 @@ class ProduksiController extends Controller
                     // For telur, store the input amount directly (each input creates a new record)
                     $updateData['produksi_telur'] = $validated['produksi_telur'];
                     $updateData['input_telur'] = $validated['produksi_telur'];
+                }
+                break;
+
+            case 'penjualan':
+                if (isset($validated['penjualan_telur_butir']) && $validated['penjualan_telur_butir'] !== '') {
+                    $updateData['penjualan_telur_butir'] = (int) $validated['penjualan_telur_butir'];
+                }
+                if (isset($validated['pendapatan_harian']) && $validated['pendapatan_harian'] !== '') {
+                    $updateData['pendapatan_harian'] = (float) $validated['pendapatan_harian'];
                 }
                 break;
 
@@ -750,7 +783,7 @@ class ProduksiController extends Controller
         }
 
         // Handle other fields that might be submitted from any tab
-        $otherFields = ['sisa_tray_bal', 'sisa_tray_lembar', 'sisa_telur', 'penjualan_telur_butir', 'penjualan_puyuh_ekor', 'pendapatan_harian'];
+        $otherFields = ['penjualan_puyuh_ekor'];
         foreach ($otherFields as $field) {
             if (isset($validated[$field]) && $validated[$field] !== null && $validated[$field] !== '') {
                 $updateData[$field] = $validated[$field];
@@ -765,6 +798,8 @@ class ProduksiController extends Controller
         // Generate specific success message based on active tab
         $tabNames = [
             'telur' => 'Telur',
+            'tray' => 'Tray',
+            'penjualan' => 'Penjualan',
             'pakan' => 'Pakan',
             'vitamin' => 'Vitamin',
             'kematian' => 'Kematian',
