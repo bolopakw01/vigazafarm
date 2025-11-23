@@ -5,12 +5,24 @@
 @push('styles')
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-puyuh-produksi.css') }}">
+    <link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-produksi.css') }}">
 @endpush
 
 @section('content')
     @php
         $formatNumber = fn ($value, $decimals = 0) => number_format((float) ($value ?? 0), $decimals, ',', '.');
+        $formatLargeNumber = function ($value) {
+            $value = (float) ($value ?? 0);
+            if ($value >= 1000000000) {
+                return number_format($value / 1000000000, 1, ',', '.') . 'M'; // Miliar
+            } elseif ($value >= 1000000) {
+                return number_format($value / 1000000, 1, ',', '.') . 'Jt'; // Juta
+            } elseif ($value >= 1000) {
+                return number_format($value / 1000, 1, ',', '.') . 'Rb'; // Ribu
+            } else {
+                return number_format($value, 0, ',', '.');
+            }
+        };
 
         $startDate = $produksi->tanggal_mulai ?? $produksi->tanggal ?? optional($produksi->pembesaran)->tanggal_siap;
         $startDateFormatted = $startDate ? \Carbon\Carbon::parse($startDate)->locale('id')->translatedFormat('d M Y') : '-';
@@ -22,14 +34,16 @@
         $initialPopulation = $produksi->jumlah_indukan ?? (($produksi->jumlah_jantan ?? 0) + ($produksi->jumlah_betina ?? 0));
 
         $totalTelur = $summary['total_telur'] ?? 0;
-        $eggsPerTray = $summary['eggs_per_tray'] ?? 30;
+        $eggsPerTray = $summary['eggs_per_tray'] ?? 100;
         $totalTray = $summary['total_tray'] ?? ($eggsPerTray > 0 ? $totalTelur / $eggsPerTray : 0);
         $totalPendapatan = $summary['total_pendapatan'] ?? 0;
         $totalTelurRusak = $summary['total_telur_rusak'] ?? 0;
+        $sisaTelur = $summary['sisa_telur'] ?? 0;
 
         $trayEntries = ($laporanHarian ?? collect())
-            ->filter(fn ($item) => ($item->produksi_telur ?? 0) > 0)
-            ->map(function ($item) use ($eggsPerTray) {
+            ->filter(fn ($item) => ($item->produksi_telur ?? 0) > 0 && !empty($item->nama_tray))
+            ->filter(fn ($item) => !$soldTrayIds->contains($item->id))
+            ->map(function ($item) use ($eggsPerTray, $soldTrayIds) {
                 $trayEstimate = $eggsPerTray > 0 ? ($item->produksi_telur / $eggsPerTray) : 0;
 
                 return [
@@ -44,6 +58,10 @@
                     'dibuat_pada' => $item->dibuat_pada
                         ? $item->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
                         : '—',
+                    'diperbarui_pada' => $item->diperbarui_pada
+                        ? $item->diperbarui_pada->locale('id')->format('d/m/Y, g:i:s A')
+                        : '—',
+                    'is_sold' => $soldTrayIds->contains($item->id),
                 ];
             })
             ->values();
@@ -80,7 +98,7 @@
                                         <span class="fw-semibold ms-1">{{ $endDateFormatted }}</span>
                                     </div>
                                     <div class="text-muted small hide-on-narrow">
-                                        <i class="fa-solid fa-egg me-1" aria-hidden="true"></i>Populasi Awal Telur:
+                                        <i class="fa-solid fa-egg me-1" aria-hidden="true"></i>Total Awal Telur:
                                         <span id="populasi-awal" class="fw-semibold ms-1">{{ $formatNumber($summary['total_telur_awal']) }} butir</span>
                                     </div>
                                 </div>
@@ -100,22 +118,22 @@
             <div class="kai-cards mb-4">
                 <div class="row g-3">
                     <div class="col-lg-3 col-md-6 col-6">
-                        <div class="card-kai kai-teal" id="kai-tray-card">
+                        <div class="card-kai kai-indigo" id="kai-telur-card">
                             <div>
-                                <div class="value" id="kai-tray-value">{{ $formatNumber($totalTray, 0) }}</div>
-                                <div class="label" id="kai-tray-label">Total Tray ({{ $eggsPerTray }} butir/tray)</div>
+                                <div class="value" id="kai-telur-value">{{ $formatNumber($sisaTelur) }}<small style="font-size:0.45em; opacity:0.7;">/{{ $formatNumber($summary['total_telur_awal']) }}</small></div>
+                                <div class="label" id="kai-telur-label">Sisa Telur (butir)</div>
                             </div>
-                            <i class="fa-solid fa-layer-group icon-faint"></i>
+                            <i class="fa-solid fa-egg icon-faint"></i>
                         </div>
                     </div>
 
                     <div class="col-lg-3 col-md-6 col-6">
-                        <div class="card-kai kai-indigo" id="kai-telur-card">
+                        <div class="card-kai kai-teal" id="kai-tray-card">
                             <div>
-                                <div class="value" id="kai-telur-value">{{ $formatNumber($totalTelur) }}</div>
-                                <div class="label" id="kai-telur-label">Total Telur (butir)</div>
+                                <div class="value" id="kai-tray-value">{{ $formatLargeNumber($totalTray) }}</div>
+                                <div class="label" id="kai-tray-label">Total Tray ({{ $eggsPerTray }} butir/tray)</div>
                             </div>
-                            <i class="fa-solid fa-egg icon-faint"></i>
+                            <i class="fa-solid fa-layer-group icon-faint"></i>
                         </div>
                     </div>
 
@@ -132,7 +150,7 @@
                     <div class="col-lg-3 col-md-6 col-6">
                         <div class="card-kai kai-green" id="kai-pendapatan-card">
                             <div>
-                                <div class="value" id="kai-pendapatan-value">Rp {{ $formatNumber($totalPendapatan, 0) }}</div>
+                                <div class="value" id="kai-pendapatan-value">Rp {{ $formatLargeNumber($totalPendapatan) }}</div>
                                 <div class="label" id="kai-pendapatan-label">Total Pendapatan</div>
                             </div>
                             <i class="fa-solid fa-coins icon-faint"></i>
@@ -197,6 +215,16 @@
                         <div id="history-content" class="mt-3">
                             @php
                                 $trayHistoryCollection = $trayHistories ?? collect();
+                                $normalizeTrayName = function ($value) {
+                                    if ($value === null) {
+                                        return null;
+                                    }
+                                    $trimmed = trim($value);
+                                    if ($trimmed === '') {
+                                        return null;
+                                    }
+                                    return function_exists('mb_strtolower') ? mb_strtolower($trimmed) : strtolower($trimmed);
+                                };
                             @endphp
                             @if ($laporanHarian->isEmpty() && $trayHistoryCollection->isEmpty())
                                 <div class="text-muted small">Belum ada pencatatan.</div>
@@ -216,13 +244,29 @@
                                             // Determine icon and color based on action
                                             $trayIcon = 'fa-layer-group'; // default
                                             $trayColorClass = 'entry-tray-default';
+                                            $wasSoldTray = false;
+
+                                            if ($trayHistory->laporan_harian_id !== null && isset($soldTrayIds)) {
+                                                $wasSoldTray = $soldTrayIds->contains($trayHistory->laporan_harian_id);
+                                            }
+
+                                            if (!$wasSoldTray && isset($soldTrayNames)) {
+                                                $normalizedCurrentName = $normalizeTrayName($trayHistory->nama_tray);
+                                                $normalizedOldName = $normalizeTrayName($trayHistory->old_nama_tray);
+
+                                                if ($normalizedCurrentName && $soldTrayNames->contains($normalizedCurrentName)) {
+                                                    $wasSoldTray = true;
+                                                } elseif ($normalizedOldName && $soldTrayNames->contains($normalizedOldName)) {
+                                                    $wasSoldTray = true;
+                                                }
+                                            }
                                             
                                             if ($trayHistory->action === 'updated') {
                                                 $trayIcon = 'fa-edit';
                                                 $trayColorClass = 'entry-tray-updated';
                                             } elseif ($trayHistory->action === 'deleted') {
                                                 $trayIcon = 'fa-trash';
-                                                $trayColorClass = 'entry-tray-deleted';
+                                                $trayColorClass = $wasSoldTray ? 'entry-tray-deleted-sold' : 'entry-tray-deleted';
                                             }
 
                                             // Build title based on action
@@ -271,7 +315,7 @@
                                             $keteranganText = trim($trayHistory->keterangan ?? '');
                                             if ($keteranganText === '') {
                                                 if ($trayHistory->action === 'updated') {
-                                                    $keteranganText = 'di Edit';
+                                                    $keteranganText = 'diubah';
                                                 } elseif ($trayHistory->action === 'deleted') {
                                                     $keteranganText = 'di Hapus';
                                                 }
@@ -453,7 +497,10 @@
                                                         @if ($entry['type'] === 'penjualan')
                                                             <div class="small text-muted">Keterangan: ({{ $laporan->nama_tray_penjualan ?? 'Penjualan Telur' }} | {{ $formatNumber($jumlah) }} butir @ Rp {{ $formatNumber($harga, 0) }})</div>
                                                         @endif
-                                                        @if ($entry['type'] !== 'penjualan')
+                                                        @if ($entry['type'] === 'telur')
+                                                            <div class="small text-muted">Keterangan: ({{ $laporan->nama_tray ?? 'Tray Telur' }})</div>
+                                                        @endif
+                                                        @if ($entry['type'] !== 'penjualan' && $entry['type'] !== 'telur')
                                                             <small>{{ $createdAtFormatted }}</small>
                                                         @endif
                                                     </div>
@@ -465,6 +512,13 @@
                                                         @endif
 
                                                         @if ($entry['type'] === 'penjualan')
+                                                            <div class="text-end">
+                                                                <div class="small text-muted">{{ $laporan->dibuat_pada ? $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A') : '—' }}</div>
+                                                                <div class="small text-muted">oleh {{ optional($laporan->pengguna)->nama_pengguna ?? '—' }}</div>
+                                                            </div>
+                                                        @endif
+
+                                                        @if ($entry['type'] === 'telur')
                                                             <div class="text-end">
                                                                 <div class="small text-muted">{{ $laporan->dibuat_pada ? $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A') : '—' }}</div>
                                                                 <div class="small text-muted">oleh {{ optional($laporan->pengguna)->nama_pengguna ?? '—' }}</div>
@@ -485,14 +539,28 @@
                                                                 $catatanUser = optional($laporan->pengguna)->username
                                                                     ?? optional($laporan->pengguna)->nama_pengguna
                                                                     ?? '—';
-                                                                $populasiValue = $formatNumber($laporan->jumlah_burung ?? ($produksi->jumlah_indukan ?? 0));
-                                                                $feedValue = $formatNumber($laporan->konsumsi_pakan_kg ?? 0, 2);
-                                                                $deathValue = $formatNumber($laporan->jumlah_kematian ?? 0);
-                                                                $telurValue = $formatNumber($laporan->jumlah_telur ?? 0);
-                                                                $vitaminValue = $formatNumber($laporan->konsumsi_vitamin_l ?? 0, 2);
-                                                                $mortalityPercent = ($laporan->jumlah_burung ?? 0) > 0
-                                                                    ? number_format((($laporan->jumlah_kematian ?? 0) / max($laporan->jumlah_burung, 1)) * 100, 2, ',', '.')
-                                                                    : '0,00';
+                                                                
+                                                                // Hitung data KAI untuk produksi telur
+                                                                $totalTelurHarian = $laporanHarian->where('tanggal', $laporan->tanggal)->sum('produksi_telur');
+                                                                $totalTrayHarian = $laporanHarian->where('tanggal', $laporan->tanggal)->whereNotNull('nama_tray')->where('produksi_telur', '>', 0)->count();
+                                                                $totalPendapatanHarian = $laporanHarian->where('tanggal', $laporan->tanggal)->sum('pendapatan_harian');
+                                                                $totalTelurRusakHarian = $laporanHarian->where('tanggal', $laporan->tanggal)->sum('telur_rusak');
+                                                                
+                                                                // Hitung total telur awal (total produksi + telur rusak)
+                                                                $totalTelurAwalHarian = $totalTelurHarian + $totalTelurRusakHarian;
+                                                                
+                                                                // Hitung sisa telur berdasarkan data saat laporan dibuat
+                                                                $totalTelurAktifHarian = $laporanHarian->where('tanggal', $laporan->tanggal)
+                                                                    ->whereNotIn('id', $soldTrayIds)
+                                                                    ->whereNotNull('nama_tray')
+                                                                    ->sum('produksi_telur');
+                                                                $sisaTelurHarian = max(0, ($summary['total_telur_awal'] ?? 0) - $totalTelurAktifHarian);
+                                                                
+                                                                $sisaTelurValue = $formatNumber($sisaTelurHarian);
+                                                                $totalTelurAwalValue = $formatNumber($totalTelurAwalHarian);
+                                                                $totalTrayValue = $formatNumber($totalTrayHarian);
+                                                                $totalPendapatanValue = $formatLargeNumber($totalPendapatanHarian);
+                                                                $totalTelurRusakValue = $formatNumber($totalTelurRusakHarian);
                                                             @endphp
                                                             <button type="button"
                                                                 class="btn btn-sm btn-outline-info detail-catatan-btn"
@@ -500,12 +568,11 @@
                                                                 data-tanggal="{{ e($catatanTanggal) }}"
                                                                 data-created="{{ e($catatanCreated) }}"
                                                                 data-user="{{ e($catatanUser) }}"
-                                                                data-populasi="{{ e($populasiValue) }}"
-                                                                data-feed="{{ e($feedValue) }}"
-                                                                data-death="{{ e($deathValue) }}"
-                                                                data-telur="{{ e($telurValue) }}"
-                                                                data-vitamin="{{ e($vitaminValue) }}"
-                                                                data-mortality="{{ e($mortalityPercent) }}">
+                                                                data-sisa-telur="{{ e($sisaTelurValue) }}"
+                                                                data-total-telur-awal="{{ e($totalTelurAwalValue) }}"
+                                                                data-total-tray="{{ e($totalTrayValue) }}"
+                                                                data-total-pendapatan="{{ e($totalPendapatanValue) }}"
+                                                                data-telur-rusak="{{ e($totalTelurRusakValue) }}">
                                                                 Detail
                                                             </button>
                                                         @endif
@@ -721,13 +788,43 @@
         }
 
         /* Background colors for entry dots */
-        .entry-telur .dot { background-color: #f59e0b; } /* amber */
-        .entry-tray .dot { background-color: #3b82f6; } /* blue */
-        .entry-penjualan .dot { background-color: #198754; } /* green */
+        .entry-telur .dot { background-color: var(--accent); } /* telur theme color */
+        .entry-tray .dot { background-color: #0ea5a4; } /* tray theme color - teal */
+        .entry-tray-default .dot { background-color: #0ea5a4; } /* tray default theme color */
+        .entry-tray-updated .dot { background-color: #0ea5a4; } /* tray updated theme color */
+        .entry-penjualan .dot { background-color: #10b981; } /* penjualan theme color - green (same as KAI income) */
         .entry-pakan .dot { background-color: #f97316; } /* orange */
         .entry-vitamin .dot { background-color: #8b5cf6; } /* violet */
-        .entry-kematian .dot { background-color: #dc2626; } /* red */
+        .entry-kematian .dot { background-color: #ef4444; } /* red */
         .entry-laporan .dot { background-color: #6b7280; } /* gray */
+        .entry-tray-deleted .dot { background-color: #ef4444; } /* red for deleted trays */
+        .entry-tray-deleted-sold .dot { background-color: #6c757d; } /* gray for deleted sold trays */
+
+        .tray-card-sold {
+            background-color: #f8f9fa !important;
+            opacity: 0.6;
+        }
+
+        .tray-card-sold .tray-card-header {
+            background-color: #6c757d !important;
+            opacity: 1 !important;
+        }
+
+        .tray-card-sold .tray-card-title {
+            color: white !important;
+        }
+
+        .tray-card-sold .tray-card-updated .text-light {
+            color: #e9ecef !important;
+        }
+
+        .tray-card-grid.tray-card-sold .egg-background {
+            background-color: #adb5bd !important; /* lighter gray */
+        }
+
+        .tray-card-grid.tray-card-sold .tray-date {
+            color: black !important;
+        }
     </style>
 @endpush
 
@@ -762,8 +859,8 @@
 
                 const tabColors = {
                     'telur': 'text-telur',
-                    'tray': 'text-info',
-                    'penjualan': 'text-success',
+                    'tray': 'text-tray',
+                    'penjualan': 'text-laporan',
                     'pakan': 'text-pakan',
                     'vitamin': 'text-vitamin',
                     'kematian': 'text-kematian',
@@ -892,12 +989,11 @@
                     const tanggal = data.tanggal || '-';
                     const created = data.created || '-';
                     const user = data.user || '—';
-                    const populasi = data.populasi || '-';
-                    const feed = data.feed || '-';
-                    const mortality = data.mortality || '0,00';
-                    const death = data.death || '0';
-                    const telur = data.telur || '0';
-                    const vitamin = data.vitamin || '0,00';
+                    const sisaTelur = data.sisaTelur || '0';
+                    const totalTelurAwal = data.totalTelurAwal || '0';
+                    const totalTray = data.totalTray || '0';
+                    const totalPendapatan = data.totalPendapatan || '0';
+                    const telurRusak = data.telurRusak || '0';
                     const catatanRaw = data.catatan || '-';
                     const catatanHtml = escapeHtml(catatanRaw).replace(/\n/g, '<br>');
 
@@ -905,19 +1001,19 @@
                         <div class="swal-detail-card">
                             <div class="swal-detail-header">
                                 <div class="title">
-                                    <i class="fa-solid fa-clipboard-list"></i>
-                                    <span>Detail Laporan Harian</span>
+                                    <i class="fa-solid fa-egg"></i>
+                                    <span>Detail Produksi Telur</span>
                                 </div>
                             </div>
                             <div class="swal-detail-body">
                                 <div class="swal-detail-section">
                                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
                                         <div class="text-start">
-                                            <small class="text-muted"><i class="fa-solid fa-calendar-days me-1"></i>Tanggal Laporan</small>
+                                            <small class="text-muted"><i class="fa-solid fa-calendar-days me-1"></i>Tanggal Produksi</small>
                                             <div class="fw-semibold">${escapeHtml(tanggal)}</div>
                                         </div>
                                         <div class="text-md-end">
-                                            <small class="text-muted"><i class="fa-solid fa-user me-1"></i>Dibuat Oleh</small>
+                                            <small class="text-muted"><i class="fa-solid fa-user me-1"></i>Dicatat Oleh</small>
                                             <div class="fw-semibold">${escapeHtml(user)}</div>
                                         </div>
                                     </div>
@@ -926,26 +1022,26 @@
                                 <div class="swal-detail-section">
                                     <div class="swal-detail-stats">
                                         <div class="swal-detail-stat-card">
-                                            <div class="stat-label">Mortalitas</div>
-                                            <div class="stat-value">${escapeHtml(mortality)}<small class="text-muted">%</small></div>
-                                        </div>
-                                        <div class="swal-detail-stat-card">
-                                            <div class="stat-label">Jumlah Puyuh</div>
-                                            <div class="stat-value">${escapeHtml(populasi)}</div>
-                                        </div>
-                                        <div class="swal-detail-stat-card">
-                                            <div class="stat-label">Jumlah Telur</div>
-                                            <div class="stat-value">${escapeHtml(telur)}</div>
+                                            <div class="stat-label">Sisa Telur</div>
+                                            <div class="stat-value">${escapeHtml(sisaTelur)}</div>
                                         </div>
                                         <div class="swal-detail-stat-card combined">
-                                            <div class="stat-label">Pakan & Vitamin</div>
-                                            <div class="stat-value">${escapeHtml(feed)}<small class="text-muted">kg</small> <span class="text-muted">/</span> ${escapeHtml(vitamin)}<small class="text-muted">L</small></div>
+                                            <div class="stat-label">Total Telur</div>
+                                            <div class="stat-value">${escapeHtml(telurRusak)}<small class="text-muted"> rusak</small></div>
+                                        </div>
+                                        <div class="swal-detail-stat-card">
+                                            <div class="stat-label">Total Tray</div>
+                                            <div class="stat-value">${escapeHtml(totalTray)}</div>
+                                        </div>
+                                        <div class="swal-detail-stat-card">
+                                            <div class="stat-label">Total Pendapatan</div>
+                                            <div class="stat-value">Rp ${escapeHtml(totalPendapatan)}</div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="swal-detail-section">
-                                    <div class="fw-semibold mb-2">Catatan Lengkap</div>
+                                    <div class="fw-semibold mb-2">Catatan Produksi</div>
                                     <div class="swal-detail-note-card">
                                         <div class="card-body">
                                             <div class="note-content">${catatanHtml}</div>
@@ -954,7 +1050,7 @@
                                 </div>
 
                                 <div class="swal-detail-footer">
-                                    <div>Dibuat ${escapeHtml(created)}</div>
+                                    <div>Dicatat ${escapeHtml(created)}</div>
                                     <button type="button" class="btn btn-sm btn-primary" data-action="close-detail">
                                         Tutup
                                     </button>

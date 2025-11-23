@@ -27,7 +27,7 @@
     <div class="col-md-6">
       <label class="form-label">Jenis Input <span class="required">*</span></label>
       @php
-        $jenisInput = old('jenis_input', 'manual');
+        $jenisInput = old('jenis_input', $defaultJenisInput ?? 'manual');
       @endphp
       <div class="d-flex flex-wrap gap-3 mt-2 jenis-input-radios">
         <div class="form-check">

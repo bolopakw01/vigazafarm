@@ -11,7 +11,7 @@
         $userInitial = function_exists('mb_substr')
             ? mb_strtoupper(mb_substr($initialSource, 0, 1))
             : strtoupper(substr($initialSource, 0, 1));
-  $profilePhotoPath = $authUser && $authUser->foto_profil ? asset('foto_profil/' . $authUser->foto_profil) : null;
+  $profilePhotoPath = $authUser && $authUser->foto_profil && file_exists(public_path('foto_profil/' . $authUser->foto_profil)) ? asset('foto_profil/' . $authUser->foto_profil) : null;
         $userRoleLabel = $authUser && $authUser->peran === 'owner' ? 'owner' : 'operator';
     @endphp
     <div class="bolopa-header-vigazafarm-header-left">

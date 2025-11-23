@@ -24,7 +24,13 @@
 
 <div class="card mb-4">
     <div class="card-body">
-        <form action="{{ route('admin.produksi.laporan.store', $produksi) }}" method="POST" id="pencatatanForm" data-generate-url="{{ route('admin.produksi.laporan.generate-summary', $produksi) }}">
+        <form
+            action="{{ route('admin.produksi.laporan.store', $produksi) }}"
+            method="POST"
+            id="pencatatanForm"
+            data-generate-url="{{ route('admin.produksi.laporan.generate-summary', $produksi) }}"
+            data-variant="{{ $tabVariant }}"
+        >
             @csrf
             <input type="hidden" name="active_tab" id="activeTabInput" value="telur">
 
@@ -81,7 +87,7 @@
                                 <label for="tanggal" class="form-label">Tanggal</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fa-solid fa-calendar-days"></i></span>
-                                    <input type="date" name="tanggal" id="tanggal" class="form-control" value="{{ $defaultTanggal }}" required>
+                                    <input type="date" name="tanggal" id="tanggal" class="form-control" value="{{ $defaultTanggal }}">
                                 </div>
                                 <div class="form-hint">Pilih tanggal pencatatan (format YYYY-MM-DD).</div>
                             </div>
@@ -89,9 +95,9 @@
                                 <label for="produksi_telur" class="form-label">Jumlah Telur (butir)</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fa-solid fa-egg"></i></span>
-                                    <input type="number" name="produksi_telur" id="produksi_telur" class="form-control" min="0" value="{{ $defaultProduksiTelur }}">
+                                    <input type="number" name="produksi_telur" id="produksi_telur" class="form-control" min="0" max="100" value="{{ $defaultProduksiTelur }}">
                                 </div>
-                                <div class="form-hint">Masukkan total telur yang dipanen hari ini.</div>
+                                <div class="form-hint">Masukkan total telur yang dipanen hari ini (maksimal 100 butir).</div>
                             </div>
                         </div>
                     </div>
@@ -109,10 +115,10 @@
                                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
                                     <div class="small text-muted">Pilih tampilan untuk meninjau data tray.</div>
                                     <div class="btn-group btn-group-sm tray-view-toggle" role="group" aria-label="Mode Tampilan Tray">
-                                        <button type="button" class="btn btn-outline-primary active" data-tray-view="list">
+                                        <button type="button" class="btn btn-outline-secondary btn-tray-view" data-tray-view="list">
                                             <i class="fa-solid fa-list me-1"></i>List
                                         </button>
-                                        <button type="button" class="btn btn-outline-primary" data-tray-view="grid">
+                                        <button type="button" class="btn btn-outline-secondary btn-tray-view active" data-tray-view="grid">
                                             <i class="fa-solid fa-table-cells-large me-1"></i>Grid
                                         </button>
                                     </div>
@@ -137,7 +143,7 @@
                                     <span class="text-muted small">Total: <span id="trayCount">{{ $trayEntries->count() }}</span> tray</span>
                                 </div>
 
-                                <div id="trayListView" class="tray-view">
+                                <div id="trayListView" class="tray-view d-none">
                                     <div class="tray-list-cards">
                                         @foreach ($trayEntries as $entry)
                                             <div class="tray-card" data-tray-id="{{ $entry['id'] }}">
@@ -148,7 +154,7 @@
                                                             Tray - {{ $entry['tanggal'] }}
                                                         </div>
                                                         <div class="tray-card-updated">
-                                                            <small class="text-light">Diupdate: {{ $entry['dibuat_pada'] }}</small>
+                                                            <small class="text-light">Diupdate: {{ $entry['diperbarui_pada'] }}</small>
                                                         </div>
                                                     </div>
                                                     <div class="tray-card-actions">
@@ -187,7 +193,7 @@
                                     </div>
                                 </div>
 
-                                <div id="trayGridView" class="tray-view d-none">
+                                <div id="trayGridView" class="tray-view">
                                     <div class="tray-grid">
                                         @foreach ($trayEntries as $entry)
                                             <div class="tray-card-grid" data-tray-id="{{ $entry['id'] }}">
@@ -220,7 +226,7 @@
                                     <label for="tanggal_penjualan" class="form-label">Tanggal Penjualan</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fa-solid fa-calendar-days"></i></span>
-                                        <input type="date" name="tanggal_penjualan" id="tanggal_penjualan" class="form-control" value="{{ $defaultTanggal }}" required>
+                                        <input type="date" name="tanggal_penjualan" id="tanggal_penjualan" class="form-control" value="{{ $defaultTanggal }}">
                                     </div>
                                     <div class="form-hint">Pilih tanggal penjualan telur.</div>
                                 </div>
@@ -228,13 +234,15 @@
                                     <label for="tray_penjualan" class="form-label">Pilih Tray</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fa-solid fa-layer-group"></i></span>
-                                        <select name="tray_penjualan" id="tray_penjualan" class="form-select" required>
+                                        <select name="tray_penjualan" id="tray_penjualan" class="form-select">
                                             <option value="" disabled selected>Pilih tray yang akan dijual</option>
                                             @if($trayEntries && $trayEntries->isNotEmpty())
                                                 @foreach($trayEntries as $tray)
-                                                    <option value="{{ $tray['id'] }}" data-jumlah="{{ $tray['jumlah_telur'] }}">
-                                                        {{ $tray['nama_tray'] ?? 'Tray ' . $tray['tanggal'] }} ({{ $tray['jumlah_telur'] }} butir - {{ $tray['tanggal'] }})
-                                                    </option>
+                                                    @if(!$tray['is_sold'])
+                                                        <option value="{{ $tray['id'] }}" data-jumlah="{{ $tray['jumlah_telur'] }}">
+                                                            {{ $tray['nama_tray'] ?? 'Tray ' . $tray['tanggal'] }} ({{ $tray['jumlah_telur'] }} butir - {{ $tray['tanggal'] }})
+                                                        </option>
+                                                    @endif
                                                 @endforeach
                                             @endif
                                         </select>
@@ -245,7 +253,7 @@
                                     <label for="jumlah_telur_terjual" class="form-label">Jumlah Telur Terjual (butir)</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fa-solid fa-egg"></i></span>
-                                        <input type="number" name="jumlah_telur_terjual" id="jumlah_telur_terjual" class="form-control" min="1" placeholder="Masukkan jumlah" required>
+                                        <input type="number" name="jumlah_telur_terjual" id="jumlah_telur_terjual" class="form-control" min="1" placeholder="Masukkan jumlah">
                                     </div>
                                     <div class="form-hint">Masukkan jumlah telur yang terjual dari tray yang dipilih.</div>
                                 </div>
@@ -253,7 +261,7 @@
                                     <label for="harga_penjualan" class="form-label">Harga per Butir (Rp)</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fa-solid fa-money-bill-wave"></i></span>
-                                        <input type="number" name="harga_penjualan" id="harga_penjualan" class="form-control" min="0" step="100" placeholder="Masukkan harga" value="{{ number_format($defaultHargaPerButir, 0, '.', '') }}" required>
+                                        <input type="number" name="harga_penjualan" id="harga_penjualan" class="form-control" min="0" step="100" placeholder="Masukkan harga" value="{{ number_format($defaultHargaPerButir, 0, '.', '') }}">
                                     </div>
                                     <div class="form-hint">Masukkan harga jual per butir telur.</div>
                                 </div>
@@ -269,7 +277,7 @@
                                     <label for="tanggal_pakan" class="form-label">Tanggal</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fa-solid fa-calendar-days"></i></span>
-                                        <input type="date" name="tanggal" id="tanggal_pakan" class="form-control" value="{{ $defaultTanggal }}" required>
+                                        <input type="date" name="tanggal" id="tanggal_pakan" class="form-control" value="{{ $defaultTanggal }}">
                                     </div>
                                     <div class="form-hint">Pilih tanggal pencatatan pakan (format YYYY-MM-DD).</div>
                                 </div>
@@ -301,7 +309,7 @@
                                     <label for="tanggal_vitamin" class="form-label">Tanggal</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fa-solid fa-calendar-days"></i></span>
-                                        <input type="date" name="tanggal" id="tanggal_vitamin" class="form-control" value="{{ $defaultTanggal }}" required>
+                                        <input type="date" name="tanggal" id="tanggal_vitamin" class="form-control" value="{{ $defaultTanggal }}">
                                     </div>
                                     <div class="form-hint">Pilih tanggal pencatatan vitamin (format YYYY-MM-DD).</div>
                                 </div>
@@ -333,7 +341,7 @@
                                     <label for="tanggal_kematian" class="form-label">Tanggal</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fa-solid fa-calendar-days"></i></span>
-                                        <input type="date" name="tanggal" id="tanggal_kematian" class="form-control" value="{{ $defaultTanggal }}" required>
+                                        <input type="date" name="tanggal" id="tanggal_kematian" class="form-control" value="{{ $defaultTanggal }}">
                                     </div>
                                     <div class="form-hint">Pilih tanggal kejadian.</div>
                                 </div>
@@ -375,7 +383,7 @@
                                 <label for="tanggal_laporan" class="form-label">Tanggal</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fa-solid fa-calendar-days"></i></span>
-                                    <input type="date" name="tanggal" id="tanggal_laporan" class="form-control" value="{{ $defaultTanggal }}" required>
+                                    <input type="date" name="tanggal" id="tanggal_laporan" class="form-control" value="{{ $defaultTanggal }}">
                                 </div>
                                 <div class="form-hint">Pilih tanggal laporan.</div>
                             </div>
@@ -405,8 +413,6 @@
             </div>
         </form>
 
-        <link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-telur-produksi.css') }}">
-
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const tabs = document.querySelectorAll('#pencatatanTabs .nav-link');
@@ -416,6 +422,7 @@
                 const form = document.getElementById('pencatatanForm');
                 const activeTabInput = document.getElementById('activeTabInput');
                 const generateUrl = form?.dataset?.generateUrl;
+                const formVariant = form?.dataset?.variant ?? 'puyuh';
                 const existingEntriesByTab = @json($existingEntriesByTab);
                 const trayListView = document.getElementById('trayListView');
                 const trayGridView = document.getElementById('trayGridView');
@@ -465,14 +472,39 @@
                 }
 
                 function renderTrays(filteredEntries) {
+                    if (!trayListView || !trayGridView) return;
+
                     // Generate list HTML
                     let listHtml = '<div class="tray-list-cards">';
                     filteredEntries.forEach(entry => {
                         const name = entry.nama_tray || `Tray ${entry.tanggal}`;
                         const safeName = escapeHtml(name);
                         const safeKeterangan = escapeHtml(entry.keterangan_tray || '');
+                        const isSold = entry.is_sold;
+                        const soldClass = isSold ? 'tray-card-sold' : '';
+                        let actionsHtml = '';
+                        if (isSold) {
+                            actionsHtml = `<button type="button" class="btn btn-sm btn-danger tray-delete-btn" data-id="${entry.id}">
+                                <i class="fa-solid fa-trash"></i> Hapus
+                            </button>`;
+                        } else {
+                            actionsHtml = `
+                                <button type="button" class="btn btn-sm btn-outline-light me-1 tray-edit-btn" data-id="${entry.id}">
+                                    <i class="fa-solid fa-edit"></i> Edit
+                                </button>
+                                <button type="button" class="btn btn-sm btn-primary me-1 tray-save-btn d-none" data-id="${entry.id}">
+                                    <i class="fa-solid fa-save"></i> Save
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary me-1 tray-cancel-btn d-none" data-id="${entry.id}">
+                                    <i class="fa-solid fa-times"></i> Cancel
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger tray-delete-btn" data-id="${entry.id}">
+                                    <i class="fa-solid fa-trash"></i> Hapus
+                                </button>
+                            `;
+                        }
                         listHtml += `
-                            <div class="tray-card" data-tray-id="${entry.id}">
+                            <div class="tray-card ${soldClass}" data-tray-id="${entry.id}">
                                 <div class="tray-card-header">
                                     <div class="tray-card-title-section">
                                         <div class="tray-card-title">
@@ -480,22 +512,11 @@
                                             ${safeName}
                                         </div>
                                         <div class="tray-card-updated">
-                                            <small class="text-light">Diupdate: ${entry.dibuat_pada}</small>
+                                            <small class="text-light">Diupdate: ${entry.diperbarui_pada}</small>
                                         </div>
                                     </div>
                                     <div class="tray-card-actions">
-                                        <button type="button" class="btn btn-sm btn-outline-light me-1 tray-edit-btn" data-id="${entry.id}">
-                                            <i class="fa-solid fa-edit"></i> Edit
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-primary me-1 tray-save-btn d-none" data-id="${entry.id}">
-                                            <i class="fa-solid fa-save"></i> Save
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-secondary me-1 tray-cancel-btn d-none" data-id="${entry.id}">
-                                            <i class="fa-solid fa-times"></i> Cancel
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-danger tray-delete-btn" data-id="${entry.id}">
-                                            <i class="fa-solid fa-trash"></i> Hapus
-                                        </button>
+                                        ${actionsHtml}
                                     </div>
                                 </div>
                                 <div class="tray-card-body">
@@ -523,8 +544,10 @@
                     // Generate grid HTML
                     let gridHtml = '<div class="tray-grid">';
                     filteredEntries.forEach(entry => {
+                        const isSold = entry.is_sold;
+                        const soldClass = isSold ? 'tray-card-sold' : '';
                         gridHtml += `
-                            <div class="tray-card-grid" data-tray-id="${entry.id}">
+                            <div class="tray-card-grid ${soldClass}" data-tray-id="${entry.id}">
                                 <div class="egg-background">
                                     <i class="fa-solid fa-egg egg-icon"></i>
                                     <div class="egg-number">${entry.jumlah_telur}</div>
@@ -537,10 +560,11 @@
                     trayGridView.innerHTML = gridHtml;
 
                     // Update count
-                    document.getElementById('trayCount').textContent = filteredEntries.length;
-                }
-
-                // Initial render
+                    const countElement = document.getElementById('trayCount');
+                    if (countElement) {
+                        countElement.textContent = filteredEntries.length;
+                    }
+                }                // Initial render
                 renderTrays(sortTrays(originalTrayEntries, 'date-desc'));
 
                 // Search and sort listeners
@@ -690,15 +714,45 @@
                     }
                 });
 
-                // Set initial color based on active tab
+                function updateRequiredFields(activeTabId) {
+                    // Define required fields per tab
+                    const tabFields = {
+                        telur: ['tanggal', 'produksi_telur'],
+                        tray: [], // tray tab has no direct form fields
+                        penjualan: ['tanggal_penjualan', 'tray_penjualan', 'jumlah_telur_terjual', 'harga_penjualan'],
+                        pakan: ['tanggal_pakan', 'konsumsi_pakan_kg'],
+                        vitamin: ['tanggal_vitamin', 'vitamin_terpakai'],
+                        kematian: ['tanggal_kematian', 'jumlah_kematian', 'jenis_kelamin_kematian'],
+                        laporan: ['tanggal_laporan', 'catatan_kejadian']
+                    };
+
+                    // Remove required from all fields first
+                    const allFields = ['tanggal', 'produksi_telur', 'tanggal_penjualan', 'tray_penjualan', 'jumlah_telur_terjual', 'harga_penjualan', 'tanggal_pakan', 'konsumsi_pakan_kg', 'tanggal_vitamin', 'vitamin_terpakai', 'tanggal_kematian', 'jumlah_kematian', 'jenis_kelamin_kematian', 'tanggal_laporan', 'catatan_kejadian'];
+                    allFields.forEach(fieldId => {
+                        const field = document.getElementById(fieldId);
+                        if (field) {
+                            field.required = false;
+                        }
+                    });
+
+                    // Add required to active tab fields
+                    if (tabFields[activeTabId]) {
+                        tabFields[activeTabId].forEach(fieldId => {
+                            const field = document.getElementById(fieldId);
+                            if (field) {
+                                field.required = true;
+                            }
+                        });
+                    }
+                }
+
+                // Set initial active tab
                 const activeTab = document.querySelector('#pencatatanTabs .nav-link.active');
                 let currentTabId = 'telur';
                 if (activeTab) {
                     currentTabId = activeTab.getAttribute('data-bs-target').substring(1);
                 }
-                updateButtonColor(currentTabId);
-                toggleGenerateButton(currentTabId);
-                toggleSaveAvailability(currentTabId);
+                updateRequiredFields(currentTabId);
 
                 // Listen for tab changes
                 tabs.forEach(tab => {
@@ -713,6 +767,9 @@
                         if (activeTabInput) {
                             activeTabInput.value = targetId;
                         }
+
+                        // Update required attributes based on active tab
+                        updateRequiredFields(targetId);
                     });
                 });
 
@@ -724,7 +781,7 @@
                 });
 
                 if (trayListView && trayGridView) {
-                    setTrayView('list');
+                    setTrayView('grid');
                 }
 
                 // Handle grid card click to expand with list view below
@@ -936,7 +993,7 @@
                         }
 
                         function performGeneration() {
-                            const params = new URLSearchParams({ tanggal: tanggalField.value });
+                            const params = new URLSearchParams({ tanggal: tanggalField.value, variant: formVariant });
                             const originalLabel = generateButton.innerHTML;
                             generateButton.disabled = true;
                             generateButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Generating...';

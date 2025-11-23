@@ -12,10 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('laporan_harian', function (Blueprint $table) {
-            try {
-                $table->dropUnique('unique_batch_tanggal');
-            } catch (Exception $e) {
-                // Index might not exist, continue
+            if (!Schema::hasColumn('laporan_harian', 'telur_rusak')) {
+                $table->integer('telur_rusak')->default(0)->after('produksi_telur')->comment('Jumlah telur rusak/rusak (butir)');
             }
         });
     }
@@ -26,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('laporan_harian', function (Blueprint $table) {
-            $table->unique(['batch_produksi_id', 'tanggal'], 'unique_batch_tanggal');
+            if (Schema::hasColumn('laporan_harian', 'telur_rusak')) {
+                $table->dropColumn('telur_rusak');
+            }
         });
     }
 };
