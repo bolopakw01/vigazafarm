@@ -207,10 +207,10 @@
       </div>
     </div>
     <div class="col-md-6">
-      <label for="harga_per_kg" class="form-label">Harga per KG</label>
-      <input type="number" step="0.01" id="harga_per_kg" name="harga_per_kg" class="form-control" min="0" value="{{ old('harga_per_kg') }}">
+      <label for="harga_per_pcs" class="form-label">Harga per Butir</label>
+      <input type="number" step="0.01" id="harga_per_pcs" name="harga_per_pcs" class="form-control" min="0" value="{{ number_format(old('harga_per_pcs'), 0) }}">
       <div class="form-text">
-        <small class="text-muted field-hint-manual field-hint-pembesaran">Harga jual per kilogram telur (opsional).</small>
+        <small class="text-muted field-hint-manual field-hint-pembesaran">Harga jual per butir telur (opsional).</small>
         <small class="text-muted field-hint-penetasan" style="display:none;">Harga jual per butir telur (opsional).</small>
       </div>
     </div>

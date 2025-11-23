@@ -159,6 +159,38 @@
     transition: transform 0.3s ease-in-out;
 }
 
+.empty-penjualan-state {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+
+.empty-penjualan-block {
+    border: 1px dashed #d4d8e3;
+    border-radius: 0.75rem;
+    padding: 0.85rem 1rem;
+    background: #f8fafc;
+}
+
+.empty-label {
+    display: block;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 0.35rem;
+}
+
+.empty-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 0.2rem;
+}
+
+.empty-hint {
+    color: #94a3b8;
+}
+
 @keyframes ai-generate {
     0%, 100% {
         transform: scale(1);

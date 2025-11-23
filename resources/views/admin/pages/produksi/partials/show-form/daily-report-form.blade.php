@@ -19,6 +19,7 @@
     $trayEntries = collect($trayEntries ?? []);
     $trayEggsPerTray = $eggsPerTray ?? 30;
     $formatTrayNumber = fn ($value, $decimals = 0) => number_format((float) ($value ?? 0), $decimals, ',', '.');
+    $defaultHargaPerButir = $defaultHargaPerButir ?? null;
 @endphp
 
 <div class="card mb-4">
@@ -215,29 +216,46 @@
                         <div class="record-section">
                             <h6><i class="fa-solid fa-cash-register"></i> Catat Penjualan Telur</h6>
                             <div class="row g-3">
-                                <div class="col-12 col-md-4">
-                                    <label for="tanggal_penjualan" class="form-label">Tanggal</label>
+                                <div class="col-12 col-md-6">
+                                    <label for="tanggal_penjualan" class="form-label">Tanggal Penjualan</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fa-solid fa-calendar-days"></i></span>
-                                        <input type="date" name="tanggal" id="tanggal_penjualan" class="form-control" value="{{ $defaultTanggal }}" required>
+                                        <input type="date" name="tanggal_penjualan" id="tanggal_penjualan" class="form-control" value="{{ $defaultTanggal }}" required>
                                     </div>
-                                    <div class="form-hint">Tanggal transaksi penjualan.</div>
+                                    <div class="form-hint">Pilih tanggal penjualan telur.</div>
                                 </div>
-                                <div class="col-12 col-md-4">
-                                    <label for="penjualan_telur_butir" class="form-label">Telur Terjual (butir)</label>
+                                <div class="col-12 col-md-6">
+                                    <label for="tray_penjualan" class="form-label">Pilih Tray</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-layer-group"></i></span>
+                                        <select name="tray_penjualan" id="tray_penjualan" class="form-select" required>
+                                            <option value="" disabled selected>Pilih tray yang akan dijual</option>
+                                            @if($trayEntries && $trayEntries->isNotEmpty())
+                                                @foreach($trayEntries as $tray)
+                                                    <option value="{{ $tray['id'] }}" data-jumlah="{{ $tray['jumlah_telur'] }}">
+                                                        {{ $tray['nama_tray'] ?? 'Tray ' . $tray['tanggal'] }} ({{ $tray['jumlah_telur'] }} butir - {{ $tray['tanggal'] }})
+                                                    </option>
+                                                @endforeach
+                                            @endif
+                                        </select>
+                                    </div>
+                                    <div class="form-hint">Pilih tray yang tersedia untuk dijual.</div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label for="jumlah_telur_terjual" class="form-label">Jumlah Telur Terjual (butir)</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fa-solid fa-egg"></i></span>
-                                        <input type="number" name="penjualan_telur_butir" id="penjualan_telur_butir" class="form-control" min="0" value="{{ $defaultPenjualanTelur }}">
+                                        <input type="number" name="jumlah_telur_terjual" id="jumlah_telur_terjual" class="form-control" min="1" placeholder="Masukkan jumlah" required>
                                     </div>
-                                    <div class="form-hint">Masukkan total telur yang keluar hari ini.</div>
+                                    <div class="form-hint">Masukkan jumlah telur yang terjual dari tray yang dipilih.</div>
                                 </div>
-                                <div class="col-12 col-md-4">
-                                    <label for="pendapatan_harian" class="form-label">Pendapatan (Rp)</label>
+                                <div class="col-12 col-md-6">
+                                    <label for="harga_penjualan" class="form-label">Harga per Butir (Rp)</label>
                                     <div class="input-group">
-                                        <span class="input-group-text"><i class="fa-solid fa-coins"></i></span>
-                                        <input type="number" step="0.01" name="pendapatan_harian" id="pendapatan_harian" class="form-control" min="0" value="{{ $defaultPendapatan }}">
+                                        <span class="input-group-text"><i class="fa-solid fa-money-bill-wave"></i></span>
+                                        <input type="number" name="harga_penjualan" id="harga_penjualan" class="form-control" min="0" step="100" placeholder="Masukkan harga" value="{{ number_format($defaultHargaPerButir, 0, '.', '') }}" required>
                                     </div>
-                                    <div class="form-hint">Nilai pemasukan tunai/non-tunai.</div>
+                                    <div class="form-hint">Masukkan harga jual per butir telur.</div>
                                 </div>
                             </div>
                         </div>
@@ -387,7 +405,7 @@
             </div>
         </form>
 
-        <link rel="stylesheet" href="/bolopa/css/admin-show-telur-produksi.css">
+        <link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-telur-produksi.css') }}">
 
         <script>
             document.addEventListener('DOMContentLoaded', function() {
@@ -403,7 +421,16 @@
                 const trayGridView = document.getElementById('trayGridView');
                 const trayViewToggleButtons = document.querySelectorAll('[data-tray-view]');
                 const originalTrayEntries = @json($trayEntries);
+                const trayUpdateUrlTemplate = @json(route('admin.produksi.tray.update', [$produksi->id, '__TRAY__']));
+                const trayDeleteUrlTemplate = @json(route('admin.produksi.tray.destroy', [$produksi->id, '__TRAY__']));
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
                 let currentFilteredEntries = [...originalTrayEntries];
+                const escapeHtml = (unsafe = '') => unsafe
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
 
                 function filterTrays(searchTerm) {
                     return originalTrayEntries.filter(entry => {
@@ -442,13 +469,15 @@
                     let listHtml = '<div class="tray-list-cards">';
                     filteredEntries.forEach(entry => {
                         const name = entry.nama_tray || `Tray ${entry.tanggal}`;
+                        const safeName = escapeHtml(name);
+                        const safeKeterangan = escapeHtml(entry.keterangan_tray || '');
                         listHtml += `
                             <div class="tray-card" data-tray-id="${entry.id}">
                                 <div class="tray-card-header">
                                     <div class="tray-card-title-section">
                                         <div class="tray-card-title">
                                             <i class="fa-solid fa-layer-group me-2"></i>
-                                            ${name}
+                                            ${safeName}
                                         </div>
                                         <div class="tray-card-updated">
                                             <small class="text-light">Diupdate: ${entry.dibuat_pada}</small>
@@ -473,7 +502,7 @@
                                     <div class="tray-card-content d-flex gap-2">
                                         <div class="tray-field flex-fill">
                                             <label class="tray-label">Nama Tray</label>
-                                            <input type="text" class="form-control form-control-sm tray-name-input" value="${name}" data-original="${name}" disabled>
+                                            <input type="text" class="form-control form-control-sm tray-name-input" value="${safeName}" data-original="${safeName}" disabled>
                                         </div>
                                         <div class="tray-field flex-fill">
                                             <label class="tray-label">Jumlah Telur</label>
@@ -482,7 +511,7 @@
                                     </div>
                                     <div class="tray-keterangan-field d-none mt-2">
                                         <label class="tray-label">Keterangan</label>
-                                        <textarea class="form-control form-control-sm tray-keterangan-input" rows="2" placeholder="Opsional: tambahkan catatan..." data-original=""></textarea>
+                                        <textarea class="form-control form-control-sm tray-keterangan-input" rows="2" placeholder="Opsional: tambahkan catatan..." data-original="${safeKeterangan}">${safeKeterangan}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -725,6 +754,10 @@
                 });
 
                 // Handle tray edit and delete buttons
+                function buildTrayUrl(template, id) {
+                    return template.replace('__TRAY__', id);
+                }
+
                 document.addEventListener('click', function(e) {
                     const card = e.target.closest('.tray-card');
                     if (!card) return;
@@ -744,6 +777,7 @@
                         nameInput.disabled = false;
                         telurInput.disabled = false;
                         keteranganField.classList.remove('d-none');
+                        keteranganInput.value = keteranganInput.getAttribute('data-original') || '';
                         editBtn.classList.add('d-none');
                         deleteBtn.classList.add('d-none');
                         saveBtn.classList.remove('d-none');
@@ -752,7 +786,11 @@
                     }
 
                     if (e.target.closest('.tray-save-btn')) {
-                        // Save changes
+                        if (!csrfToken) {
+                            alert('Token keamanan tidak ditemukan. Segarkan halaman dan coba lagi.');
+                            return;
+                        }
+
                         const newName = nameInput.value.trim();
                         const newTelur = parseInt(telurInput.value) || 0;
                         const newKeterangan = keteranganInput.value.trim();
@@ -762,16 +800,42 @@
                             return;
                         }
 
-                        // Here you would submit to update the laporan
-                        alert(`Saving tray ${id}: Name=${newName}, Telur=${newTelur}, Keterangan=${newKeterangan}`);
-                        // For now, just exit edit mode
-                        nameInput.disabled = true;
-                        telurInput.disabled = true;
-                        keteranganField.classList.add('d-none');
-                        editBtn.classList.remove('d-none');
-                        deleteBtn.classList.remove('d-none');
-                        saveBtn.classList.add('d-none');
-                        cancelBtn.classList.add('d-none');
+                        const payload = {
+                            nama_tray: newName || null,
+                            jumlah_telur: newTelur,
+                            keterangan_tray: newKeterangan || null,
+                        };
+
+                        const originalLabel = saveBtn.innerHTML;
+                        saveBtn.disabled = true;
+                        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Menyimpan...';
+
+                        fetch(buildTrayUrl(trayUpdateUrlTemplate, id), {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                            },
+                            body: JSON.stringify(payload),
+                        })
+                        .then(async response => {
+                            const data = await response.json().catch(() => ({}));
+                            if (!response.ok) {
+                                throw new Error(data.message || 'Gagal memperbarui tray.');
+                            }
+                            return data;
+                        })
+                        .then(() => {
+                            window.location.reload();
+                        })
+                        .catch(error => {
+                            alert(error.message);
+                        })
+                        .finally(() => {
+                            saveBtn.disabled = false;
+                            saveBtn.innerHTML = originalLabel;
+                        });
                     }
 
                     if (e.target.closest('.tray-cancel-btn')) {
@@ -789,8 +853,10 @@
                     }
 
                     if (e.target.closest('.tray-delete-btn')) {
-                        const produksiId = @json($produksi->id);
-
+                        if (!csrfToken) {
+                            alert('Token keamanan tidak ditemukan. Segarkan halaman dan coba lagi.');
+                            return;
+                        }
                         Swal.fire({
                             title: 'Konfirmasi Hapus',
                             text: 'Yakin ingin menghapus entry tray ini? Data telur terkait akan dihapus.',
@@ -803,15 +869,26 @@
                             reverseButtons: true
                         }).then((result) => {
                             if (result.isConfirmed) {
-                                const form = document.createElement('form');
-                                form.method = 'POST';
-                                form.action = `/admin/produksi/${produksiId}/laporan/${id}`;
-                                form.innerHTML = `
-                                    @csrf
-                                    @method('DELETE')
-                                `;
-                                document.body.appendChild(form);
-                                form.submit();
+                                fetch(buildTrayUrl(trayDeleteUrlTemplate, id), {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-CSRF-TOKEN': csrfToken,
+                                    },
+                                })
+                                .then(async response => {
+                                    const data = await response.json().catch(() => ({}));
+                                    if (!response.ok) {
+                                        throw new Error(data.message || 'Gagal menghapus tray.');
+                                    }
+                                    return data;
+                                })
+                                .then(() => {
+                                    window.location.reload();
+                                })
+                                .catch(error => {
+                                    alert(error.message);
+                                });
                             }
                         });
                     }
@@ -894,49 +971,62 @@
                     });
                 }
 
-                // Form submission handler with duplicate-date confirmation
-                if (form) {
-                    form.addEventListener('submit', function(e) {
-                        if (activeTabInput) {
-                            activeTabInput.value = currentTabId;
-                        }
+                // Handle penjualan tray selection and calculations
+                const traySelect = document.getElementById('tray_penjualan');
+                const jumlahTelurInput = document.getElementById('jumlah_telur_terjual');
+                const hargaInput = document.getElementById('harga_penjualan');
 
-                        const tanggalUmum = document.getElementById('tanggal');
-                        if (tanggalUmum) {
-                            syncAllDateInputs(tanggalUmum.value);
-                        }
+                function updateTrayQuantityLimit() {
+                    if (!traySelect || !jumlahTelurInput) return;
 
-                        if (bypassDuplicateCheck) {
-                            bypassDuplicateCheck = false;
-                            return;
-                        }
+                    const selectedOption = traySelect.options[traySelect.selectedIndex];
+                    if (selectedOption && selectedOption.value) {
+                        const maxJumlah = parseInt(selectedOption.getAttribute('data-jumlah')) || 0;
+                        jumlahTelurInput.max = maxJumlah;
+                        jumlahTelurInput.placeholder = `Max: ${maxJumlah} butir`;
+                    } else {
+                        jumlahTelurInput.removeAttribute('max');
+                        jumlahTelurInput.placeholder = 'Masukkan jumlah';
+                    }
+                }
 
-                        const dateFieldId = dateFieldByTab[currentTabId];
-                        const dateField = dateFieldId ? document.getElementById(dateFieldId) : null;
-                        const selectedDate = dateField?.value;
-                        const tabEntries = (existingEntriesByTab && existingEntriesByTab[currentTabId]) || {};
-                        const alreadyRecorded = selectedDate && tabEntries[selectedDate];
-
-                        if (alreadyRecorded) {
-                            e.preventDefault();
-                            Swal.fire({
-                                title: 'Tambah Catatan Lagi?',
-                                text: `${tabLabels[currentTabId] || 'Pencatatan'} untuk tanggal ${selectedDate} sudah tersimpan. Lanjutkan menambahkan data baru?`,
-                                icon: 'warning',
-                                showCancelButton: true,
-                                confirmButtonColor: '#0d6efd',
-                                cancelButtonColor: '#6c757d',
-                                confirmButtonText: 'Ya, Tambahkan',
-                                cancelButtonText: 'Batal',
-                                reverseButtons: true
-                            }).then(result => {
-                                if (result.isConfirmed) {
-                                    bypassDuplicateCheck = true;
-                                    form.submit();
-                                }
-                            });
+                if (traySelect) {
+                    traySelect.addEventListener('change', function() {
+                        updateTrayQuantityLimit();
+                        // Auto-fill quantity when tray changes
+                        if (jumlahTelurInput) {
+                            const selectedOption = traySelect.options[traySelect.selectedIndex];
+                            if (selectedOption && selectedOption.value) {
+                                const maxJumlah = parseInt(selectedOption.getAttribute('data-jumlah')) || 0;
+                                jumlahTelurInput.value = maxJumlah > 0 ? maxJumlah : '';
+                            } else {
+                                jumlahTelurInput.value = '';
+                            }
                         }
                     });
+                }
+
+                if (jumlahTelurInput) {
+                    jumlahTelurInput.addEventListener('input', function() {
+                        const maxJumlah = parseInt(this.max) || 0;
+                        const currentValue = parseInt(this.value) || 0;
+
+                        if (maxJumlah > 0 && currentValue > maxJumlah) {
+                            this.value = maxJumlah;
+                            alert(`Jumlah telur tidak boleh melebihi ${maxJumlah} butir (stok tray yang dipilih).`);
+                        }
+                    });
+                }
+
+                // Initialize calculations on page load
+                updateTrayQuantityLimit();
+                // Auto-fill quantity for initially selected tray
+                if (traySelect && jumlahTelurInput) {
+                    const selectedOption = traySelect.options[traySelect.selectedIndex];
+                    if (selectedOption && selectedOption.value) {
+                        const maxJumlah = parseInt(selectedOption.getAttribute('data-jumlah')) || 0;
+                        jumlahTelurInput.value = maxJumlah > 0 ? maxJumlah : '';
+                    }
                 }
             });
         </script>

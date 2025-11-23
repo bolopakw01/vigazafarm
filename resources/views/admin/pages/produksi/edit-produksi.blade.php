@@ -299,9 +299,9 @@
 										@enderror
 									</div>
 									<div class="col-md-6">
-										<label for="harga_per_kg" class="form-label">Harga per KG</label>
-										<input type="number" step="0.01" min="0" id="harga_per_kg" name="harga_per_kg" class="form-control @error('harga_per_kg') is-invalid @enderror" value="{{ old('harga_per_kg', $produksi->harga_per_kg) }}">
-										@error('harga_per_kg')
+										<label for="harga_per_pcs" class="form-label">Harga per Butir</label>
+										<input type="number" step="0.01" min="0" id="harga_per_pcs" name="harga_per_pcs" class="form-control @error('harga_per_pcs') is-invalid @enderror" value="{{ old('harga_per_pcs', number_format($produksi->harga_per_pcs, 0)) }}">
+										@error('harga_per_pcs')
 											<div class="invalid-feedback">{{ $message }}</div>
 										@enderror
 									</div>
@@ -326,9 +326,9 @@
 										@enderror
 									</div>
 									<div class="col-md-4">
-										<label for="harga_per_kg" class="form-label">Harga per KG</label>
-										<input type="number" step="0.01" min="0" id="harga_per_kg" name="harga_per_kg" class="form-control @error('harga_per_kg') is-invalid @enderror" value="{{ old('harga_per_kg', $produksi->harga_per_kg) }}">
-										@error('harga_per_kg')
+										<label for="harga_per_pcs" class="form-label">Harga per Butir</label>
+										<input type="number" step="0.01" min="0" id="harga_per_pcs" name="harga_per_pcs" class="form-control @error('harga_per_pcs') is-invalid @enderror" value="{{ old('harga_per_pcs', $produksi->harga_per_pcs) }}">
+										@error('harga_per_pcs')
 											<div class="invalid-feedback">{{ $message }}</div>
 										@enderror
 									</div>

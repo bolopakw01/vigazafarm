@@ -62,4 +62,9 @@ class Produksi extends Model
     {
         return $this->hasMany(PencatatanProduksi::class, 'produksi_id');
     }
+
+    public function trayHistories()
+    {
+        return $this->hasMany(TrayHistory::class, 'produksi_id');
+    }
 }

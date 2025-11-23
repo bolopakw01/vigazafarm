@@ -570,6 +570,18 @@ h5 small {
 	background: #3b82f6;
 }
 
+.entry-tray-default .dot {
+	background: #0ea5a4;
+}
+
+.entry-tray-updated .dot {
+	background: #0ea5a4;
+}
+
+.entry-tray-deleted .dot {
+	background: #ef4444;
+}
+
 .list-timeline .entry .entry-body {
 	flex: 1;
 }

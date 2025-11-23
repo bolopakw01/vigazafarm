@@ -37,8 +37,10 @@
                     'tanggal' => $item->tanggal
                         ? $item->tanggal->locale('id')->translatedFormat('d M Y')
                         : '-',
+                    'nama_tray' => $item->nama_tray,
                     'jumlah_telur' => (int) ($item->produksi_telur ?? 0),
                     'estimasi_tray' => $trayEstimate,
+                    'keterangan_tray' => $item->keterangan_tray,
                     'dibuat_pada' => $item->dibuat_pada
                         ? $item->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
                         : '—',
@@ -158,6 +160,10 @@
                 'defaultPenjualanPuyuh' => old('penjualan_puyuh_ekor', optional($todayLaporan)->penjualan_puyuh_ekor),
                 'defaultPendapatan' => old('pendapatan_harian', optional($todayLaporan)->pendapatan_harian),
                 'defaultCatatan' => old('catatan_kejadian', optional($todayLaporan)->catatan_kejadian),
+                'defaultHargaPerButir' => old(
+                    'harga_penjualan',
+                    optional($todayLaporan)->harga_per_butir ?? $produksi->harga_per_pcs ?? null
+                ),
                 'trayEntries' => $trayEntries,
                 'eggsPerTray' => $eggsPerTray,
                 'tabVariant' => 'telur',
@@ -189,10 +195,114 @@
 
                     <div id="history-collapse" class="collapse show">
                         <div id="history-content" class="mt-3">
-                            @if ($laporanHarian->isEmpty())
+                            @php
+                                $trayHistoryCollection = $trayHistories ?? collect();
+                            @endphp
+                            @if ($laporanHarian->isEmpty() && $trayHistoryCollection->isEmpty())
                                 <div class="text-muted small">Belum ada pencatatan.</div>
                             @else
                                 <div class="list-timeline">
+                                    @foreach ($trayHistoryCollection as $trayHistory)
+                                        @php
+                                            $trayActionLabelMap = ['created' => 'Ditambahkan', 'updated' => 'Diedit', 'deleted' => 'Dihapus'];
+                                            $actionLabel = $trayActionLabelMap[$trayHistory->action] ?? ucfirst($trayHistory->action);
+                                            $trayHistoryTitle = ($trayHistory->nama_tray ?? 'Tray tanpa nama') . ' — ' . $actionLabel;
+                                            $trayHistoryDate = optional($trayHistory->tanggal)->locale('id')->translatedFormat('d F Y') ?? '-';
+                                            $trayHistoryTimestamp = optional($trayHistory->created_at)->locale('id')->format('d/m/Y, g:i:s A') ?? '-';
+                                            $trayHistoryAmount = $trayHistory->jumlah_telur ? number_format($trayHistory->jumlah_telur, 0, ',', '.') . ' butir' : null;
+                                            $trayActionClass = $trayHistory->action === 'deleted' ? 'text-danger' : 'text-info';
+                                            $trayHistoryUser = optional($trayHistory->pengguna)->nama_pengguna ?? '—';
+
+                                            // Determine icon and color based on action
+                                            $trayIcon = 'fa-layer-group'; // default
+                                            $trayColorClass = 'entry-tray-default';
+                                            
+                                            if ($trayHistory->action === 'updated') {
+                                                $trayIcon = 'fa-edit';
+                                                $trayColorClass = 'entry-tray-updated';
+                                            } elseif ($trayHistory->action === 'deleted') {
+                                                $trayIcon = 'fa-trash';
+                                                $trayColorClass = 'entry-tray-deleted';
+                                            }
+
+                                            // Build title based on action
+                                            if ($trayHistory->action === 'updated') {
+                                                $namaChanged = $trayHistory->old_nama_tray !== $trayHistory->nama_tray;
+                                                $jumlahChanged = $trayHistory->old_jumlah_telur !== $trayHistory->jumlah_telur;
+
+                                                $arrowStyled = ' <span class="text-connector">→</span> ';
+                                                $pipeStyled = ' <span class="text-connector">|</span> ';
+
+                                                $oldName = $trayHistory->old_nama_tray ?? '—';
+                                                $currentName = $trayHistory->nama_tray ?? '—';
+                                                $nameSegment = $namaChanged
+                                                    ? '(' . $oldName . $arrowStyled . '<span class="text-changed">' . $currentName . '</span>)'
+                                                    : '(' . ($oldName !== '—' ? $oldName : $currentName) . ')';
+
+                                                $formatAmount = function ($value) {
+                                                    return $value !== null
+                                                        ? number_format($value, 0, ',', '.')
+                                                        : '—';
+                                                };
+
+                                                $oldAmount = $formatAmount($trayHistory->old_jumlah_telur);
+                                                $currentAmount = $formatAmount($trayHistory->jumlah_telur);
+                                                $amountSegment = $jumlahChanged
+                                                    ? '(' . $oldAmount . $arrowStyled . '<span class="text-changed">' . $currentAmount . '</span>)'
+                                                    : '(' . ($currentAmount !== '—' ? $currentAmount : $oldAmount) . ')';
+
+                                                $trayHistoryTitle = $nameSegment . $pipeStyled . $amountSegment;
+                                            } elseif ($trayHistory->action === 'deleted') {
+                                                $pipeStyled = ' <span class="text-connector">|</span> ';
+
+                                                $formatAmount = function ($value) {
+                                                    return $value !== null
+                                                        ? number_format($value, 0, ',', '.')
+                                                        : '—';
+                                                };
+
+                                                $deletedName = $trayHistory->nama_tray ?? '—';
+                                                $deletedAmount = $formatAmount($trayHistory->jumlah_telur);
+                                                $trayHistoryTitle = '(' . $deletedName . ')' . $pipeStyled . '(' . $deletedAmount . ')';
+                                            } else {
+                                                $trayHistoryTitle = ($trayHistory->nama_tray ?? 'Tray tanpa nama') . ' — Ditambahkan';
+                                            }
+
+                                            $keteranganText = trim($trayHistory->keterangan ?? '');
+                                            if ($keteranganText === '') {
+                                                if ($trayHistory->action === 'updated') {
+                                                    $keteranganText = 'di Edit';
+                                                } elseif ($trayHistory->action === 'deleted') {
+                                                    $keteranganText = 'di Hapus';
+                                                }
+                                            }
+                                        @endphp
+                                        <div class="entry entry-tray {{ $trayColorClass }}" data-entry-type="tray">
+                                            <div class="entry-left">
+                                                <div class="dot">
+                                                    <i class="fa-solid {{ $trayIcon }}"></i>
+                                                </div>
+                                                <div class="entry-body">
+                                                    <div class="title {{ $trayHistory->action === 'deleted' ? 'text-danger' : '' }}">
+                                                        @if(in_array($trayHistory->action, ['updated', 'deleted']))
+                                                            {!! $trayHistoryTitle !!}
+                                                        @else
+                                                            {{ $trayHistoryDate }} — <span class="{{ $trayActionClass }}">{{ $trayHistoryTitle }}</span>
+                                                        @endif
+                                                    </div>
+                                                    @if ($keteranganText !== '')
+                                                        <div class="small text-muted">Keterangan: ({{ $keteranganText }})</div>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="entry-right">
+                                                <div class="text-end">
+                                                    <div class="small text-muted">{{ $trayHistoryTimestamp }}</div>
+                                                    <div class="small text-muted">oleh {{ $trayHistoryUser }}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
                                     @foreach ($laporanHarian as $laporan)
                                         @if ($laporan->tampilkan_di_histori === false)
                                             @continue
@@ -260,6 +370,19 @@
                                                 ];
                                             }
                                             
+                                            if (($laporan->penjualan_telur_butir ?? 0) > 0) {
+                                                $totalPendapatan = ($laporan->penjualan_telur_butir ?? 0) * ($laporan->harga_per_butir ?? 0);
+                                                $entries[] = [
+                                                    'type' => 'penjualan',
+                                                    'value' => $totalPendapatan,
+                                                    'unit' => 'pendapatan penjualan',
+                                                    'meta' => [
+                                                        'jumlah' => $laporan->penjualan_telur_butir,
+                                                        'harga' => $laporan->harga_per_butir,
+                                                    ],
+                                                ];
+                                            }
+                                            
                                             if (empty($entries) && $laporan->catatan_kejadian) {
                                                 $entries[] = [
                                                     'type' => 'laporan',
@@ -284,6 +407,7 @@
                                                     'vitamin' => 'fa-capsules',
                                                     'tray' => 'fa-layer-group',
                                                     'kematian' => 'fa-skull-crossbones',
+                                                    'penjualan' => 'fa-cash-register',
                                                     'laporan' => 'fa-file-lines',
                                                 ][$entry['type']] ?? 'fa-file-lines';
 
@@ -301,6 +425,10 @@
                                                     $gender = $entry['meta']['gender'] ?? null;
                                                     $genderLabel = $gender ? ' (' . ucfirst($gender) . ')' : '';
                                                     $ringkasan = $formatNumber($entry['value']) . ' ekor kematian' . $genderLabel;
+                                                } elseif ($entry['type'] === 'penjualan') {
+                                                    $jumlah = $entry['meta']['jumlah'] ?? 0;
+                                                    $harga = $entry['meta']['harga'] ?? 0;
+                                                    $ringkasan = 'Rp ' . $formatNumber($entry['value'], 0);
                                                 } else {
                                                     $ringkasan = $entry['value'] 
                                                         ? $formatNumber($entry['value'], $entry['type'] === 'pakan' || $entry['type'] === 'vitamin' ? 2 : 0) . ' ' . $entry['unit']
@@ -315,20 +443,32 @@
                                                     $createdAtFormatted .= ' (' . $entry['meta']['keterangan'] . ')';
                                                 }
                                             @endphp
-                                            <div class="entry entry-{{ $entry['type'] }}">
+                                            <div class="entry entry-{{ $entry['type'] }}" data-entry-type="{{ $entry['type'] }}">
                                                 <div class="entry-left">
                                                     <div class="dot">
                                                         <i class="fa-solid {{ $entryIcon }}"></i>
                                                     </div>
                                                     <div class="entry-body">
                                                         <div class="title">{{ $tanggalEntry }} — {{ $ringkasan }}</div>
-                                                        <small>{{ $createdAtFormatted }}</small>
+                                                        @if ($entry['type'] === 'penjualan')
+                                                            <div class="small text-muted">Keterangan: ({{ $laporan->nama_tray_penjualan ?? 'Penjualan Telur' }} | {{ $formatNumber($jumlah) }} butir @ Rp {{ $formatNumber($harga, 0) }})</div>
+                                                        @endif
+                                                        @if ($entry['type'] !== 'penjualan')
+                                                            <small>{{ $createdAtFormatted }}</small>
+                                                        @endif
                                                     </div>
                                                 </div>
                                                 <div class="entry-right">
                                                     <div class="d-flex gap-2 align-items-center">
                                                         @if ($laporan->catatan_kejadian && $entry['type'] !== 'laporan')
                                                             <span class="badge bg-light text-muted">{{ \Illuminate\Support\Str::limit($laporan->catatan_kejadian, 48) }}</span>
+                                                        @endif
+
+                                                        @if ($entry['type'] === 'penjualan')
+                                                            <div class="text-end">
+                                                                <div class="small text-muted">{{ $laporan->dibuat_pada ? $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A') : '—' }}</div>
+                                                                <div class="small text-muted">oleh {{ optional($laporan->pengguna)->nama_pengguna ?? '—' }}</div>
+                                                            </div>
                                                         @endif
 
                                                         @if ($entry['type'] === 'laporan')
@@ -368,24 +508,6 @@
                                                                 data-mortality="{{ e($mortalityPercent) }}">
                                                                 Detail
                                                             </button>
-
-                                                            <form action="{{ route('admin.produksi.laporan.destroy', [$produksi->id, $laporan->id]) }}" method="POST" class="m-0 p-0 delete-laporan-form">
-                                                                @csrf
-                                                                @method('DELETE')
-                                                                <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
-                                                            </form>
-                                                        @else
-                                                            <form action="{{ route('admin.produksi.laporan.reset', [$produksi->id, $laporan->id]) }}" method="POST" class="m-0 p-0 reset-laporan-form">
-                                                                @csrf
-                                                                @method('PATCH')
-                                                                <button type="submit" class="btn btn-sm btn-outline-warning">Reset</button>
-                                                            </form>
-
-                                                            <form action="{{ route('admin.produksi.laporan.destroy', [$produksi->id, $laporan->id]) }}" method="POST" class="m-0 p-0 delete-laporan-form">
-                                                                @csrf
-                                                                @method('DELETE')
-                                                                <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
-                                                            </form>
                                                         @endif
                                                     </div>
                                                 </div>
@@ -538,6 +660,74 @@
                 padding: 1rem;
             }
         }
+
+        .entry {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .entry:last-child {
+            border-bottom: none;
+        }
+
+        .entry-left {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .entry-right {
+            flex-shrink: 0;
+            text-align: right;
+        }
+
+        .dot {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.75rem;
+            margin-right: 0.75rem;
+            float: left;
+        }
+
+        .entry-body {
+            overflow: hidden;
+        }
+
+        .entry .title {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+        }
+
+        .entry small {
+            color: #64748b;
+        }
+
+        .text-changed {
+            color: #0ea5a4 !important;
+            font-weight: normal;
+        }
+
+        .text-connector {
+            font-weight: normal;
+            color: inherit;
+        }
+
+        /* Background colors for entry dots */
+        .entry-telur .dot { background-color: #f59e0b; } /* amber */
+        .entry-tray .dot { background-color: #3b82f6; } /* blue */
+        .entry-penjualan .dot { background-color: #198754; } /* green */
+        .entry-pakan .dot { background-color: #f97316; } /* orange */
+        .entry-vitamin .dot { background-color: #8b5cf6; } /* violet */
+        .entry-kematian .dot { background-color: #dc2626; } /* red */
+        .entry-laporan .dot { background-color: #6b7280; } /* gray */
     </style>
 @endpush
 
@@ -563,6 +753,7 @@
                 const tabTitles = {
                     'telur': 'Telur',
                     'tray': 'Tray',
+                    'penjualan': 'Penjualan',
                     'pakan': 'Pakan',
                     'vitamin': 'Vitamin',
                     'kematian': 'Kematian',
@@ -572,6 +763,7 @@
                 const tabColors = {
                     'telur': 'text-telur',
                     'tray': 'text-info',
+                    'penjualan': 'text-success',
                     'pakan': 'text-pakan',
                     'vitamin': 'text-vitamin',
                     'kematian': 'text-kematian',
@@ -585,35 +777,8 @@
                 }
 
                 historyEntries.forEach(entry => {
-                    let shouldShow = false;
-
-                    if (!activeTabId) {
-                        shouldShow = true;
-                    } else {
-                        const entryData = entry.querySelector('.entry-body .title').textContent;
-
-                        switch (activeTabId) {
-                            case 'telur':
-                                shouldShow = entryData.includes('butir telur') && !entryData.includes('sisa') && entry.classList.contains('entry-telur');
-                                break;
-                            case 'tray':
-                                shouldShow = (entryData.includes('bal tray') || entryData.includes('lembar tray') || entryData.includes('butir telur sisa')) && entry.classList.contains('entry-tray');
-                                break;
-                            case 'pakan':
-                                shouldShow = entryData.includes('kg pakan') && entry.classList.contains('entry-pakan');
-                                break;
-                            case 'vitamin':
-                                shouldShow = entryData.includes('L vitamin') && entry.classList.contains('entry-vitamin');
-                                break;
-                            case 'kematian':
-                                shouldShow = entryData.includes('ekor kematian') && entry.classList.contains('entry-kematian');
-                                break;
-                            case 'laporan':
-                                shouldShow = entry.querySelector('.badge') !== null || entry.classList.contains('entry-laporan');
-                                break;
-                        }
-                    }
-
+                    const entryType = entry.dataset.entryType || '';
+                    const shouldShow = !activeTabId || entryType === activeTabId;
                     entry.style.display = shouldShow ? 'flex' : 'none';
                 });
             }

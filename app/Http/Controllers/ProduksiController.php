@@ -7,6 +7,7 @@ use App\Models\Kandang;
 use App\Models\Penetasan;
 use App\Models\Pembesaran;
 use App\Models\LaporanHarian;
+use App\Models\TrayHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -202,7 +203,7 @@ class ProduksiController extends Controller
             'tanggal_akhir' => 'nullable|date|after_or_equal:tanggal_mulai',
             'status' => 'required|in:aktif,tidak_aktif',
             'catatan' => 'nullable|string',
-            'harga_per_kg' => 'nullable|numeric|min:0',
+            'harga_per_pcs' => 'nullable|numeric|min:0',
         ];
 
         $jenisInput = $mappedData['jenis_input'] ?? 'manual';
@@ -448,6 +449,15 @@ class ProduksiController extends Controller
                 ->get();
         }
 
+        $trayHistories = collect();
+        if (Schema::hasTable('tray_histories')) {
+            $trayHistories = $produksi->trayHistories()
+                ->with('pengguna')
+                ->orderByDesc('created_at')
+                ->limit(150)
+                ->get();
+        }
+
         $eggsPerTray = (int) config('produksi.eggs_per_tray', 30);
 
         $summary = [
@@ -590,6 +600,7 @@ class ProduksiController extends Controller
         return view($view, compact(
             'produksi',
             'laporanHarian',
+            'trayHistories',
             'summary',
             'latestLaporan',
             'todayLaporan',
@@ -645,6 +656,9 @@ class ProduksiController extends Controller
             'penjualan_telur_butir' => 'nullable|integer|min:0',
             'penjualan_puyuh_ekor' => 'nullable|integer|min:0',
             'pendapatan_harian' => 'nullable|numeric|min:0',
+            'tray_penjualan' => 'nullable|integer|exists:laporan_harian,id',
+            'jumlah_telur_terjual' => 'nullable|integer|min:1',
+            'harga_penjualan' => 'nullable|numeric|min:0',
             'catatan_kejadian' => 'nullable|string|max:2500',
         ];
 
@@ -654,7 +668,9 @@ class ProduksiController extends Controller
                 $rules['produksi_telur'] = 'required|integer|min:0';
                 break;
             case 'penjualan':
-                $rules['penjualan_telur_butir'] = 'required|integer|min:0';
+                $rules['tray_penjualan'] = 'required|integer|exists:laporan_harian,id';
+                $rules['jumlah_telur_terjual'] = 'required|integer|min:1';
+                $rules['harga_penjualan'] = 'required|numeric|min:0';
                 break;
             case 'pakan':
                 $rules['konsumsi_pakan_kg'] = 'required|numeric|min:0';
@@ -706,6 +722,15 @@ class ProduksiController extends Controller
             'penjualan_puyuh_ekor.min' => 'Penjualan puyuh ekor tidak boleh negatif.',
             'pendapatan_harian.numeric' => 'Pendapatan harian harus berupa angka.',
             'pendapatan_harian.min' => 'Pendapatan harian tidak boleh negatif.',
+            'tray_penjualan.required' => 'Pilih tray yang akan dijual.',
+            'tray_penjualan.integer' => 'Tray yang dipilih tidak valid.',
+            'tray_penjualan.exists' => 'Tray yang dipilih tidak ditemukan.',
+            'jumlah_telur_terjual.required' => 'Jumlah telur terjual harus diisi.',
+            'jumlah_telur_terjual.integer' => 'Jumlah telur terjual harus berupa angka bulat.',
+            'jumlah_telur_terjual.min' => 'Jumlah telur terjual minimal 1 butir.',
+            'harga_penjualan.required' => 'Harga penjualan harus diisi.',
+            'harga_penjualan.numeric' => 'Harga penjualan harus berupa angka.',
+            'harga_penjualan.min' => 'Harga penjualan tidak boleh negatif.',
             'catatan_kejadian.required' => 'Catatan kejadian harus diisi.',
             'catatan_kejadian.max' => 'Catatan kejadian maksimal 2500 karakter.',
             'sisa_telur.required_without_all' => 'Isi minimal salah satu data stok telur atau tray.',
@@ -743,11 +768,28 @@ class ProduksiController extends Controller
                 break;
 
             case 'penjualan':
-                if (isset($validated['penjualan_telur_butir']) && $validated['penjualan_telur_butir'] !== '') {
-                    $updateData['penjualan_telur_butir'] = (int) $validated['penjualan_telur_butir'];
-                }
-                if (isset($validated['pendapatan_harian']) && $validated['pendapatan_harian'] !== '') {
-                    $updateData['pendapatan_harian'] = (float) $validated['pendapatan_harian'];
+                if (isset($validated['tray_penjualan']) && $validated['tray_penjualan']) {
+                    // Verify the selected tray belongs to this production batch
+                    $selectedTray = LaporanHarian::where('id', $validated['tray_penjualan'])
+                        ->where('batch_produksi_id', $produksi->batch_produksi_id)
+                        ->whereNotNull('nama_tray')
+                        ->first();
+
+                    if (!$selectedTray) {
+                        return redirect()->back()->withErrors(['tray_penjualan' => 'Tray yang dipilih tidak valid atau tidak tersedia.']);
+                    }
+
+                    // Check if quantity doesn't exceed available eggs in the tray
+                    $availableEggs = $selectedTray->produksi_telur ?? 0;
+                    if ($validated['jumlah_telur_terjual'] > $availableEggs) {
+                        return redirect()->back()->withErrors(['jumlah_telur_terjual' => "Jumlah telur terjual tidak boleh melebihi stok tray ({$availableEggs} butir)."]);
+                    }
+
+                    $updateData['tray_penjualan_id'] = $validated['tray_penjualan'];
+                    $updateData['penjualan_telur_butir'] = $validated['jumlah_telur_terjual'];
+                    $updateData['harga_per_butir'] = $validated['harga_penjualan'];
+                    $updateData['pendapatan_harian'] = $validated['jumlah_telur_terjual'] * $validated['harga_penjualan'];
+                    $updateData['nama_tray_penjualan'] = $selectedTray->nama_tray;
                 }
                 break;
 
@@ -793,6 +835,11 @@ class ProduksiController extends Controller
         $laporan->fill($updateData);
         $laporan->save();
 
+        if ($activeTab === 'telur' && empty($laporan->nama_tray)) {
+            $laporan->nama_tray = $this->generateDefaultTrayName($laporan);
+            $laporan->save();
+        }
+
         $wasCreated = $isNewRecord;
 
         // Generate specific success message based on active tab
@@ -813,6 +860,71 @@ class ProduksiController extends Controller
         return redirect()
             ->route('admin.produksi.show', $produksi->id)
             ->with('success', $message);
+    }
+
+    public function updateTrayEntry(Request $request, Produksi $produksi, LaporanHarian $laporan)
+    {
+        $this->ensureTrayEntryBelongsToProduksi($produksi, $laporan);
+
+        $validated = $request->validate([
+            'nama_tray' => 'nullable|string|max:120',
+            'jumlah_telur' => 'required|integer|min:1',
+            'keterangan_tray' => 'nullable|string|max:1000',
+        ], [
+            'jumlah_telur.required' => 'Jumlah telur harus diisi.',
+            'jumlah_telur.min' => 'Jumlah telur minimal 1 butir.',
+        ]);
+
+        // Capture old values before updating
+        $oldValues = [
+            'nama_tray' => $laporan->nama_tray,
+            'jumlah_telur' => $laporan->produksi_telur,
+            'keterangan_tray' => $laporan->keterangan_tray,
+        ];
+
+        $laporan->nama_tray = $validated['nama_tray'] ?: $laporan->nama_tray;
+        $laporan->keterangan_tray = $validated['keterangan_tray'] ?? null;
+        $laporan->produksi_telur = $validated['jumlah_telur'];
+        if (Schema::hasColumn('laporan_harian', 'input_telur')) {
+            $laporan->input_telur = $validated['jumlah_telur'];
+        }
+        $laporan->save();
+
+        $history = $this->logTrayHistory($produksi, $laporan, 'updated', $oldValues);
+
+        return response()->json([
+            'message' => 'Tray berhasil diperbarui.',
+            'tray' => $this->formatTrayPayload($laporan),
+            'history' => $this->formatTrayHistoryPayload($history),
+        ]);
+    }
+
+    public function destroyTrayEntry(Produksi $produksi, LaporanHarian $laporan)
+    {
+        $this->ensureTrayEntryBelongsToProduksi($produksi, $laporan);
+
+        if (($laporan->produksi_telur ?? 0) <= 0) {
+            return response()->json([
+                'message' => 'Entry ini bukan data tray.',
+            ], 422);
+        }
+
+        // Capture old values before deleting
+        $oldValues = [
+            'nama_tray' => $laporan->nama_tray,
+            'jumlah_telur' => $laporan->produksi_telur,
+            'keterangan_tray' => $laporan->keterangan_tray,
+        ];
+
+        $history = $this->logTrayHistory($produksi, $laporan, 'deleted', $oldValues);
+        $laporanId = $laporan->id;
+        $laporan->delete();
+
+        return response()->json([
+            'message' => 'Tray berhasil dihapus.',
+            'tray_id' => $laporanId,
+            'history' => $this->formatTrayHistoryPayload($history),
+        ]);
     }
 
     /**
@@ -1023,7 +1135,7 @@ class ProduksiController extends Controller
             'tanggal_akhir' => 'nullable|date|after_or_equal:tanggal_mulai',
             'status' => 'required|in:aktif,tidak_aktif',
             'catatan' => 'nullable|string',
-            'harga_per_kg' => 'nullable|numeric|min:0',
+            'harga_per_pcs' => 'nullable|numeric|min:0',
         ];
 
         if ($produksi->tipe_produksi === 'puyuh') {
@@ -1133,5 +1245,78 @@ class ProduksiController extends Controller
             return redirect()->back()
                            ->with('error', 'Gagal memperbarui status: ' . $e->getMessage());
         }
+    }
+
+    protected function ensureTrayEntryBelongsToProduksi(Produksi $produksi, LaporanHarian $laporan): void
+    {
+        if (empty($produksi->batch_produksi_id) || $laporan->batch_produksi_id !== $produksi->batch_produksi_id) {
+            abort(404);
+        }
+    }
+
+    protected function generateDefaultTrayName(LaporanHarian $laporan): string
+    {
+        $tanggal = optional($laporan->tanggal)->locale('id')->translatedFormat('d M Y');
+        $suffix = $laporan->id ? ' #' . $laporan->id : '';
+
+        return trim(($tanggal ? 'Tray ' . $tanggal : 'Tray') . $suffix);
+    }
+
+    protected function logTrayHistory(Produksi $produksi, LaporanHarian $laporan, string $action, array $oldValues = []): ?TrayHistory
+    {
+        if (!in_array($action, ['created', 'updated', 'deleted'], true)) {
+            return null;
+        }
+
+        if (!Schema::hasTable('tray_histories')) {
+            return null;
+        }
+
+        return TrayHistory::create([
+            'produksi_id' => $produksi->id,
+            'laporan_harian_id' => $laporan->id,
+            'action' => $action,
+            'nama_tray' => $laporan->nama_tray ?? $this->generateDefaultTrayName($laporan),
+            'tanggal' => optional($laporan->tanggal)->toDateString(),
+            'jumlah_telur' => $laporan->produksi_telur,
+            'keterangan' => $laporan->keterangan_tray,
+            'old_nama_tray' => $oldValues['nama_tray'] ?? null,
+            'old_jumlah_telur' => $oldValues['jumlah_telur'] ?? null,
+            'old_keterangan' => $oldValues['keterangan_tray'] ?? null,
+            'pengguna_id' => Auth::id(),
+        ]);
+    }
+
+    protected function formatTrayPayload(LaporanHarian $laporan): array
+    {
+        return [
+            'id' => $laporan->id,
+            'tanggal' => optional($laporan->tanggal)->locale('id')->translatedFormat('d M Y') ?? '-',
+            'tanggal_raw' => optional($laporan->tanggal)->toDateString(),
+            'jumlah_telur' => $laporan->produksi_telur,
+            'nama_tray' => $laporan->nama_tray,
+            'keterangan_tray' => $laporan->keterangan_tray,
+            'dibuat_pada' => optional($laporan->dibuat_pada)->locale('id')->format('d/m/Y, g:i:s A') ?? '-',
+        ];
+    }
+
+    protected function formatTrayHistoryPayload(?TrayHistory $history): ?array
+    {
+        if (!$history) {
+            return null;
+        }
+
+        return [
+            'id' => $history->id,
+            'action' => $history->action,
+            'nama_tray' => $history->nama_tray,
+            'jumlah_telur' => $history->jumlah_telur,
+            'tanggal' => optional($history->tanggal)->locale('id')->translatedFormat('d F Y') ?? '-',
+            'timestamp' => optional($history->created_at)->locale('id')->format('d/m/Y, g:i:s A') ?? '-',
+            'keterangan' => $history->keterangan,
+            'old_nama_tray' => $history->old_nama_tray,
+            'old_jumlah_telur' => $history->old_jumlah_telur,
+            'old_keterangan' => $history->old_keterangan,
+        ];
     }
 }

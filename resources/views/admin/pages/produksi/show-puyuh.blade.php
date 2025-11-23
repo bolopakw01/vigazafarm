@@ -168,6 +168,10 @@
                 'defaultPenjualanPuyuh' => old('penjualan_puyuh_ekor', optional($todayLaporan)->penjualan_puyuh_ekor),
                 'defaultPendapatan' => old('pendapatan_harian', optional($todayLaporan)->pendapatan_harian),
                 'defaultCatatan' => old('catatan_kejadian', optional($todayLaporan)->catatan_kejadian),
+                'defaultHargaPerButir' => old(
+                    'harga_penjualan',
+                    optional($todayLaporan)->harga_per_butir ?? $produksi->harga_per_pcs ?? null
+                ),
                 'tabVariant' => 'puyuh',
             ])
 
