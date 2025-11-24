@@ -170,9 +170,12 @@ class ProduksiController extends Controller
      */
     public function create()
     {
-        $kandangList = Kandang::whereIn('status', ['aktif', 'maintenance'])
-                              ->orderBy('nama_kandang')
-                              ->get();
+        $kandangList = Kandang::where(function ($query) {
+                    $query->whereRaw('LOWER(tipe_kandang) = ?', ['produksi'])
+                          ->whereIn('status', ['aktif', 'maintenance']);
+                      })
+                      ->orderBy('nama_kandang')
+                      ->get();
         
         // Get pembesaran with available breeding stock and load kandang relation
         // Only get completed pembesaran with available stock
@@ -1442,9 +1445,15 @@ class ProduksiController extends Controller
      */
     public function edit(Produksi $produksi)
     {
-        $kandangList = Kandang::whereIn('status', ['aktif', 'maintenance'])
-                              ->orderBy('nama_kandang')
-                              ->get();
+        $kandangList = Kandang::where(function ($query) {
+                    $query->whereRaw('LOWER(tipe_kandang) = ?', ['produksi'])
+                          ->whereIn('status', ['aktif', 'maintenance']);
+                      })
+                      ->when($produksi->kandang_id, function ($query) use ($produksi) {
+                      $query->orWhere('id', $produksi->kandang_id);
+                      })
+                      ->orderBy('nama_kandang')
+                      ->get();
         
         $penetasanList = Penetasan::with('kandang')
                                   ->whereIn('status', ['selesai', 'proses'])

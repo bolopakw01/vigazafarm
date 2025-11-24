@@ -11,7 +11,10 @@ class PenetasanController extends Controller
 {
     public function create()
     {
-        $kandang = Kandang::orderBy('nama_kandang')->get();
+        $kandang = Kandang::whereRaw('LOWER(tipe_kandang) = ?', ['penetasan'])
+            ->where('status', 'aktif')
+            ->orderBy('nama_kandang')
+            ->get();
         return view('admin.pages.penetasan.create-penetasan', compact('kandang'));
     }
 
@@ -73,7 +76,15 @@ class PenetasanController extends Controller
 
     public function edit(Penetasan $penetasan)
     {
-        $kandang = Kandang::orderBy('nama_kandang')->get();
+        $kandang = Kandang::where(function ($query) {
+                $query->whereRaw('LOWER(tipe_kandang) = ?', ['penetasan'])
+                    ->where('status', 'aktif');
+            })
+            ->when($penetasan->kandang_id, function ($query) use ($penetasan) {
+                $query->orWhere('id', $penetasan->kandang_id);
+            })
+            ->orderBy('nama_kandang')
+            ->get();
         return view('admin.pages.penetasan.edit-penetasan', compact('penetasan', 'kandang'));
     }
 
