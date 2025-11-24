@@ -302,8 +302,9 @@
                                             data-tipe="{{ $row->tipe_produksi ?? '-' }}"
                                             data-jenis-input="{{ $row->jenis_input ?? 'manual' }}"
                                             data-tanggal="{{ $startDateFormatted }}"
+                                            data-start-date="{{ $startDateValue ? \Carbon\Carbon::parse($startDateValue)->toDateString() : '' }}"
                                             data-expired="{{ $endDateFormatted }}"
-                                            data-harga="{{ $row->tipe_produksi === 'puyuh' ? number_format($row->harga_per_pcs ?? 0, 0, ',', '.') : number_format($row->harga_per_kg ?? 0, 0, ',', '.') }}"
+                                            data-harga="{{ number_format($row->harga_per_pcs ?? 0, 0, ',', '.') }}"
                                             data-status="{{ $row->status ?? '-' }}"
                                             data-jumlah-indukan="{{ $row->jumlah_indukan ?? '-' }}"
                                             data-umur="{{ $umurMulai ?? '-' }}"
@@ -850,6 +851,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
             const tanggalRaw = getDataAttr('tanggal');
+            const startDateIso = sanitizeAttr(this.getAttribute('data-start-date'));
             const expiredRaw = getDataAttr('expired');
             const harga = getDataAttr('harga');
             const status = getDataAttr('status');
@@ -933,21 +935,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 return '<i class="fas fa-mars text-primary"></i> ' + displayJantan + ' / <i class="fas fa-venus text-danger"></i> ' + displayBetina;
             })();
 
-        let umurDisplay = '-';
         const umurParsed = parseInt(umurRaw, 10);
-        if (!Number.isNaN(umurParsed) && umurParsed > 0) {
-            umurDisplay = `${umurParsed} hari`;
-        } else {
-            const startDate = parseDateDMY(tanggalRaw);
-            if (startDate) {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const diffMs = today.getTime() - startDate.getTime();
-                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                if (!Number.isNaN(diffDays) && diffDays >= 0) {
-                    umurDisplay = `${diffDays} hari`;
+        const computeDaysSinceStart = () => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            let startDateObj = null;
+
+            if (startDateIso && startDateIso !== '-') {
+                const isoDate = new Date(`${startDateIso}T00:00:00`);
+                if (!Number.isNaN(isoDate.getTime())) {
+                    startDateObj = isoDate;
                 }
             }
+
+            if (!startDateObj) {
+                startDateObj = parseDateDMY(tanggalRaw);
+            }
+
+            if (!startDateObj || Number.isNaN(startDateObj.getTime())) {
+                return null;
+            }
+
+            const diffMs = today.getTime() - startDateObj.getTime();
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            return Number.isNaN(diffDays) || diffDays < 0 ? null : diffDays;
+        };
+
+        const daysSinceStart = computeDaysSinceStart();
+        let umurDisplay = '-';
+
+        if (tipe === 'telur') {
+            if (daysSinceStart !== null) {
+                umurDisplay = `${daysSinceStart} hari`;
+            }
+        } else {
+            const initialAge = Number.isNaN(umurParsed) ? 0 : Math.max(umurParsed, 0);
+            if (daysSinceStart !== null) {
+                umurDisplay = `${initialAge + daysSinceStart} hari`;
+            } else if (!Number.isNaN(umurParsed) && umurParsed > 0) {
+                umurDisplay = `${umurParsed} hari`;
+            }
+        }
+
+        if (umurDisplay === '-' && !Number.isNaN(umurParsed) && umurParsed > 0) {
+            umurDisplay = `${umurParsed} hari`;
         }
 
         const jenisInputText = (() => {
@@ -1041,7 +1072,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const priceLabelText = isTelur ? 'Harga Telur' : 'Harga';
             const priceLabelHtml = escapeHtml(priceLabelText);
-            const priceSuffix = harga !== '-' ? (isTelur ? ' / Kg' : ' / Ekor') : '';
+            const priceSuffix = harga !== '-' ? (isTelur ? ' / Butir' : ' / Ekor') : '';
             const hargaDisplay = harga !== '-' ? `Rp ${harga}${priceSuffix}` : '-';
 
             const ekonomiSection = `

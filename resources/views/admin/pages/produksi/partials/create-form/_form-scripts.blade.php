@@ -378,7 +378,7 @@
         fieldJenisKelamin.style.display = 'none';
         fieldUmurBerat.style.display = 'none';
         fieldFertilTelur.style.display = 'block';
-        fieldBeratRataTelur.style.display = 'none';
+        fieldBeratRataTelur.style.display = 'block';
         if (fieldInfoPembesaran) fieldInfoPembesaran.style.display = 'none';
 
         // Set required attributes

@@ -28,6 +28,7 @@ class Produksi extends Model
         'umur_mulai_produksi',
         'berat_rata_rata', 
         'berat_rata_telur',
+        'persentase_fertil',
         'harga_per_pcs', 
         'harga_per_kg',
         'status',
