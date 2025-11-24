@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Penetasan;
 use App\Models\Kandang;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class PenetasanController extends Controller
 {
@@ -23,6 +24,7 @@ class PenetasanController extends Controller
         $data = $request->validate([
             'kandang_id' => 'required|exists:kandang,id',
             'tanggal_simpan_telur' => 'required|date',
+            'estimasi_tanggal_menetas' => 'nullable|date|after_or_equal:tanggal_simpan_telur',
             'jumlah_telur' => 'required|integer|min:1',
             'tanggal_menetas' => 'nullable|date|after_or_equal:tanggal_simpan_telur',
             'jumlah_menetas' => 'nullable|integer|min:0',
@@ -32,6 +34,10 @@ class PenetasanController extends Controller
             'telur_tidak_fertil' => 'nullable|integer|min:0',
             'catatan' => 'nullable|string',
         ]);
+
+        if (empty($data['estimasi_tanggal_menetas'])) {
+            $data['estimasi_tanggal_menetas'] = Carbon::parse($data['tanggal_simpan_telur'])->addDays(17);
+        }
 
         // Auto-generate unique batch code
         $data['batch'] = $this->generateUniqueBatch();
@@ -93,6 +99,7 @@ class PenetasanController extends Controller
         $data = $request->validate([
             'kandang_id' => 'required|exists:kandang,id',
             'tanggal_simpan_telur' => 'required|date',
+            'estimasi_tanggal_menetas' => 'nullable|date|after_or_equal:tanggal_simpan_telur',
             'jumlah_telur' => 'required|integer|min:1',
             'tanggal_menetas' => 'nullable|date|after_or_equal:tanggal_simpan_telur',
             'jumlah_menetas' => 'nullable|integer|min:0',
@@ -103,6 +110,10 @@ class PenetasanController extends Controller
             'catatan' => 'nullable|string',
             'status' => 'nullable|in:proses,selesai,gagal',
         ]);
+
+        if (empty($data['estimasi_tanggal_menetas'])) {
+            $data['estimasi_tanggal_menetas'] = Carbon::parse($data['tanggal_simpan_telur'])->addDays(17);
+        }
 
         // Calculate persentase_tetas if data is complete
         if (isset($data['jumlah_telur']) && isset($data['jumlah_menetas']) && $data['jumlah_telur'] > 0) {
@@ -140,6 +151,62 @@ class PenetasanController extends Controller
             'success' => true,
             'message' => 'Status berhasil diperbarui',
             'status' => $penetasan->status
+        ]);
+    }
+
+    public function finish(Request $request, Penetasan $penetasan)
+    {
+        if ($penetasan->status === 'selesai') {
+            return response()->json([
+                'message' => 'Batch sudah berstatus selesai.'
+            ], 422);
+        }
+
+        $maxTelurRule = $penetasan->jumlah_telur ? '|max:' . $penetasan->jumlah_telur : '';
+
+        $data = $request->validate([
+            'jumlah_doc' => 'required|integer|min:0' . $maxTelurRule,
+            'jumlah_menetas' => 'nullable|integer|min:0' . $maxTelurRule,
+            'tanggal_menetas' => 'nullable|date',
+        ]);
+
+        if (isset($data['jumlah_menetas']) && $data['jumlah_doc'] > $data['jumlah_menetas']) {
+            return response()->json([
+                'errors' => [
+                    'jumlah_doc' => ['Jumlah DOC tidak boleh melebihi jumlah menetas.'],
+                ],
+            ], 422);
+        }
+
+        $penetasan->jumlah_doc = $data['jumlah_doc'];
+
+        if (isset($data['jumlah_menetas'])) {
+            $penetasan->jumlah_menetas = $data['jumlah_menetas'];
+        } elseif (empty($penetasan->jumlah_menetas)) {
+            $penetasan->jumlah_menetas = $data['jumlah_doc'];
+        }
+
+        $penetasan->tanggal_menetas = isset($data['tanggal_menetas'])
+            ? Carbon::parse($data['tanggal_menetas'])
+            : ($penetasan->tanggal_menetas ?? Carbon::now());
+
+        if ($penetasan->jumlah_telur && $penetasan->jumlah_menetas) {
+            $penetasan->persentase_tetas = ($penetasan->jumlah_menetas / max(1, $penetasan->jumlah_telur)) * 100;
+        }
+
+        $penetasan->status = 'selesai';
+        $penetasan->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Penetasan berhasil diselesaikan.',
+            'data' => [
+                'status' => $penetasan->status,
+                'jumlah_doc' => $penetasan->jumlah_doc,
+                'jumlah_menetas' => $penetasan->jumlah_menetas,
+                'tanggal_menetas' => optional($penetasan->tanggal_menetas)->format('Y-m-d'),
+                'persentase_tetas' => $penetasan->persentase_tetas,
+            ],
         ]);
     }
 

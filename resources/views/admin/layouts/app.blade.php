@@ -75,6 +75,59 @@
             padding-bottom: calc(var(--bolopa-footer-height) + 4px);
         }
 
+        table {
+            border: 1px solid #d5dae4;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        table th,
+        table td {
+            border: 1px solid #d5dae4;
+            vertical-align: middle;
+        }
+
+        table thead th {
+            position: relative;
+            padding-right: 1.5rem;
+            text-align: center !important;
+        }
+
+        table thead th .bolopa-tabel-sort-wrap,
+        table thead th .filter-icon,
+        table thead th .filter-trigger,
+        table thead th .filter-toggle,
+        table thead th .filter-action {
+            position: absolute;
+            right: 0.35rem;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        table thead th .bolopa-tabel-sort-wrap {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .bolopa-tabel-text-left,
+        .table-text-left,
+        .text-left-column {
+            text-align: left !important;
+        }
+
+        .bolopa-tabel-text-right,
+        .table-text-right,
+        .text-right-column {
+            text-align: right !important;
+        }
+
+        .bolopa-tabel-text-center,
+        .table-text-center,
+        .text-center-column {
+            text-align: center !important;
+        }
+
         @media (max-width: 420px) {
             .home-section {
                 left: 78px;

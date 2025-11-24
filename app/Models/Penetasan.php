@@ -16,6 +16,7 @@ class Penetasan extends Model
         'batch',
         'kandang_id',
         'tanggal_simpan_telur',
+        'estimasi_tanggal_menetas',
         'jumlah_telur',
         'tanggal_menetas',
         'jumlah_menetas',
@@ -32,6 +33,7 @@ class Penetasan extends Model
 
     protected $casts = [
         'tanggal_simpan_telur' => 'date',
+        'estimasi_tanggal_menetas' => 'date',
         'tanggal_menetas' => 'date',
         'dibuat_pada' => 'datetime',
         'diperbarui_pada' => 'datetime',

@@ -79,42 +79,54 @@ async function submitAjax(url, data) {
 const pakanForm = document.querySelector('form[aria-label="Form pencatatan pakan harian"]');
 if (pakanForm) {
     // Auto-calculate total biaya & auto-fill harga from dropdown
-    const stokPakanSelect = pakanForm.querySelector('select[name="stok_pakan_id"]');
+    const feedSelect = pakanForm.querySelector('select[name="feed_item_id"]');
     const jumlahKg = pakanForm.querySelector('input[name="jumlah_kg"]');
     const hargaPerKg = pakanForm.querySelector('input[name="harga_per_kg"]');
     const totalBiaya = pakanForm.querySelector('input[name="total_biaya"]');
-    
+    const feedUnitLabel = document.getElementById('feed-unit-label');
+
     // Auto-fill harga when pakan selected
-    stokPakanSelect?.addEventListener('change', function() {
+    feedSelect?.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
-        const harga = selectedOption.getAttribute('data-harga') || 0;
+        const harga = selectedOption?.getAttribute('data-price') || 0;
+        const unit = selectedOption?.getAttribute('data-unit') || feedUnitLabel?.dataset?.defaultUnit || 'kg';
         if (hargaPerKg) hargaPerKg.value = harga;
+        if (feedUnitLabel) feedUnitLabel.textContent = unit;
         updateTotal();
     });
-    
+
     function updateTotal() {
         const kg = parseFloat(jumlahKg?.value || 0);
         const harga = parseFloat(hargaPerKg?.value || 0);
-        if (totalBiaya) totalBiaya.value = 'Rp ' + (kg * harga).toLocaleString('id-ID');
+        if (totalBiaya) {
+            const total = kg * harga;
+            totalBiaya.value = 'Rp ' + (total || 0).toLocaleString('id-ID');
+        }
     }
     jumlahKg?.addEventListener('input', updateTotal);
     hargaPerKg?.addEventListener('input', updateTotal);
-    
+
     // Submit handler
     pakanForm.addEventListener('submit', async function(e) {
         e.preventDefault();
-        
+
         const formData = new FormData(this);
-        const result = await submitAjax(`${baseUrl}/admin/pembesaran/${pembesaranId}/pakan`, {
+        const feedItemId = formData.get('feed_item_id');
+        const payload = {
             tanggal: formData.get('tanggal'),
-            stok_pakan_id: parseInt(formData.get('stok_pakan_id')),
+            feed_item_id: feedItemId ? parseInt(feedItemId) : null,
             jumlah_kg: parseFloat(formData.get('jumlah_kg')),
-            jumlah_karung: parseInt(formData.get('jumlah_karung')) || 0
-        });
-        
+            jumlah_karung: parseInt(formData.get('jumlah_karung')) || 0,
+            harga_per_kg: formData.get('harga_per_kg') ? parseFloat(formData.get('harga_per_kg')) : null,
+        };
+
+        const result = await submitAjax(`${baseUrl}/admin/pembesaran/${pembesaranId}/pakan`, payload);
+
         if (result.success) {
             showToast(result.message || 'Data pakan berhasil disimpan');
             this.reset();
+            if (feedUnitLabel) feedUnitLabel.textContent = feedUnitLabel.dataset?.defaultUnit || 'kg';
+            updateTotal();
             loadPakanData(); // Reload chart
         } else {
             showToast(result.message, 'error');
@@ -847,14 +859,17 @@ function renderPakanHistory(data) {
                 </tr>
             </thead>
             <tbody>
-                ${data.slice(0, 10).map(d => `
-                    <tr>
-                        <td class="text-start">${new Date(d.tanggal).toLocaleDateString('id-ID', {day:'2-digit', month:'short'})}</td>
-                        <td class="text-start"><small>${d.stok_pakan?.nama_pakan || '-'}</small></td>
-                        <td class="text-end">${parseFloat(d.jumlah_kg).toFixed(2)} kg</td>
-                        <td class="text-end"><small>Rp ${parseInt(d.total_biaya).toLocaleString('id-ID')}</small></td>
-                    </tr>
-                `).join('')}
+                ${data.slice(0, 10).map(d => {
+                    const feedLabel = d.feed_item?.name || d.stok_pakan?.nama_pakan || '-';
+                    return `
+                        <tr>
+                            <td class="text-start">${new Date(d.tanggal).toLocaleDateString('id-ID', {day:'2-digit', month:'short'})}</td>
+                            <td class="text-start"><small>${feedLabel}</small></td>
+                            <td class="text-end">${parseFloat(d.jumlah_kg).toFixed(2)} kg</td>
+                            <td class="text-end"><small>Rp ${(parseFloat(d.total_biaya) || 0).toLocaleString('id-ID')}</small></td>
+                        </tr>
+                    `;
+                }).join('')}
             </tbody>
         </table>
         ${data.length > 10 ? `<p class="text-muted small mt-2 mb-0 text-center">Menampilkan 10 dari ${data.length} data</p>` : ''}

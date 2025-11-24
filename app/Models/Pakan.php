@@ -17,6 +17,7 @@ class Pakan extends Model
     protected $fillable = [
         'produksi_id',
         'stok_pakan_id',
+        'feed_item_id',
         'batch_produksi_id',
         'tanggal',
         'jumlah_kg',
@@ -49,6 +50,14 @@ class Pakan extends Model
     public function stokPakan()
     {
         return $this->belongsTo(StokPakan::class, 'stok_pakan_id');
+    }
+
+    /**
+     * Relasi ke master Set Pakan & Vitamin
+     */
+    public function feedItem()
+    {
+        return $this->belongsTo(FeedVitaminItem::class, 'feed_item_id');
     }
 
     /**

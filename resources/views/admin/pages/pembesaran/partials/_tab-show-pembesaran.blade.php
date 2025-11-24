@@ -345,33 +345,45 @@
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Tanggal <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
+                            <small class="form-text text-muted">Catat tanggal konsumsi pakan yang ingin disimpan.</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Jenis Pakan <span class="text-danger">*</span></label>
-                            <select class="form-select" name="stok_pakan_id" {{ $disabledAttr }} required>
-                                <option value="">-- Pilih Pakan --</option>
-                                @foreach($stokPakanList as $stok)
-                                <option value="{{ $stok->id }}" data-harga="{{ $stok->harga_per_kg }}">
-                                    {{ $stok->nama_pakan }} ({{ $stok->jenis_pakan }}) - Stok: {{ number_format($stok->stok_kg, 0) }} kg
-                                </option>
-                                @endforeach
+                            <select class="form-select" name="feed_item_id" {{ $disabledAttr }} required>
+                                <option value="">-- Pilih dari Set Pakan &amp; Vitamin --</option>
+                                @forelse($feedOptions as $item)
+                                    <option value="{{ $item->id }}" data-price="{{ (float) $item->price }}" data-unit="{{ $item->unit }}">
+                                        {{ $item->name }} &mdash; {{ $item->unit }} @ Rp {{ number_format((float) $item->price, 0, ',', '.') }}
+                                    </option>
+                                @empty
+                                    <option value="" disabled>Belum ada data aktif. Tambahkan via menu Set Pakan &amp; Vitamin.</option>
+                                @endforelse
                             </select>
+                            <div class="form-text text-muted" style="font-size: 0.8rem;">
+                                Daftar ini tersinkron dari menu <strong>Set Pakan &amp; Vitamin</strong>.
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Jumlah (kg) <span class="text-danger">*</span></label>
                             <input type="number" step="0.01" class="form-control" name="jumlah_kg" placeholder="0.00" {{ $disabledAttr }} required />
+                            <small class="form-text text-muted">Masukkan total pakan yang diberikan dalam kilogram.</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Jumlah Karung</label>
                             <input type="number" class="form-control" name="jumlah_karung" placeholder="0" {{ $disabledAttr }} />
+                            <small class="form-text text-muted">Opsional, isi jika Anda juga melacak jumlah karung fisik.</small>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Harga per kg</label>
+                            <label class="form-label lopa-form-label">Harga per Satuan</label>
                             <input type="number" class="form-control" name="harga_per_kg" placeholder="Rp 0" {{ $disabledAttr }} />
+                            <div class="form-text text-muted" style="font-size: 0.8rem;">
+                                Satuan mengikuti pilihan pakan: <span id="feed-unit-label" data-default-unit="kg">kg</span>.
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Total Biaya</label>
                             <input type="text" class="form-control" name="total_biaya" placeholder="Rp 0" readonly />
+                            <small class="form-text text-muted">Nilai ini dihitung otomatis dari jumlah dan harga per satuan.</small>
                         </div>
                     </div>
                     <div class="text-end mt-3">
@@ -409,10 +421,12 @@
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Tanggal <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
+                            <small class="form-text text-muted">Tanggal terjadinya kematian dicatat di sini.</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Jumlah Ekor <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" name="jumlah_ekor" placeholder="0" {{ $disabledAttr }} required />
+                            <small class="form-text text-muted">Isi jumlah burung yang mati pada tanggal tersebut.</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Penyebab <span class="text-danger">*</span></label>
@@ -424,10 +438,12 @@
                                 <option value="usia">Usia Tua</option>
                                 <option value="tidak_diketahui">Tidak Diketahui</option>
                             </select>
+                            <small class="form-text text-muted">Pilih penyebab dominan untuk memudahkan analisis.</small>
                         </div>
                         <div class="col-12">
                             <label class="form-label lopa-form-label">Catatan</label>
                             <textarea class="form-control" name="catatan" rows="2" placeholder="Catatan tambahan..." {{ $disabledAttr }}></textarea>
+                            <small class="form-text text-muted">Opsional, tuliskan kronologi singkat atau tindakan yang diambil.</small>
                         </div>
                     </div>
                     <div class="text-end mt-3">
@@ -480,6 +496,7 @@
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Tanggal Laporan <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" name="tanggal_laporan" id="tanggal_laporan" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
+                            <small class="form-text text-muted">Tanggal laporan dibuat atau dirangkum.</small>
                         </div>
                         <div class="col-12">
                             <label class="form-label lopa-form-label">Catatan Laporan <span class="text-danger">*</span></label>
@@ -550,6 +567,7 @@
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Berat Rata-rata (gram) <span class="text-danger">*</span></label>
                             <input type="number" step="0.01" class="form-control" name="berat_rata_rata" placeholder="0.00" min="0" {{ $disabledAttr }} required />
+                            <small class="form-text text-muted">Masukkan hasil sampling berat terbaru dalam gram.</small>
                         </div>
                     </div>
                     <div class="text-end mt-3">
@@ -587,22 +605,27 @@
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Tanggal <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
+                            <small class="form-text text-muted">Tanggal pengukuran kondisi lingkungan dilakukan.</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Waktu <span class="text-danger">*</span></label>
                             <input type="time" class="form-control" name="waktu" {{ $disabledAttr }} required />
+                            <small class="form-text text-muted">Catat waktu pengambilan data untuk konsistensi.</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Suhu (°C) <span class="text-danger">*</span></label>
                             <input type="number" step="0.1" class="form-control" name="suhu" placeholder="28.0" {{ $disabledAttr }} required />
+                            <small class="form-text text-muted">Isi suhu kandang saat pengukuran berlangsung.</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Kelembaban (%) <span class="text-danger">*</span></label>
                             <input type="number" step="0.1" class="form-control" name="kelembaban" placeholder="65.0" {{ $disabledAttr }} required />
+                            <small class="form-text text-muted">Masukkan kelembaban udara saat pencatatan.</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Intensitas Cahaya (Lux)</label>
                             <input type="number" step="0.1" class="form-control" name="intensitas_cahaya" placeholder="50" {{ $disabledAttr }} />
+                            <small class="form-text text-muted">Opsional, isi jika menggunakan alat ukur intensitas cahaya.</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label lopa-form-label">Kondisi Ventilasi</label>
@@ -612,10 +635,12 @@
                                 <option value="Cukup">Cukup</option>
                                 <option value="Kurang">Kurang</option>
                             </select>
+                            <small class="form-text text-muted">Pilih kondisi ventilasi umum saat inspeksi.</small>
                         </div>
                         <div class="col-12">
                             <label class="form-label lopa-form-label">Catatan</label>
                             <textarea class="form-control" name="catatan" rows="2" placeholder="Catatan kondisi lingkungan..." {{ $disabledAttr }}></textarea>
+                            <small class="form-text text-muted">Opsional, tuliskan temuan penting atau anomali.</small>
                         </div>
                     </div>
                     <div class="text-end mt-3">
@@ -663,6 +688,7 @@
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Tanggal <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
+                            <small class="form-text text-muted">Tanggal tindakan kesehatan dilakukan.</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Jenis Tindakan <span class="text-danger">*</span></label>
@@ -673,34 +699,42 @@
                                 <option value="pemeriksaan_rutin">Pemeriksaan Rutin</option>
                                 <option value="karantina">Karantina</option>
                             </select>
+                            <small class="form-text text-muted">Tentukan jenis kegiatan agar laporan seragam.</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Nama Vaksin/Obat <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" name="nama_vaksin_obat" placeholder="Nama vaksin/obat" {{ $disabledAttr }} required />
+                            <small class="form-text text-muted">Isi nama produk yang diberikan ke ternak.</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Jumlah Burung <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" name="jumlah_burung" placeholder="0" min="1" {{ $disabledAttr }} required />
+                            <small class="form-text text-muted">Jumlah burung yang menerima tindakan ini.</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Biaya</label>
                             <input type="number" class="form-control" name="biaya" placeholder="0" {{ $disabledAttr }} />
+                            <small class="form-text text-muted">Opsional, isi total biaya untuk tindakan ini.</small>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label lopa-form-label">Petugas</label>
                             <input type="text" class="form-control" name="petugas" placeholder="Nama petugas" {{ $disabledAttr }} />
+                            <small class="form-text text-muted">Catat siapa yang melakukan tindakan.</small>
                         </div>
                         <div class="col-12">
                             <label class="form-label lopa-form-label">Gejala/Kondisi</label>
                             <textarea class="form-control" name="gejala" rows="2" placeholder="Deskripsi kondisi atau gejala..." {{ $disabledAttr }}></textarea>
+                            <small class="form-text text-muted">Opsional, ringkas gejala yang terpantau.</small>
                         </div>
                         <div class="col-12">
                             <label class="form-label lopa-form-label">Diagnosa</label>
                             <textarea class="form-control" name="diagnosa" rows="2" placeholder="Hasil diagnosa..." {{ $disabledAttr }}></textarea>
+                            <small class="form-text text-muted">Tuliskan diagnosa atau dugaan penyebab.</small>
                         </div>
                         <div class="col-12">
                             <label class="form-label lopa-form-label">Tindakan</label>
                             <textarea class="form-control" name="tindakan" rows="2" placeholder="Tindakan yang dilakukan..." {{ $disabledAttr }}></textarea>
+                            <small class="form-text text-muted">Catat tindakan lanjutan atau instruksi.</small>
                         </div>
                     </div>
                     <div class="text-end mt-3">

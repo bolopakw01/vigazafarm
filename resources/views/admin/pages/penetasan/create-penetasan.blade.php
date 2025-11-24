@@ -111,11 +111,11 @@
                             <label for="estimasi_menetas" class="form-label">
                                 Estimasi Tanggal Menetas
                             </label>
-                            <input type="date" id="estimasi_menetas" 
-                                   class="form-control" readonly style="background-color: #f8fafc; cursor: not-allowed;">
+                            <input type="date" name="estimasi_tanggal_menetas" id="estimasi_menetas" 
+                                   class="form-control" value="{{ old('estimasi_tanggal_menetas') }}">
                             <small class="form-text">
                                 <i class="fa-solid fa-clock text-primary"></i> 
-                                Otomatis dihitung: 17-18 hari dari tanggal mulai
+                                Otomatis dihitung 17 hari dari tanggal mulai, namun bisa disesuaikan manual jika dibutuhkan.
                             </small>
                         </div>
                         <div class="form-group">
@@ -151,65 +151,6 @@
                             <p class="mb-0">
                                 <strong>Perkiraan Tanggal Menetas:</strong> <span id="estimasiText" class="text-primary fw-semibold">-</span>
                             </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Section: Hasil Penetasan -->
-                <div class="form-section" id="hasilPenetasanSection" style="display: none;">
-                    <h3 class="section-title">
-                        <i class="fa-solid fa-dove"></i>
-                        Hasil Penetasan
-                    </h3>
-                    <div class="alert alert-success" id="alertPenetasanSelesai" style="background: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; border-radius: 8px; padding: 12px 16px; font-size: 13px; display: none;">
-                        <i class="fa-solid fa-check-circle"></i>
-                        <strong>Penetasan Selesai!</strong> Anda dapat mengisi hasil penetasan sekarang.
-                    </div>
-                    <div class="alert alert-warning" id="alertMenungguPenetasan" style="background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; border-radius: 8px; padding: 12px 16px; font-size: 13px;">
-                        <i class="fa-solid fa-clock"></i>
-                        <strong>Proses Penetasan Berlangsung...</strong>
-                        <p class="mb-0 mt-1">Estimasi penetasan selesai pada <strong id="tanggalEstimasiInfo">-</strong>. Bagian ini akan otomatis aktif saat penetasan sudah mencapai estimasi waktunya.</p>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="tanggal_menetas" class="form-label">
-                                Tanggal Menetas Aktual
-                            </label>
-                            <input type="date" name="tanggal_menetas" id="tanggal_menetas" 
-                                   class="form-control" value="{{ old('tanggal_menetas') }}">
-                            <small class="form-text">Tanggal aktual saat telur mulai menetas</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="jumlah_menetas" class="form-label">
-                                Jumlah Menetas
-                            </label>
-                            <input type="number" name="jumlah_menetas" id="jumlah_menetas" 
-                                   class="form-control" value="{{ old('jumlah_menetas') }}" 
-                                   min="0" placeholder="Contoh: 850">
-                            <small class="form-text">Total telur yang berhasil menetas</small>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="jumlah_doc" class="form-label">
-                                Jumlah DOC (Day Old Chick)
-                            </label>
-                            <input type="number" name="jumlah_doc" id="jumlah_doc" 
-                                   class="form-control" value="{{ old('jumlah_doc') }}" 
-                                   min="0" placeholder="Contoh: 840">
-                            <small class="form-text">Jumlah anak ayam yang sehat dan layak pindah ke kandang pembesaran</small>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">
-                                Persentase Tetas (Estimasi)
-                            </label>
-                            <div class="form-control" id="persentase_display" style="background-color: #f8fafc; color: #64748b; font-weight: 500;">
-                                -
-                            </div>
-                            <small class="form-text">
-                                <i class="fa-solid fa-calculator text-primary"></i>
-                                Otomatis dihitung dari: (Jumlah Menetas / Jumlah Telur) × 100%
-                            </small>
                         </div>
                     </div>
                 </div>
@@ -647,13 +588,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const estimasiInfo = document.getElementById('estimasiInfo');
     const estimasiText = document.getElementById('estimasiText');
     const jumlahTelurInput = document.getElementById('jumlah_telur');
-    const jumlahMenetasInput = document.getElementById('jumlah_menetas');
-    const persentaseDisplay = document.getElementById('persentase_display');
-    const tanggalMenetasInput = document.getElementById('tanggal_menetas');
-    const hasilPenetasanSection = document.getElementById('hasilPenetasanSection');
-    const alertPenetasanSelesai = document.getElementById('alertPenetasanSelesai');
-    const alertMenungguPenetasan = document.getElementById('alertMenungguPenetasan');
-    const tanggalEstimasiInfo = document.getElementById('tanggalEstimasiInfo');
+    let estimasiManualEdit = !!(estimasiMenetasInput && estimasiMenetasInput.value);
     
     // Format tanggal ke Indonesia
     function formatTanggalIndonesia(dateString) {
@@ -662,127 +597,62 @@ document.addEventListener('DOMContentLoaded', function() {
         return date.toLocaleDateString('id-ID', options);
     }
     
-    // Cek apakah sudah waktunya hasil penetasan (estimasi sudah tercapai atau lewat)
-    function cekStatusPenetasan() {
-        const estimasiDate = estimasiMenetasInput.value;
-        if (!estimasiDate) {
-            hasilPenetasanSection.style.display = 'none';
+    function updateEstimasiDisplay(dateValue) {
+        if (!estimasiMenetasInput) return;
+
+        if (dateValue) {
+            if (estimasiInfo) {
+                estimasiInfo.style.display = 'flex';
+            }
+            if (estimasiText) {
+                estimasiText.textContent = formatTanggalIndonesia(dateValue) + ' (± 1 hari)';
+            }
+        } else {
+            if (estimasiInfo) {
+                estimasiInfo.style.display = 'none';
+            }
+        }
+    }
+
+    // Hitung estimasi tanggal menetas (default 17 hari)
+    function hitungEstimasiMenetas(force = false) {
+        const tanggalSimpan = tanggalSimpanInput.value;
+        if (!tanggalSimpan || !estimasiMenetasInput) {
+            if (estimasiMenetasInput) {
+                estimasiMenetasInput.value = '';
+            }
+            updateEstimasiDisplay('');
             return;
         }
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const estimasi = new Date(estimasiDate);
-        estimasi.setHours(0, 0, 0, 0);
-        
-        if (today >= estimasi) {
-            // Sudah waktunya atau sudah lewat - tampilkan dan aktifkan section
-            hasilPenetasanSection.style.display = 'block';
-            alertPenetasanSelesai.style.display = 'block';
-            
-            // Enable semua input di section hasil
-            const inputs = hasilPenetasanSection.querySelectorAll('input');
-            inputs.forEach(input => {
-                input.disabled = false;
-                input.style.backgroundColor = 'white';
-                input.style.cursor = 'text';
-            });
-        } else {
-            // Belum waktunya - sembunyikan section sepenuhnya
-            hasilPenetasanSection.style.display = 'none';
-        }
-    }
-    
-    // Hitung estimasi tanggal menetas (17-18 hari, kita pakai 17 hari sebagai estimasi)
-    function hitungEstimasiMenetas() {
-        const tanggalSimpan = tanggalSimpanInput.value;
-        if (tanggalSimpan) {
-            const date = new Date(tanggalSimpan);
-            // Tambah 17 hari untuk estimasi
-            date.setDate(date.getDate() + 17);
-            
-            // Format untuk input date (YYYY-MM-DD)
-            const estimasiDate = date.toISOString().split('T')[0];
+
+        const date = new Date(tanggalSimpan);
+        date.setDate(date.getDate() + 17);
+        const estimasiDate = date.toISOString().split('T')[0];
+
+        estimasiMenetasInput.min = tanggalSimpan;
+
+        if (!estimasiManualEdit || force || !estimasiMenetasInput.value) {
             estimasiMenetasInput.value = estimasiDate;
-            
-            // Format untuk tampilan info
-            estimasiText.textContent = formatTanggalIndonesia(estimasiDate) + ' (± 1 hari)';
-            estimasiInfo.style.display = 'flex';
-            
-            // Cek status penetasan setelah hitung estimasi
-            cekStatusPenetasan();
-        } else {
-            estimasiMenetasInput.value = '';
-            estimasiInfo.style.display = 'none';
-            hasilPenetasanSection.style.display = 'none';
         }
-    }
-    
-    // Hitung persentase tetas otomatis
-    function hitungPersentase() {
-        const jumlahTelur = parseFloat(jumlahTelurInput.value) || 0;
-        const jumlahMenetas = parseFloat(jumlahMenetasInput.value) || 0;
-        
-        if (jumlahTelur > 0 && jumlahMenetas > 0) {
-            const percentage = ((jumlahMenetas / jumlahTelur) * 100).toFixed(2);
-            persentaseDisplay.textContent = percentage + '%';
-            persentaseDisplay.style.color = '#3b82f6';
-            persentaseDisplay.style.fontWeight = '600';
-            
-            // Tambah badge indikator
-            let badge = '';
-            if (percentage >= 85) {
-                badge = ' 🟢 Optimal';
-                persentaseDisplay.style.color = '#16a34a';
-            } else if (percentage >= 70) {
-                badge = ' 🟡 Cukup Baik';
-                persentaseDisplay.style.color = '#f59e0b';
-            } else if (percentage >= 60) {
-                badge = ' 🟠 Perlu Pemantauan';
-                persentaseDisplay.style.color = '#f97316';
-            } else {
-                badge = ' 🔴 Perlu Perbaikan';
-                persentaseDisplay.style.color = '#dc2626';
-            }
-            persentaseDisplay.textContent = percentage + '%' + badge;
-        } else {
-            persentaseDisplay.textContent = '-';
-            persentaseDisplay.style.color = '#64748b';
-            persentaseDisplay.style.fontWeight = '500';
-        }
+
+        updateEstimasiDisplay(estimasiMenetasInput.value || estimasiDate);
     }
     
     // Event listeners
     if (tanggalSimpanInput) {
-        // Hitung estimasi saat halaman load jika sudah ada nilai
-        hitungEstimasiMenetas();
+        hitungEstimasiMenetas(true);
         
-        tanggalSimpanInput.addEventListener('change', hitungEstimasiMenetas);
-    }
-    
-    if (jumlahTelurInput && jumlahMenetasInput) {
-        jumlahTelurInput.addEventListener('input', hitungPersentase);
-        jumlahMenetasInput.addEventListener('input', hitungPersentase);
-        
-        // Hitung saat load jika ada old values
-        hitungPersentase();
+        tanggalSimpanInput.addEventListener('change', () => {
+            estimasiManualEdit = false;
+            hitungEstimasiMenetas(true);
+        });
     }
 
-    // Validasi tanggal menetas tidak boleh lebih awal dari tanggal simpan
-    if (tanggalSimpanInput && tanggalMenetasInput) {
-        tanggalMenetasInput.addEventListener('change', function() {
-            const tanggalSimpan = new Date(tanggalSimpanInput.value);
-            const tanggalMenetas = new Date(tanggalMenetasInput.value);
-            
-            if (tanggalMenetas < tanggalSimpan) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Tanggal tidak valid',
-                    text: 'Tanggal menetas tidak boleh lebih awal dari tanggal mulai penetasan.'
-                });
-                tanggalMenetasInput.value = '';
-            }
+    if (estimasiMenetasInput) {
+        updateEstimasiDisplay(estimasiMenetasInput.value);
+        estimasiMenetasInput.addEventListener('input', () => {
+            estimasiManualEdit = !!estimasiMenetasInput.value;
+            updateEstimasiDisplay(estimasiMenetasInput.value);
         });
     }
 

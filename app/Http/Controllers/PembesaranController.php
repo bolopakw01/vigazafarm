@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Pembesaran;
 use App\Models\Penetasan;
 use App\Models\Kandang;
+use App\Models\FeedVitaminItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class PembesaranController extends Controller
 {
@@ -172,10 +174,19 @@ class PembesaranController extends Controller
         // Hitung umur hari (menggunakan startOfDay agar hasilnya integer)
         $umurHari = \Carbon\Carbon::parse($pembesaran->tanggal_masuk)->startOfDay()->diffInDays(\Carbon\Carbon::now()->startOfDay());
         
-        // Get stok pakan untuk dropdown
+        // Get stok pakan untuk dropdown legacy
         $stokPakanList = \App\Models\StokPakan::where('stok_kg', '>', 0)
             ->orderBy('nama_pakan')
             ->get();
+
+        // Sync daftar pakan dengan master Set Pakan & Vitamin (jika tersedia)
+        $feedOptions = collect();
+        if (Schema::hasTable('feed_vitamin_items')) {
+            $feedOptions = FeedVitaminItem::active()
+                ->where('category', 'pakan')
+                ->orderBy('name')
+                ->get(['id', 'name', 'price', 'unit']);
+        }
         
         // Get parameter standar
         $paramBeratStandar = \App\Models\ParameterStandar::where('fase', 'grower')
@@ -204,6 +215,7 @@ class PembesaranController extends Controller
             'totalBiayaKesehatan',
             'umurHari',
             'stokPakanList',
+            'feedOptions',
             'paramBeratStandar',
             'paramSuhuStandar',
             'paramKelembabanStandar',

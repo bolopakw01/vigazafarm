@@ -10,8 +10,10 @@ use App\Models\MonitoringLingkungan;
 use App\Models\Kesehatan;
 use App\Models\StokPakan;
 use App\Models\ParameterStandar;
+use App\Models\FeedVitaminItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 /**
@@ -32,39 +34,78 @@ class PembesaranRecordingController extends Controller
     public function storePakan(Request $request, $pembesaranId)
     {
         $pembesaran = Pembesaran::findOrFail($pembesaranId);
-        
-        $validated = $request->validate([
+        $hasFeedMaster = Schema::hasTable('feed_vitamin_items');
+
+        $rules = [
             'tanggal' => 'required|date',
-            'stok_pakan_id' => 'required|exists:stok_pakan,id',
             'jumlah_kg' => 'required|numeric|min:0',
             'jumlah_karung' => 'nullable|integer|min:0',
-        ]);
+        ];
 
-        // Get harga dari stok pakan
-        $stokPakan = StokPakan::find($validated['stok_pakan_id']);
-        
+        if ($hasFeedMaster) {
+            $rules['feed_item_id'] = ['nullable', 'exists:feed_vitamin_items,id', 'required_without:stok_pakan_id'];
+            $rules['stok_pakan_id'] = ['nullable', 'exists:stok_pakan,id', 'required_without:feed_item_id'];
+        } else {
+            $rules['stok_pakan_id'] = ['required', 'exists:stok_pakan,id'];
+        }
+
+        $validated = $request->validate($rules);
+
+        $stokPakan = null;
+        $feedItem = null;
+
+        if (!empty($validated['stok_pakan_id'])) {
+            $stokPakan = StokPakan::find($validated['stok_pakan_id']);
+        }
+
+        if ($hasFeedMaster && !empty($validated['feed_item_id'])) {
+            $feedItem = FeedVitaminItem::active()
+                ->where('category', 'pakan')
+                ->find($validated['feed_item_id']);
+
+            if (!$feedItem) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pakan yang dipilih sudah tidak aktif.',
+                ], 422);
+            }
+        }
+
+        $hargaPerKg = null;
+        if ($stokPakan) {
+            $hargaPerKg = (float) $stokPakan->harga_per_kg;
+        } elseif ($feedItem) {
+            $hargaPerKg = (float) $feedItem->price;
+        }
+
+        if ($hargaPerKg === null && $request->filled('harga_per_kg')) {
+            $hargaPerKg = (float) $request->input('harga_per_kg');
+        }
+
         $pakan = Pakan::create([
             'batch_produksi_id' => $pembesaran->batch_produksi_id,
-            'produksi_id' => null, // Karena masih fase pembesaran
-            'stok_pakan_id' => $validated['stok_pakan_id'],
+            'produksi_id' => null,
+            'stok_pakan_id' => $stokPakan?->id,
+            'feed_item_id' => $feedItem?->id,
             'tanggal' => $validated['tanggal'],
             'jumlah_kg' => $validated['jumlah_kg'],
             'jumlah_karung' => $validated['jumlah_karung'] ?? 0,
-            'harga_per_kg' => $stokPakan->harga_per_kg,
-            'total_biaya' => $validated['jumlah_kg'] * $stokPakan->harga_per_kg,
+            'harga_per_kg' => $hargaPerKg,
+            'total_biaya' => $hargaPerKg !== null ? $validated['jumlah_kg'] * $hargaPerKg : null,
         ]);
 
-        // Update stok pakan
-        $stokPakan->stok_kg -= $validated['jumlah_kg'];
-        if ($validated['jumlah_karung']) {
-            $stokPakan->stok_karung -= $validated['jumlah_karung'];
+        if ($stokPakan) {
+            $stokPakan->stok_kg -= $validated['jumlah_kg'];
+            if ($validated['jumlah_karung']) {
+                $stokPakan->stok_karung -= $validated['jumlah_karung'];
+            }
+            $stokPakan->save();
         }
-        $stokPakan->save();
 
         return response()->json([
             'success' => true,
             'message' => 'Data pakan berhasil disimpan',
-            'data' => $pakan->load('stokPakan'),
+            'data' => $pakan->load(['stokPakan', 'feedItem']),
         ]);
     }
 
@@ -76,44 +117,86 @@ class PembesaranRecordingController extends Controller
         $pakan = Pakan::findOrFail($pakanId);
         $oldJumlahKg = $pakan->jumlah_kg;
         $oldJumlahKarung = $pakan->jumlah_karung ?? 0;
-        
-        $validated = $request->validate([
+
+        $hasFeedMaster = Schema::hasTable('feed_vitamin_items');
+
+        $rules = [
             'tanggal' => 'required|date',
-            'stok_pakan_id' => 'required|exists:stok_pakan,id',
             'jumlah_kg' => 'required|numeric|min:0',
             'jumlah_karung' => 'nullable|integer|min:0',
-        ]);
+        ];
 
-        // Kembalikan stok lama
-        $oldStok = StokPakan::find($pakan->stok_pakan_id);
-        $oldStok->stok_kg += $oldJumlahKg;
-        $oldStok->stok_karung += $oldJumlahKarung;
-        $oldStok->save();
+        if ($hasFeedMaster) {
+            $rules['feed_item_id'] = ['nullable', 'exists:feed_vitamin_items,id', 'required_without:stok_pakan_id'];
+            $rules['stok_pakan_id'] = ['nullable', 'exists:stok_pakan,id', 'required_without:feed_item_id'];
+        } else {
+            $rules['stok_pakan_id'] = ['required', 'exists:stok_pakan,id'];
+        }
 
-        // Get harga dari stok pakan baru
-        $stokPakan = StokPakan::find($validated['stok_pakan_id']);
-        
-        // Update pakan
+        $validated = $request->validate($rules);
+
+        if ($pakan->stok_pakan_id) {
+            $oldStok = StokPakan::find($pakan->stok_pakan_id);
+            if ($oldStok) {
+                $oldStok->stok_kg += $oldJumlahKg;
+                $oldStok->stok_karung += $oldJumlahKarung;
+                $oldStok->save();
+            }
+        }
+
+        $stokPakan = null;
+        $feedItem = null;
+
+        if (!empty($validated['stok_pakan_id'])) {
+            $stokPakan = StokPakan::find($validated['stok_pakan_id']);
+        }
+
+        if ($hasFeedMaster && !empty($validated['feed_item_id'])) {
+            $feedItem = FeedVitaminItem::active()
+                ->where('category', 'pakan')
+                ->find($validated['feed_item_id']);
+
+            if (!$feedItem) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pakan yang dipilih sudah tidak aktif.',
+                ], 422);
+            }
+        }
+
+        $hargaPerKg = null;
+        if ($stokPakan) {
+            $hargaPerKg = (float) $stokPakan->harga_per_kg;
+        } elseif ($feedItem) {
+            $hargaPerKg = (float) $feedItem->price;
+        }
+
+        if ($hargaPerKg === null && $request->filled('harga_per_kg')) {
+            $hargaPerKg = (float) $request->input('harga_per_kg');
+        }
+
         $pakan->update([
-            'stok_pakan_id' => $validated['stok_pakan_id'],
+            'stok_pakan_id' => $stokPakan?->id,
+            'feed_item_id' => $feedItem?->id,
             'tanggal' => $validated['tanggal'],
             'jumlah_kg' => $validated['jumlah_kg'],
             'jumlah_karung' => $validated['jumlah_karung'] ?? 0,
-            'harga_per_kg' => $stokPakan->harga_per_kg,
-            'total_biaya' => $validated['jumlah_kg'] * $stokPakan->harga_per_kg,
+            'harga_per_kg' => $hargaPerKg,
+            'total_biaya' => $hargaPerKg !== null ? $validated['jumlah_kg'] * $hargaPerKg : null,
         ]);
 
-        // Kurangi stok baru
-        $stokPakan->stok_kg -= $validated['jumlah_kg'];
-        if ($validated['jumlah_karung']) {
-            $stokPakan->stok_karung -= $validated['jumlah_karung'];
+        if ($stokPakan) {
+            $stokPakan->stok_kg -= $validated['jumlah_kg'];
+            if ($validated['jumlah_karung']) {
+                $stokPakan->stok_karung -= $validated['jumlah_karung'];
+            }
+            $stokPakan->save();
         }
-        $stokPakan->save();
 
         return response()->json([
             'success' => true,
             'message' => 'Data pakan berhasil diperbarui',
-            'data' => $pakan->load('stokPakan'),
+            'data' => $pakan->load(['stokPakan', 'feedItem']),
         ]);
     }
 
@@ -123,13 +206,16 @@ class PembesaranRecordingController extends Controller
     public function destroyPakan($pakanId)
     {
         $pakan = Pakan::findOrFail($pakanId);
-        
-        // Kembalikan stok
-        $stokPakan = StokPakan::find($pakan->stok_pakan_id);
-        $stokPakan->stok_kg += $pakan->jumlah_kg;
-        $stokPakan->stok_karung += $pakan->jumlah_karung ?? 0;
-        $stokPakan->save();
-        
+
+        if ($pakan->stok_pakan_id) {
+            $stokPakan = StokPakan::find($pakan->stok_pakan_id);
+            if ($stokPakan) {
+                $stokPakan->stok_kg += $pakan->jumlah_kg;
+                $stokPakan->stok_karung += $pakan->jumlah_karung ?? 0;
+                $stokPakan->save();
+            }
+        }
+
         $pakan->delete();
 
         return response()->json([
@@ -144,11 +230,11 @@ class PembesaranRecordingController extends Controller
     public function getPakanList(Pembesaran $pembesaran)
     {
         
-        $pakanList = Pakan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
-            ->with('stokPakan')
-            ->orderByDesc('tanggal')
-            ->limit(30)
-            ->get();
+            $pakanList = Pakan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
+                ->with(['stokPakan', 'feedItem'])
+                ->orderByDesc('tanggal')
+                ->limit(30)
+                ->get();
 
         return response()->json([
             'success' => true,

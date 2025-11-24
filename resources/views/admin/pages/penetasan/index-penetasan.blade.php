@@ -3,7 +3,7 @@
 @section('title', 'Data Penetasan')
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('bolopa/css/admin-penetasan.css') }}">
+<link rel="stylesheet" href="{{ asset('bolopa/css/admin-penetasan.css?v=' . time()) }}">
 @endpush
 
 @section('content')
@@ -118,10 +118,20 @@
                         <td class="bolopa-tabel-text-left" style="text-align: left;">{{ $item->kandang->nama_kandang ?? '-' }}</td>
                         <td class="bolopa-tabel-text-center" style="text-align: center;">{{ \Carbon\Carbon::parse($item->tanggal_simpan_telur)->format('d/m/Y') }}</td>
                         <td class="bolopa-tabel-text-right" style="text-align: right;">{{ number_format($item->jumlah_telur) }} butir</td>
-                        <td class="bolopa-tabel-text-center" style="text-align: center;">{{ $item->tanggal_menetas ? \Carbon\Carbon::parse($item->tanggal_menetas)->format('d/m/Y') : '-' }}</td>
+                        @php
+                            $displayDate = null;
+                            if (($item->status ?? 'proses') === 'selesai' && $item->tanggal_menetas) {
+                                $displayDate = \Carbon\Carbon::parse($item->tanggal_menetas)->format('d/m/Y');
+                            } elseif ($item->estimasi_tanggal_menetas) {
+                                $displayDate = \Carbon\Carbon::parse($item->estimasi_tanggal_menetas)->format('d/m/Y');
+                            } elseif ($item->tanggal_menetas) {
+                                $displayDate = \Carbon\Carbon::parse($item->tanggal_menetas)->format('d/m/Y');
+                            }
+                        @endphp
+                        <td class="bolopa-tabel-text-center" style="text-align: center;">{{ $displayDate ?? '-' }}</td>
                         <td class="bolopa-tabel-text-center" style="text-align: center;">
                             @php
-                                $statusClass = 'bolopa-tabel-badge-secondary';
+                                $statusClass = 'bolopa-tabel-badge-warning';
                                 $statusText = 'Proses';
                                 switch($item->status ?? 'proses') {
                                     case 'selesai':
@@ -148,9 +158,13 @@
                                         'batch' => $item->batch ?? '-',
                                         'kandang' => $item->kandang->nama_kandang ?? '-',
                                         'formatted_tanggal_simpan_telur' => optional($item->tanggal_simpan_telur)->format('d/m/Y'),
-                                        'formatted_tanggal_simpan_telur_waktu' => optional($item->tanggal_simpan_telur)->format('d/m/Y H:i'),
+                                        'formatted_tanggal_simpan_telur_waktu' => optional($item->dibuat_pada)->format('d/m/Y H:i'),
+                                        'tanggal_simpan_telur_iso' => optional($item->tanggal_simpan_telur)->format('Y-m-d H:i:s'),
+                                        'formatted_estimasi_tanggal_menetas' => optional($item->estimasi_tanggal_menetas)->format('d/m/Y'),
+                                        'estimasi_tanggal_menetas_iso' => optional($item->estimasi_tanggal_menetas)->format('Y-m-d'),
                                         'formatted_tanggal_menetas' => optional($item->tanggal_menetas)->format('d/m/Y'),
-                                        'formatted_tanggal_menetas_waktu' => optional($item->tanggal_menetas)->format('d/m/Y H:i'),
+                                        'formatted_tanggal_menetas_waktu' => optional($item->tanggal_menetas ? $item->diperbarui_pada : null)->format('d/m/Y H:i'),
+                                        'tanggal_menetas_iso' => optional($item->tanggal_menetas)->format('Y-m-d H:i:s'),
                                         'jumlah_telur' => $item->jumlah_telur,
                                         'jumlah_menetas' => $item->jumlah_menetas,
                                         'jumlah_doc' => $item->jumlah_doc,
@@ -165,12 +179,63 @@
                                     ]))">
                                     <img src="{{ asset('bolopa/img/icon/line-md--watch.svg') }}" alt="View" width="14" height="14">
                                 </button>
-                                
-                                {{-- @if($item->status === 'selesai' && $item->jumlah_doc > 0)
-                                <a href="{{ route('admin.pembesaran.createFromPenetasan', $item->id) }}" class="bolopa-tabel-btn bolopa-tabel-btn-success bolopa-tabel-btn-action" title="Pindahkan ke Pembesaran">
-                                    <img src="{{ asset('bolopa/img/icon/game-icons--nest-birds.svg') }}" alt="To Growing" width="14" height="14">
-                                </a>
-                                @endif --}}
+                                @php
+                                    $startDate = $item->tanggal_simpan_telur ? \Carbon\Carbon::parse($item->tanggal_simpan_telur) : null;
+                                    if (($item->status ?? 'proses') === 'selesai' && $item->tanggal_menetas) {
+                                        $expectedFinish = \Carbon\Carbon::parse($item->tanggal_menetas);
+                                    } elseif ($item->estimasi_tanggal_menetas) {
+                                        $expectedFinish = \Carbon\Carbon::parse($item->estimasi_tanggal_menetas);
+                                    } elseif ($item->tanggal_menetas) { // fallback untuk data lama
+                                        $expectedFinish = \Carbon\Carbon::parse($item->tanggal_menetas);
+                                    } else {
+                                        $expectedFinish = $startDate ? (clone $startDate)->addDays(17) : null;
+                                    }
+                                @endphp
+
+                                @php
+                                    $statusValue = strtolower($item->status ?? 'proses');
+                                    $hasActualMenetas = !empty($item->tanggal_menetas);
+                                    $today = now()->startOfDay();
+                                    $expectedReadyDate = $expectedFinish ? $expectedFinish->copy()->startOfDay() : null;
+                                    $isReady = $hasActualMenetas || ($expectedReadyDate && $today->gte($expectedReadyDate));
+
+                                    $buttonTitle = 'Menunggu tanggal tetas';
+                                    $buttonClass = 'finish-waiting';
+                                    $buttonIcon = 'line-md--cancel-twotone.svg';
+                                    $buttonDisabled = true;
+
+                                    if ($statusValue === 'selesai') {
+                                        $buttonTitle = 'Batch sudah selesai';
+                                        $buttonClass = 'bolopa-tabel-btn-success finish-completed';
+                                        $buttonIcon = 'line-md--emoji-grin-filled.svg';
+                                        $buttonDisabled = false;
+                                    } elseif ($isReady) {
+                                        $buttonTitle = 'Selesaikan penetasan';
+                                        $buttonClass = 'bolopa-tabel-btn-success finish-ready';
+                                        $buttonIcon = 'line-md--check-all.svg';
+                                        $buttonDisabled = false;
+                                    }
+                                @endphp
+
+                                <button type="button"
+                                    class="bolopa-tabel-btn bolopa-tabel-btn-action finish-btn {{ $buttonClass }}"
+                                    title="{{ $buttonTitle }}"
+                                    data-status="{{ $statusValue }}"
+                                    data-finished-date="{{ optional($item->tanggal_menetas)->format('d/m/Y') }}"
+                                    data-batch="{{ $item->batch ?? '-' }}"
+                                    data-finish-url="{{ route('admin.penetasan.finish', $item->id) }}"
+                                    data-max-telur="{{ $item->jumlah_telur ?? 0 }}"
+                                    data-jumlah-telur="{{ $item->jumlah_telur ?? 0 }}"
+                                    data-jumlah-menetas="{{ $item->jumlah_menetas ?? '' }}"
+                                    data-jumlah-doc="{{ $item->jumlah_doc ?? '' }}"
+                                    data-kandang="{{ $item->kandang->nama_kandang ?? '-' }}"
+                                    data-target-date="{{ optional($expectedFinish)->format('d/m/Y') }}"
+                                    data-target-date-iso="{{ optional($expectedFinish)->format('Y-m-d') }}"
+                                    data-min-date="{{ optional($startDate)->format('Y-m-d') }}"
+                                    aria-disabled="{{ $buttonDisabled ? 'true' : 'false' }}"
+                                    {{ $buttonDisabled ? 'disabled' : '' }}>
+                                    <img src="{{ asset('bolopa/img/icon/' . $buttonIcon) }}" alt="Finish" width="14" height="14">
+                                </button>
                                 
                                 <a href="{{ route('admin.penetasan.edit', $item->id) }}" class="bolopa-tabel-btn bolopa-tabel-btn-warning bolopa-tabel-btn-action" title="Edit">
                                     <img src="{{ asset('bolopa/img/icon/line-md--edit-twotone.svg') }}" alt="Edit" width="14" height="14">
@@ -224,6 +289,8 @@
 <div class="bolopa-tabel-toast" id="toast"></div>
 
 <script>
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
     // Search functionality with debounce
     let searchTimeout;
     const searchInput = document.getElementById('searchInput');
@@ -528,7 +595,9 @@
         const persentase = toNumber(data.persentase_tetas);
         const suhu = toNumber(data.suhu_penetasan);
         const kelembaban = toNumber(data.kelembaban_penetasan);
-        const gagal = totalTelur !== null ? Math.max(totalTelur - (menetas ?? 0) - (tidakFertil ?? 0), 0) : null;
+        const status = (data.status || 'proses').toLowerCase();
+        const isCompleted = status === 'selesai';
+        const gagal = isCompleted && totalTelur !== null ? Math.max(totalTelur - (menetas ?? 0) - (tidakFertil ?? 0), 0) : null;
 
         // Split date and time helper
         const splitDateTime = (dateTimeStr) => {
@@ -590,8 +659,16 @@
                             <div class="stat-item"><div class="stat-icon icon gagal"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="stat-body"><div class="label">Gagal</div><div class="desc">Gagal menetas</div></div><div class="value" id="sw-gagal">${formatNumber(gagal)}</div></div>
                         </div>
                         <div class="percent-row">
-                            <div class="percent-info"><div class="label">% Tetas</div><div class="desc">Persentase keberhasilan menetas dari total</div></div>
-                            <div style="min-width:170px;text-align:right"><div class="percent-value" id="sw-percent">${persentase !== null ? persentase.toFixed(1) : '0.0'}%</div><div class="progress mt-2" aria-hidden="true"><div class="progress-bar" id="sw-progressBar" role="progressbar" style="width:${persentase || 0}%" aria-valuemin="0" aria-valuemax="100"></div></div></div>
+                            <div class="percent-info">
+                                <div class="label" id="sw-percent-label">% Tetas</div>
+                                <div class="desc" id="sw-percent-desc">Persentase keberhasilan menetas dari total</div>
+                            </div>
+                            <div style="min-width:170px;text-align:right">
+                                <div class="percent-value" id="sw-percent">0.0%</div>
+                                <div class="progress mt-2" aria-hidden="true">
+                                    <div class="progress-bar" id="sw-progressBar" role="progressbar" style="width:0%" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -631,15 +708,63 @@
             didOpen: () => {
                 const root = Swal.getHtmlContainer();
 
-                // Calculate and animate percentage
-                const total = parseFloat(root.querySelector('#sw-total')?.textContent.replace(/\./g, '') || '0');
-                const menotasVal = parseFloat(root.querySelector('#sw-menetas')?.textContent.replace(/\./g, '') || '0');
+                // Calculate progress display: use hatch % when selesai, days-progress otherwise
                 const percentEl = root.querySelector('#sw-percent');
+                const percentLabelEl = root.querySelector('#sw-percent-label');
+                const percentDescEl = root.querySelector('#sw-percent-desc');
                 const bar = root.querySelector('#sw-progressBar');
-                let pct = 0;
-                if (total > 0) pct = Math.max(0, Math.min(100, (menotasVal / total) * 100));
-                if (percentEl) percentEl.textContent = (Math.round(pct * 10) / 10).toFixed(1) + '%';
-                setTimeout(() => { if (bar) bar.style.width = pct + '%'; }, 80);
+                const status = (data.status || 'proses').toLowerCase();
+                const isCompleted = status === 'selesai';
+                const sanitizeValue = (selector) => {
+                    const raw = root.querySelector(selector)?.textContent || '0';
+                    return parseFloat(raw.replace(/[^\d,-]/g, '').replace(/,/g, '.')) || 0;
+                };
+                const DAY_MS = 24 * 60 * 60 * 1000;
+                const parseDateSafe = (value) => {
+                    if (!value) return null;
+                    const normalized = value.replace(' ', 'T');
+                    const date = new Date(normalized);
+                    return Number.isNaN(date.getTime()) ? null : date;
+                };
+
+                if (percentEl && percentLabelEl && percentDescEl) {
+                    if (isCompleted) {
+                        const total = sanitizeValue('#sw-total');
+                        const menetasVal = sanitizeValue('#sw-menetas');
+                        const pct = total > 0 ? Math.max(0, Math.min(100, (menetasVal / total) * 100)) : 0;
+                        percentLabelEl.textContent = '% Tetas';
+                        percentDescEl.textContent = 'Persentase keberhasilan menetas dari total';
+                        percentEl.textContent = (Math.round(pct * 10) / 10).toFixed(1) + '%';
+                        setTimeout(() => { if (bar) bar.style.width = pct + '%'; }, 80);
+                    } else {
+                        const startDate = parseDateSafe(data.tanggal_simpan_telur_iso || '');
+                        let targetDate = parseDateSafe(data.tanggal_menetas_iso || '');
+                        if (!targetDate && !isCompleted) {
+                            targetDate = parseDateSafe(data.estimasi_tanggal_menetas_iso || '');
+                        }
+                        let totalDays = 17;
+                        if (startDate && targetDate && targetDate > startDate) {
+                            totalDays = Math.max(1, Math.ceil((targetDate - startDate) / DAY_MS));
+                        } else if (!startDate) {
+                            totalDays = 17;
+                        }
+                        if (!targetDate && startDate) {
+                            targetDate = new Date(startDate.getTime() + totalDays * DAY_MS);
+                        }
+                        const now = new Date();
+                        let elapsedDays = 0;
+                        if (startDate) {
+                            const endPoint = targetDate ? new Date(Math.min(now.getTime(), targetDate.getTime())) : now;
+                            elapsedDays = Math.max(0, Math.floor((endPoint - startDate) / DAY_MS));
+                        }
+                        elapsedDays = Math.min(elapsedDays, totalDays);
+                        const pct = totalDays > 0 ? Math.max(0, Math.min(100, (elapsedDays / totalDays) * 100)) : 0;
+                        percentLabelEl.textContent = 'Progress Penetasan';
+                        percentDescEl.textContent = 'Hari yang sudah dilalui menuju tanggal tetas';
+                        percentEl.textContent = `${elapsedDays}/${totalDays} hari`;
+                        setTimeout(() => { if (bar) bar.style.width = pct + '%'; }, 80);
+                    }
+                }
 
                 // Animated Temperature & Humidity (random fluctuation)
                 const tempEl = root.querySelector('#metric-temp');
@@ -714,10 +839,227 @@
         });
     }
 
+    function openFinishModal(button) {
+        const status = (button.dataset.status || 'proses').toLowerCase();
+        const batchName = button.dataset.batch || '-';
+        const finishedDateLabel = button.dataset.finishedDate || '-';
+
+        if (status === 'selesai') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Penetasan sudah selesai',
+                html: `Batch <strong>${batchName}</strong> telah diselesaikan pada <strong>${finishedDateLabel}</strong>.`,
+                confirmButtonText: 'Tutup'
+            });
+            return;
+        }
+
+        const finishUrl = button.dataset.finishUrl;
+        const maxTelur = parseInt(button.dataset.maxTelur || '0', 10) || 0;
+        const defaultDoc = button.dataset.jumlahDoc || '';
+        const totalTelur = parseInt(button.dataset.jumlahTelur || '0', 10) || 0;
+        const kandangName = button.dataset.kandang || '-';
+        const targetDateLabel = button.dataset.targetDate || '-';
+
+        if (defaultDoc) {
+            // Jika sudah ada DOC, tampilkan konfirmasi selesai
+            Swal.fire({
+                title: 'Sudah menyelesaikan penetasan?',
+                text: `Batch ${batchName} sudah memiliki data DOC (${defaultDoc}). Apakah Anda ingin menyelesaikan penetasan?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, Selesaikan',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                buttonsStyling: true,
+                customClass: {
+                    popup: 'swal2-finish-popup'
+                },
+                preConfirm: () => {
+                    const payload = {
+                        jumlah_doc: parseInt(defaultDoc),
+                        jumlah_menetas: parseInt(defaultDoc), // set menetas sama dengan DOC
+                        tanggal_menetas: new Date().toISOString().split('T')[0]
+                    };
+                    return { payload, finishUrl };
+                }
+            }).then(result => {
+                if (result.isConfirmed && result.value) {
+                    submitFinishRequest(result.value.finishUrl, result.value.payload, batchName);
+                }
+            });
+        } else {
+            // Jika belum ada DOC, tampilkan modal input
+            Swal.fire({
+                title: '',
+                html: `
+                    <div class="finish-modal-wrapper" style="padding:18px 22px;">
+                        <div class="finish-modal-header" style="margin-bottom:12px;">
+                            <div>
+                                <div class="finish-modal-label">Batch</div>
+                                <div style="font-size:1.05rem;font-weight:700;color:#0f172a;">${batchName}</div>
+                                <div style="font-size:0.82rem;color:#64748b;margin-top:2px;">${kandangName}</div>
+                            </div>
+                            <div class="finish-badge" style="font-size:0.82rem; display:inline-flex; align-items:center; gap:8px;">
+                                <i class="fa-regular fa-calendar-days" style="color:#086100;font-size:14px;" aria-hidden="true"></i>
+                                <span style="vertical-align:middle;">${targetDateLabel || 'Belum dijadwalkan'}</span>
+                            </div>
+                        </div>
+
+                        <div class="finish-input-section">
+                            <div class="finish-field">
+                                <label for="finish-doc" style="font-size:0.95rem;">Jumlah DOC <span style="color:#dc2626">*</span></label>
+                                <input type="number" id="finish-doc" placeholder="0" min="0" step="1" ${maxTelur ? `max="${maxTelur}"` : ''} value="${defaultDoc}" inputmode="numeric" style="width:100%;padding:12px 10px;font-size:1rem;border-radius:10px;border:1px solid #dbeafe;">
+                                <small style="display:block;margin-top:6px;color:#64748b;">Masukkan jumlah Day Old Chick yang akan dipindah.</small>
+                            </div>
+
+                            <div class="finish-result" style="margin-top:8px;">
+                                <div class="result-card">
+                                    <span class="result-label">Persentase Tetas (Estimasi)</span>
+                                    <strong class="result-value" id="estimated-percentage">0.0%</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Selesaikan',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                buttonsStyling: true,
+                customClass: {
+                    popup: 'swal2-finish-popup'
+                },
+                didOpen: () => {
+                    const docInput = document.getElementById('finish-doc');
+                    const percentageEl = document.getElementById('estimated-percentage');
+
+                    // Function to calculate and update percentage
+                    const updatePercentage = () => {
+                        const docValue = parseInt(docInput.value) || 0;
+                        const percentage = totalTelur > 0 ? ((docValue / totalTelur) * 100) : 0;
+                        percentageEl.textContent = percentage.toFixed(1) + '%';
+                    };
+
+                    // Update percentage on input change and prevent exceeding max
+                    docInput.addEventListener('input', () => {
+                        let docValue = parseInt(docInput.value) || 0;
+                        if (maxTelur && docValue > maxTelur) {
+                            docInput.value = maxTelur;
+                            showToast('Jumlah DOC tidak boleh melebihi total telur yang disimpan.', 'warning');
+                        }
+                        updatePercentage();
+                    });
+
+                    // Initial calculation
+                    updatePercentage();
+                },
+                preConfirm: () => {
+                    const docInput = document.getElementById('finish-doc');
+
+                    const docValue = docInput.value.trim();
+                    if (docValue === '') {
+                        Swal.showValidationMessage('Jumlah DOC wajib diisi.');
+                        return false;
+                    }
+
+                    const docNumber = Number(docValue);
+                    if (!Number.isFinite(docNumber) || docNumber < 0) {
+                        Swal.showValidationMessage('Jumlah DOC tidak valid.');
+                        return false;
+                    }
+
+                    if (maxTelur && docNumber > maxTelur) {
+                        Swal.showValidationMessage('Jumlah DOC melebihi total telur yang disimpan.');
+                        return false;
+                    }
+
+                    const payload = {
+                        jumlah_doc: docNumber,
+                        jumlah_menetas: docNumber, // set menetas sama dengan DOC
+                        tanggal_menetas: new Date().toISOString().split('T')[0]
+                    };
+
+                    return { payload, finishUrl };
+                }
+            }).then(result => {
+                if (result.isConfirmed && result.value) {
+                    submitFinishRequest(result.value.finishUrl, result.value.payload, batchName);
+                }
+            });
+        }
+    }
+
+    function submitFinishRequest(url, payload, batchName) {
+        if (!csrfToken) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Token CSRF tidak ditemukan.' });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Menyelesaikan Penetasan...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(async response => {
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    let message = 'Terjadi kesalahan saat menyelesaikan penetasan.';
+                    if (data && data.message) {
+                        message = data.message;
+                    } else if (data && data.errors) {
+                        message = Object.values(data.errors).flat().join('\n');
+                    }
+                    throw new Error(message);
+                }
+                return data;
+            })
+            .then(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: `Batch ${batchName} sudah diselesaikan.`,
+                }).then(() => window.location.reload());
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Menyelesaikan',
+                    text: error.message || 'Terjadi kesalahan tak terduga.',
+                });
+            });
+    }
+
     // Handle delete confirmation with SweetAlert2
     document.addEventListener('DOMContentLoaded', function() {
         // Use event delegation for better performance and to handle dynamically added elements
         document.addEventListener('click', function(e) {
+            const finishBtn = e.target.closest('.finish-btn');
+            if (finishBtn) {
+                if (finishBtn.hasAttribute('disabled')) {
+                    showToast('Menunggu tanggal tetas sebelum menyelesaikan batch.', 'info');
+                    return;
+                }
+                openFinishModal(finishBtn);
+                return;
+            }
+
             if (e.target.closest('.delete-btn')) {
                 e.preventDefault();
 

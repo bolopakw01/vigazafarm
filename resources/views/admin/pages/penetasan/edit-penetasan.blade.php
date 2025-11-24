@@ -103,11 +103,11 @@
                             <label for="estimasi_menetas" class="form-label">
                                 Estimasi Tanggal Menetas
                             </label>
-                            <input type="date" id="estimasi_menetas" 
-                                   class="form-control" readonly style="background-color: #f8fafc; cursor: not-allowed;">
+                            <input type="date" name="estimasi_tanggal_menetas" id="estimasi_menetas" 
+                                   class="form-control" value="{{ old('estimasi_tanggal_menetas', $penetasan->estimasi_tanggal_menetas?->format('Y-m-d')) }}">
                             <small class="form-text">
                                 <i class="fa-solid fa-clock text-primary"></i> 
-                                Otomatis dihitung: 17-18 hari dari tanggal mulai
+                                Otomatis dihitung 17 hari dari tanggal mulai, namun bisa disesuaikan manual jika dibutuhkan.
                             </small>
                         </div>
                     </div>
@@ -760,6 +760,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const hasilPenetasanSection = document.getElementById('hasilPenetasanSection');
     const alertPenetasanSelesai = document.getElementById('alertPenetasanSelesai');
     const alertOwnerOverride = document.getElementById('alertOwnerOverride');
+    let estimasiManualEdit = !!(estimasiMenetasInput && estimasiMenetasInput.value);
     
     const isOwner = {{ auth()->user()->peran === 'owner' ? 'true' : 'false' }};
     
@@ -770,25 +771,47 @@ document.addEventListener('DOMContentLoaded', function() {
         return date.toLocaleDateString('id-ID', options);
     }
     
-    // Hitung estimasi tanggal menetas (17-18 hari, kita pakai 17 hari sebagai estimasi)
-    function hitungEstimasiMenetas() {
-        const tanggalSimpan = tanggalSimpanInput.value;
-        if (tanggalSimpan) {
-            const date = new Date(tanggalSimpan);
-            // Tambah 17 hari untuk estimasi
-            date.setDate(date.getDate() + 17);
-            
-            // Format untuk input date (YYYY-MM-DD)
-            const estimasiDate = date.toISOString().split('T')[0];
-            estimasiMenetasInput.value = estimasiDate;
-            
-            // Format untuk tampilan info
-            estimasiText.textContent = formatTanggalIndonesia(estimasiDate) + ' (± 1 hari)';
-            estimasiInfo.style.display = 'flex';
-        } else {
-            estimasiMenetasInput.value = '';
-            estimasiInfo.style.display = 'none';
+    function updateEstimasiDisplay(dateValue) {
+        if (!estimasiMenetasInput) {
+            return;
         }
+
+        if (dateValue) {
+            if (estimasiInfo) {
+                estimasiInfo.style.display = 'flex';
+            }
+            if (estimasiText) {
+                estimasiText.textContent = formatTanggalIndonesia(dateValue) + ' (± 1 hari)';
+            }
+        } else {
+            if (estimasiInfo) {
+                estimasiInfo.style.display = 'none';
+            }
+        }
+    }
+    
+    // Hitung estimasi tanggal menetas (default 17 hari)
+    function hitungEstimasiMenetas(force = false) {
+        const tanggalSimpan = tanggalSimpanInput.value;
+        if (!tanggalSimpan || !estimasiMenetasInput) {
+            if (estimasiMenetasInput) {
+                estimasiMenetasInput.value = '';
+            }
+            updateEstimasiDisplay('');
+            return;
+        }
+
+        const date = new Date(tanggalSimpan);
+        date.setDate(date.getDate() + 17);
+        const estimasiDate = date.toISOString().split('T')[0];
+
+        estimasiMenetasInput.min = tanggalSimpan;
+
+        if (!estimasiManualEdit || force || !estimasiMenetasInput.value) {
+            estimasiMenetasInput.value = estimasiDate;
+        }
+
+        updateEstimasiDisplay(estimasiMenetasInput.value || estimasiDate);
     }
     
     // Hitung persentase tetas otomatis
@@ -827,10 +850,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Event listeners
     if (tanggalSimpanInput) {
-        // Hitung estimasi saat halaman load jika sudah ada nilai
-        hitungEstimasiMenetas();
+        hitungEstimasiMenetas(true);
         
-        tanggalSimpanInput.addEventListener('change', hitungEstimasiMenetas);
+        tanggalSimpanInput.addEventListener('change', () => {
+            estimasiManualEdit = false;
+            hitungEstimasiMenetas(true);
+        });
+    }
+
+    if (estimasiMenetasInput) {
+        updateEstimasiDisplay(estimasiMenetasInput.value);
+        estimasiMenetasInput.addEventListener('input', () => {
+            estimasiManualEdit = !!estimasiMenetasInput.value;
+            updateEstimasiDisplay(estimasiMenetasInput.value);
+        });
     }
     
     if (jumlahTelurInput && jumlahMenetasInput) {
