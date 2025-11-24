@@ -216,6 +216,22 @@
                     </a>
                 </div>
             </div>
+            <!-- Matrix Settings Card -->
+            <div class="goals-card">
+                <div class="goals-card-icon revenue">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <h3 class="goals-card-title">Set Matriks</h3>
+                <div class="goals-description">
+                    Tetapkan target pendapatan, pengeluaran, dan laba agar KPI dashboard keuangan terupdate otomatis.
+                </div>
+                <div class="goals-card-actions">
+                    <a href="{{ route('admin.sistem.matriks') }}" class="goals-btn goals-btn-primary">
+                        <i class="fas fa-sliders-h"></i>
+                        Set Matriks
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>

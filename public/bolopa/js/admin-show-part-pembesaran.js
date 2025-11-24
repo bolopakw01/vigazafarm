@@ -34,6 +34,66 @@ function toDateKey(input) {
     return String(input);
 }
 
+// ========== FORMATTING HELPERS ==========
+const rupiahFormatter = new Intl.NumberFormat('id-ID', {
+    maximumFractionDigits: 0,
+});
+
+const kgFormatter = new Intl.NumberFormat('id-ID', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+});
+
+const formatCurrency = (value = 0) => rupiahFormatter.format(Math.round(parseFloat(value) || 0));
+const formatKg = (value = 0) => kgFormatter.format(parseFloat(value) || 0);
+
+function updateTextValue(selector, formattedValue, numericValue) {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    el.textContent = formattedValue;
+    if (!Number.isNaN(numericValue) && el.dataset) {
+        el.dataset.value = numericValue;
+    }
+}
+
+function getHealthCost() {
+    const wrapper = document.getElementById('info-total-keseluruhan-wrapper');
+    if (!wrapper) return 0;
+    const raw = parseFloat(wrapper.dataset?.healthTotal || 0);
+    return Number.isNaN(raw) ? 0 : raw;
+}
+
+function setHealthCost(value) {
+    const wrapper = document.getElementById('info-total-keseluruhan-wrapper');
+    if (!wrapper) return;
+    const numeric = parseFloat(value) || 0;
+    wrapper.dataset.healthTotal = numeric;
+}
+
+function recalcTotalBiayaKeseluruhan() {
+    const totalPakan = parseFloat(document.querySelector('#info-total-biaya-pakan')?.dataset?.value || 0);
+    const healthCost = getHealthCost();
+    const grandTotal = (Number.isNaN(totalPakan) ? 0 : totalPakan) + healthCost;
+    updateTextValue('#info-total-biaya-keseluruhan', formatCurrency(grandTotal), grandTotal);
+}
+
+function updatePakanSummaries(summary) {
+    if (!summary) return;
+    const totalKg = parseFloat(summary.total_konsumsi_kg ?? 0) || 0;
+    const totalCost = parseFloat(summary.total_biaya ?? 0) || 0;
+    updateTextValue('#kai-total-biaya-pakan', formatCurrency(totalCost), totalCost);
+    updateTextValue('#info-total-biaya-pakan', formatCurrency(totalCost), totalCost);
+    updateTextValue('#info-total-pakan-kg', formatKg(totalKg), totalKg);
+    recalcTotalBiayaKeseluruhan();
+}
+
+function updateKesehatanSummary(totalBiaya) {
+    const numeric = parseFloat(totalBiaya ?? 0) || 0;
+    updateTextValue('#info-total-biaya-kesehatan', formatCurrency(numeric), numeric);
+    setHealthCost(numeric);
+    recalcTotalBiayaKeseluruhan();
+}
+
 // ========== HELPER FUNCTIONS ==========
 
 function showToast(message, type = 'success') {
@@ -526,6 +586,10 @@ async function loadPakanData() {
             // Still try to render with empty state
             renderPakanHistory([]);
         }
+
+        if (result.summary) {
+            updatePakanSummaries(result.summary);
+        }
     } catch (error) {
         console.error('❌ Error loading pakan data:', error);
         renderPakanHistory([]);
@@ -638,8 +702,11 @@ async function loadKesehatanData() {
         });
         const result = await response.json();
         
-        if (result.success && result.data) {
-            renderKesehatanHistory(result.data);
+        if (result.success) {
+            renderKesehatanHistory(result.data || []);
+            if (Object.prototype.hasOwnProperty.call(result, 'total_biaya')) {
+                updateKesehatanSummary(result.total_biaya);
+            }
         }
     } catch (error) {
         console.error('Error loading kesehatan data:', error);

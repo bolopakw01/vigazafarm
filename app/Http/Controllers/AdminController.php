@@ -2,18 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Penetasan;
+use App\Models\Pembesaran;
+use App\Models\Produksi;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
     public function dashboard()
     {
         // Load dashboard goals from SistemController
-        $sistemController = new \App\Http\Controllers\SistemController();
+        $sistemController = app(SistemController::class);
         $goals = $sistemController->getDashboardGoals();
+        $matrixCards = $sistemController->getMatrixSnapshot();
+        $activityDatasets = $this->prepareActivityDatasets();
 
-        return view('admin.dashboard-admin', compact('goals'));
+        return view('admin.dashboard-admin', compact('goals', 'matrixCards', 'activityDatasets'));
     }
 
     public function kandang()
@@ -159,5 +164,170 @@ class AdminController extends Controller
     public function produksiEdit($id)
     {
         return view('admin.pages.produksi.edit-produksi', ['id' => $id]);
+    }
+
+    protected function prepareActivityDatasets(): array
+    {
+        return [
+            'bulan' => $this->buildMonthlySeries(),
+            'tahun' => $this->buildYearlySeries(),
+            'hari' => $this->buildDailySeries(),
+        ];
+    }
+
+    protected function buildMonthlySeries(): array
+    {
+        $year = now()->year;
+        $labels = collect(range(1, 12))
+            ->map(fn ($month) => Carbon::create($year, $month, 1)->translatedFormat('M'))
+            ->toArray();
+
+        return [
+            'labels' => $labels,
+            'series' => [
+                [
+                    'name' => 'Produksi',
+                    'type' => 'column',
+                    'data' => $this->hydrateMonthlyData(Produksi::class, $year),
+                ],
+                [
+                    'name' => 'Penetasan',
+                    'type' => 'area',
+                    'data' => $this->hydrateMonthlyData(Penetasan::class, $year),
+                ],
+                [
+                    'name' => 'Pembesaran',
+                    'type' => 'line',
+                    'data' => $this->hydrateMonthlyData(Pembesaran::class, $year),
+                ],
+            ],
+        ];
+    }
+
+    protected function buildYearlySeries(): array
+    {
+        $endYear = now()->year;
+        $years = range($endYear - 4, $endYear);
+        $labels = array_map(fn ($year) => (string) $year, $years);
+
+        return [
+            'labels' => $labels,
+            'series' => [
+                [
+                    'name' => 'Produksi',
+                    'type' => 'column',
+                    'data' => $this->hydrateYearlyData(Produksi::class, $years),
+                ],
+                [
+                    'name' => 'Penetasan',
+                    'type' => 'area',
+                    'data' => $this->hydrateYearlyData(Penetasan::class, $years),
+                ],
+                [
+                    'name' => 'Pembesaran',
+                    'type' => 'line',
+                    'data' => $this->hydrateYearlyData(Pembesaran::class, $years),
+                ],
+            ],
+        ];
+    }
+
+    protected function buildDailySeries(): array
+    {
+        $end = now();
+        $start = (clone $end)->subDays(6);
+        $dateKeys = [];
+        $labels = [];
+
+        for ($i = 0; $i < 7; $i++) {
+            $day = (clone $start)->addDays($i);
+            $dateKeys[] = $day->toDateString();
+            $labels[] = $day->translatedFormat('d M');
+        }
+
+        return [
+            'labels' => $labels,
+            'series' => [
+                [
+                    'name' => 'Produksi',
+                    'type' => 'column',
+                    'data' => $this->hydrateDailyData(Produksi::class, $start, $end, $dateKeys),
+                ],
+                [
+                    'name' => 'Penetasan',
+                    'type' => 'area',
+                    'data' => $this->hydrateDailyData(Penetasan::class, $start, $end, $dateKeys),
+                ],
+                [
+                    'name' => 'Pembesaran',
+                    'type' => 'line',
+                    'data' => $this->hydrateDailyData(Pembesaran::class, $start, $end, $dateKeys),
+                ],
+            ],
+        ];
+    }
+
+    protected function hydrateMonthlyData(string $modelClass, int $year): array
+    {
+        $column = $this->resolveCreatedColumn($modelClass);
+        $raw = $modelClass::selectRaw('MONTH(' . $column . ') as month_key, COUNT(*) as total')
+            ->whereYear($column, $year)
+            ->whereNotNull($column)
+            ->groupByRaw('MONTH(' . $column . ')')
+            ->pluck('total', 'month_key')
+            ->all();
+
+        return collect(range(1, 12))
+            ->map(fn ($month) => (int) ($raw[$month] ?? 0))
+            ->toArray();
+    }
+
+    protected function hydrateYearlyData(string $modelClass, array $years): array
+    {
+        if (empty($years)) {
+            return [];
+        }
+
+        $column = $this->resolveCreatedColumn($modelClass);
+        $start = Carbon::create(min($years), 1, 1)->startOfYear();
+        $end = Carbon::create(max($years), 12, 31)->endOfYear();
+
+        $raw = $modelClass::selectRaw('YEAR(' . $column . ') as year_key, COUNT(*) as total')
+            ->whereBetween($column, [$start, $end])
+            ->whereNotNull($column)
+            ->groupByRaw('YEAR(' . $column . ')')
+            ->pluck('total', 'year_key')
+            ->all();
+
+        return collect($years)
+            ->map(fn ($year) => (int) ($raw[$year] ?? 0))
+            ->toArray();
+    }
+
+    protected function hydrateDailyData(string $modelClass, Carbon $start, Carbon $end, array $dateKeys): array
+    {
+        $column = $this->resolveCreatedColumn($modelClass);
+
+        $raw = $modelClass::selectRaw('DATE(' . $column . ') as date_key, COUNT(*) as total')
+            ->whereBetween($column, [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
+            ->whereNotNull($column)
+            ->groupByRaw('DATE(' . $column . ')')
+            ->pluck('total', 'date_key')
+            ->all();
+
+        return collect($dateKeys)
+            ->map(fn ($date) => (int) ($raw[$date] ?? 0))
+            ->toArray();
+    }
+
+    protected function resolveCreatedColumn(string $modelClass): string
+    {
+        if (defined($modelClass . '::CREATED_AT') && $modelClass::CREATED_AT) {
+            return $modelClass::CREATED_AT;
+        }
+
+        $model = new $modelClass();
+
+        return $model->getCreatedAtColumn();
     }
 }

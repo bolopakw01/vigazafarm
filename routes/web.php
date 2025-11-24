@@ -59,6 +59,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/sistem', [App\Http\Controllers\SistemController::class, 'index'])->name('admin.sistem');
         Route::get('/admin/sistem/dashboard', [App\Http\Controllers\SistemController::class, 'dashboard'])->name('admin.sistem.dashboard');
         Route::put('/admin/sistem/dashboard', [App\Http\Controllers\SistemController::class, 'updateDashboard'])->name('admin.sistem.dashboard.update');
+        Route::get('/admin/sistem/matriks', [App\Http\Controllers\SistemController::class, 'matrix'])->name('admin.sistem.matriks');
+        Route::put('/admin/sistem/matriks', [App\Http\Controllers\SistemController::class, 'updateMatrix'])->name('admin.sistem.matriks.update');
         Route::get('/admin/sistem/pakan-vitamin', [FeedVitaminController::class, 'index'])->name('admin.sistem.pakanvitamin');
         Route::post('/admin/sistem/pakan-vitamin', [FeedVitaminController::class, 'store'])->name('admin.sistem.pakanvitamin.store');
         Route::put('/admin/sistem/pakan-vitamin/{item}', [FeedVitaminController::class, 'update'])->name('admin.sistem.pakanvitamin.update');

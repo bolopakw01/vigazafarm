@@ -24,7 +24,8 @@ class DashboardController extends Controller
 
         // Owner ke dashboard utama
         $goals = $this->fetchDashboardGoals();
+        $matrixCards = app(SistemController::class)->getMatrixSnapshot();
 
-        return view('admin.dashboard-admin', compact('goals'));
+        return view('admin.dashboard-admin', compact('goals', 'matrixCards'));
     }
 }

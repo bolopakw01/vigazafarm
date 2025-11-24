@@ -207,7 +207,9 @@
                                 <!-- Total Konsumsi Pakan -->
                                 <div class="mb-3">
                                     <div class="text-muted mb-1" style="font-size: 0.85rem;">Total Konsumsi Pakan</div>
-                                    <div class="fw-bold text-end" style="font-size: 1rem; font-weight: 700 !important;">{{ number_format($totalPakan, 2) }} kg</div>
+                                    <div class="fw-bold text-end" style="font-size: 1rem; font-weight: 700 !important;">
+                                        <span id="info-total-pakan-kg" data-value="{{ $totalPakan }}">{{ number_format($totalPakan, 2) }}</span> kg
+                                    </div>
                                 </div>
                                 
                                 <!-- Total Biaya Pakan -->
@@ -215,7 +217,7 @@
                                     <div class="text-muted mb-1" style="font-size: 0.85rem;">Total Biaya Pakan</div>
                                     <div class="fw-bold" style="font-size: 1rem; font-weight: 700 !important; display: flex; justify-content: space-between; align-items: flex-start;">
                                         <span style="font-size: 0.75rem; color: #6c757d; margin-top: 0.1rem;">Rp</span>
-                                        <span style="text-align: right;">{{ number_format($totalBiayaPakan, 0, ',', '.') }}</span>
+                                        <span id="info-total-biaya-pakan" data-value="{{ $totalBiayaPakan }}" style="text-align: right;">{{ number_format($totalBiayaPakan, 0, ',', '.') }}</span>
                                     </div>
                                 </div>
                                 
@@ -224,16 +226,16 @@
                                     <div class="text-muted mb-1" style="font-size: 0.85rem;">Biaya Kesehatan & Vaksinasi</div>
                                     <div class="fw-bold" style="font-size: 1rem; font-weight: 700 !important; display: flex; justify-content: space-between; align-items: flex-start;">
                                         <span style="font-size: 0.75rem; color: #6c757d; margin-top: 0.1rem;">Rp</span>
-                                        <span style="text-align: right;">{{ number_format($totalBiayaKesehatan ?? 0, 0, ',', '.') }}</span>
+                                        <span id="info-total-biaya-kesehatan" data-value="{{ $totalBiayaKesehatan ?? 0 }}" style="text-align: right;">{{ number_format($totalBiayaKesehatan ?? 0, 0, ',', '.') }}</span>
                                     </div>
                                 </div>
                                 
                                 <!-- Total Keseluruhan -->
                                 <div class="pt-3" style="border-top: 2px solid #495057;">
                                     <div class="text-muted mb-1" style="font-size: 0.85rem;">Total Biaya Keseluruhan</div>
-                                    <div class="fw-bold" style="font-size: 1rem; font-weight: 800 !important; color: #198754; display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <div class="fw-bold" id="info-total-keseluruhan-wrapper" data-health-total="{{ $totalBiayaKesehatan ?? 0 }}" style="font-size: 1rem; font-weight: 800 !important; color: #198754; display: flex; justify-content: space-between; align-items: flex-start;">
                                         <span style="font-size: 0.75rem; margin-top: 0.1rem;">Rp</span>
-                                        <span style="text-align: right;">{{ number_format(($totalBiayaPakan + ($totalBiayaKesehatan ?? 0)), 0, ',', '.') }}</span>
+                                        <span id="info-total-biaya-keseluruhan" data-value="{{ $totalBiayaPakan + ($totalBiayaKesehatan ?? 0) }}" style="text-align: right;">{{ number_format(($totalBiayaPakan + ($totalBiayaKesehatan ?? 0)), 0, ',', '.') }}</span>
                                     </div>
                                 </div>
                             </div>

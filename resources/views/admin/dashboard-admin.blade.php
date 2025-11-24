@@ -18,6 +18,18 @@
 			.goals-panel { flex-direction: column; }
 			.goals-empty { border-style: solid; }
 		}
+		.kpi-icon {
+			transition: filter 0.2s ease;
+		}
+		.kpi-indicator-success {
+			filter: hue-rotate(90deg) saturate(1.2);
+		}
+		.kpi-indicator-warning {
+			filter: hue-rotate(35deg) saturate(1.1);
+		}
+		.kpi-indicator-danger {
+			filter: hue-rotate(-30deg) saturate(1.3);
+		}
 	</style>
 @endpush
 
@@ -159,39 +171,68 @@
 			</div>
 		</div>
 
-		<!-- NEW KPI CARD (separate) -->
+		<!-- KPI Matrix Card -->
+		@php
+			$matrixCards = $matrixCards ?? [];
+			$activityDatasets = $activityDatasets ?? [];
+		@endphp
 		<div class="app-card section-gap kpi-card">
 			<div class="box-body" style="padding: 12px 18px;">
-				<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3">
-					<div class="col">
-						<div class="kpi up">
-							<div class="delta"><img src="{{ asset('bolopa/img/icon/line-md--hazard-lights-filled-loop.svg') }}" class="kpi-icon" alt="KPI Icon"><span class="kpi-delta" data-target="17">0</span>%</div>
-							<div class="value"><span class="kpi-value" data-currency="$" data-target="35210">0</span></div>
-							<div class="label">PRODUKSI</div>
-						</div>
+				@if(count($matrixCards))
+					<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3">
+						@foreach($matrixCards as $card)
+							@php
+								$trendValue = $card['trend'] ?? 'left';
+								$percentTarget = max(0, (int) round($card['percent'] ?? 0));
+								$valueTarget = (int) round($card['actual'] ?? 0);
+								$targetValue = (int) round($card['target'] ?? 0);
+								$label = strtoupper($card['label'] ?? $card['key'] ?? '');
+								$isGoalsCard = ($card['key'] ?? '') === 'goals';
+								$targetText = $isGoalsCard
+									? 'Target ' . number_format($targetValue, 0, ',', '.') . ' Goal' . ($targetValue === 1 ? '' : 's')
+									: 'Target Rp ' . number_format($targetValue, 0, ',', '.');
+								$comparison = $card['comparison'] ?? ($valueTarget > $targetValue ? 'above' : ($valueTarget < $targetValue ? 'below' : 'equal'));
+								if ($comparison === 'equal') {
+									$trendClass = 'kpi left';
+								} elseif ($trendValue === 'down') {
+									$trendClass = 'kpi down';
+								} elseif ($trendValue === 'left') {
+									$trendClass = 'kpi left';
+								} else {
+									$trendClass = 'kpi up';
+								}
+								$indicatorClass = 'kpi-indicator-warning';
+								if ($comparison === 'above') {
+									$indicatorClass = 'kpi-indicator-success';
+								} elseif ($comparison === 'below') {
+									$indicatorClass = 'kpi-indicator-danger';
+								}
+							@endphp
+							<div class="col">
+								<div class="{{ $trendClass }}">
+									<div class="delta">
+										<img src="{{ asset('bolopa/img/icon/line-md--hazard-lights-filled-loop.svg') }}" class="kpi-icon {{ $indicatorClass }}" alt="KPI Icon">
+										<span class="kpi-delta" data-target="{{ $percentTarget }}">0</span>%
+									</div>
+									<div class="value">
+										<span class="kpi-value" data-currency="{{ $isGoalsCard ? '' : 'Rp ' }}" data-target="{{ $valueTarget }}">
+											@if($isGoalsCard)
+												{{ number_format($valueTarget, 0, ',', '.') }}
+											@else
+												Rp {{ number_format($valueTarget, 0, ',', '.') }}
+											@endif
+										</span>
+									</div>
+									<div class="label">{{ $label }}</div>
+								</div>
+							</div>
+						@endforeach
 					</div>
-					<div class="col">
-						<div class="kpi left">
-							<div class="delta"><img src="{{ asset('bolopa/img/icon/line-md--hazard-lights-filled-loop.svg') }}" class="kpi-icon" alt="KPI Icon"><span class="kpi-delta" data-target="0">0</span>%</div>
-							<div class="value"><span class="kpi-value" data-currency="$" data-target="10390">0</span></div>
-							<div class="label">PENETASAN</div>
-						</div>
+				@else
+					<div class="text-center text-muted py-4">
+						Data matriks belum tersedia. Silakan set target di menu Sistem &gt; Set Matriks.
 					</div>
-					<div class="col">
-						<div class="kpi up">
-							<div class="delta"><img src="{{ asset('bolopa/img/icon/line-md--hazard-lights-filled-loop.svg') }}" class="kpi-icon" alt="KPI Icon"><span class="kpi-delta" data-target="18">0</span>%</div>
-							<div class="value"><span class="kpi-value" data-currency="$" data-target="24813">0</span></div>
-							<div class="label">PEMBESARAN</div>
-						</div>
-					</div>
-					<div class="col">
-						<div class="kpi down">
-							<div class="delta"><img src="{{ asset('bolopa/img/icon/line-md--hazard-lights-filled-loop.svg') }}" class="kpi-icon" alt="KPI Icon"><span class="kpi-delta" data-target="20">0</span>%</div>
-							<div class="value"><span class="kpi-value" data-target="1200">0</span></div>
-							<div class="label">OTHER</div>
-						</div>
-					</div>
-				</div>
+				@endif
 			</div>
 		</div>
 
@@ -222,11 +263,16 @@
 								</thead>
 								<tbody>
 									@foreach(\App\Models\Produksi::latest()->take(6)->get() as $row)
+										@php
+											$createdAt = $row->dibuat_pada ?? $row->created_at;
+											$jenisProduksi = $row->tipe_produksi ?? $row->jenis_input ?? 'Telur';
+											$jumlahProduksi = $row->jumlah_telur ?? $row->jumlah_indukan ?? $row->jumlah ?? 0;
+										@endphp
 									<tr>
-										<td>{{ optional($row->created_at)->format('d/m/Y') }}</td>
-										<td>{{ $row->kandang?->nama ?? '—' }}</td>
-										<td>{{ $row->jenis ?? 'Telur' }}</td>
-										<td>{{ number_format($row->jumlah ?? 0,0,',','.') }}</td>
+										<td>{{ optional($createdAt)->format('d/m/Y') ?? '-' }}</td>
+										<td>{{ $row->kandang?->nama_kandang ?? '-' }}</td>
+										<td>{{ ucfirst($jenisProduksi) }}</td>
+										<td>{{ number_format($jumlahProduksi, 0, ',', '.') }}</td>
 										<td><span class="badge badge-pill badge-selesai">Selesai</span></td>
 									</tr>
 									@endforeach
@@ -284,11 +330,15 @@
 							</thead>
 							<tbody>
 								@foreach(\App\Models\Penetasan::latest()->take(6)->get() as $r)
+									@php
+										$createdAt = $r->dibuat_pada ?? $r->created_at;
+										$jumlahTelur = $r->jumlah_telur ?? 0;
+									@endphp
 								<tr>
-									<td>{{ optional($r->created_at)->format('d/m/Y') }}</td>
-									<td>{{ $r->kandang?->nama ?? '—' }}</td>
+									<td>{{ optional($createdAt)->format('d/m/Y') ?? '-' }}</td>
+									<td>{{ $r->kandang?->nama_kandang ?? '-' }}</td>
 									<td>{{ $r->batch ?? '—' }}</td>
-									<td>{{ number_format($r->jumlah_telur ?? 0,0,',','.') }}</td>
+									<td>{{ number_format($jumlahTelur, 0, ',', '.') }}</td>
 									<td><span class="badge badge-pill badge-aktif">Aktif</span></td>
 								</tr>
 								@endforeach
@@ -330,12 +380,18 @@
 							</thead>
 							<tbody>
 								@foreach(\App\Models\Pembesaran::latest()->take(6)->get() as $pr)
+									@php
+										$createdAt = $pr->dibuat_pada ?? $pr->created_at;
+										$jenisKelamin = $pr->jenis_kelamin ?? $pr->jenis ?? '-';
+										$jumlahAnak = $pr->jumlah_anak_ayam ?? $pr->jumlah_siap ?? $pr->jumlah ?? 0;
+										$keterangan = $pr->status_batch ?? $pr->catatan ?? 'Aktif';
+									@endphp
 								<tr>
-									<td>{{ optional($pr->created_at)->format('d/m/Y') }}</td>
-									<td>{{ $pr->kandang?->nama ?? '—' }}</td>
-									<td>{{ $pr->jenis ?? '—' }}</td>
-									<td>{{ number_format($pr->jumlah ?? 0,0,',','.') }}</td>
-									<td><span class="badge badge-pill badge-aktif">Aktif</span></td>
+									<td>{{ optional($createdAt)->format('d/m/Y') ?? '-' }}</td>
+									<td>{{ $pr->kandang?->nama_kandang ?? '-' }}</td>
+									<td>{{ ucfirst($jenisKelamin) }}</td>
+									<td>{{ number_format($jumlahAnak, 0, ',', '.') }}</td>
+									<td><span class="badge badge-pill badge-aktif">{{ ucfirst($keterangan) }}</span></td>
 								</tr>
 								@endforeach
 							</tbody>
@@ -357,15 +413,20 @@
 	<script>
 		// replicate mainChart + filters and radar chart + export menu and animations from lopadashboard.html
 		(function(){
-			// main chart sample data
-			const mainData = {
-				labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
-				series: [
-					{ name: 'Produksi', type: 'column', data: [230,180,240,200,260,300,320,290,310,330,360,380] },
-					{ name: 'Penetasan', type: 'area', data: [150,160,140,180,170,200,210,220,230,240,250,260] },
-					{ name: 'Pembesaran', type: 'line', data: [120,140,160,150,170,180,200,210,220,230,240,260] }
-				]
+			const rawDatasets = @json($activityDatasets ?? []);
+			const safeDataset = (key) => {
+				const source = rawDatasets && rawDatasets[key] ? rawDatasets[key] : {};
+				return {
+					labels: Array.isArray(source.labels) ? source.labels : [],
+					series: Array.isArray(source.series) ? source.series : [],
+				};
 			};
+			const datasets = {
+				bulan: safeDataset('bulan'),
+				tahun: safeDataset('tahun'),
+				hari: safeDataset('hari'),
+			};
+			const mainData = datasets.bulan;
 
 			const mainOpts = {
 				series: mainData.series,
@@ -389,19 +450,16 @@
 			mainChart.render();
 
 			const chartFilter = document.getElementById('chartFilter');
-			const filterData = {
-				bulan: mainData,
-				tahun: { labels: ['2020','2021','2022','2023','2024','2025'], series: [ { name:'Produksi', type:'column', data:[1200,1400,1600,1800,2000,2200] }, { name:'Penetasan', type:'area', data:[800,900,1000,1100,1200,1300] }, { name:'Pembesaran', type:'line', data:[600,700,800,900,1000,1100] } ] },
-				hari: { labels: Array.from({length:31},(_,i)=>String(i+1)), series: [ { name:'Produksi', type:'column', data:Array.from({length:31},()=>Math.floor(Math.random()*100)+50) }, { name:'Penetasan', type:'area', data:Array.from({length:31},()=>Math.floor(Math.random()*80)+30) }, { name:'Pembesaran', type:'line', data:Array.from({length:31},()=>Math.floor(Math.random()*60)+20) } ] }
-			};
-
 			chartFilter?.addEventListener('click', (e)=>{
 				if(e.target.classList.contains('seg-btn')){
 					chartFilter.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('is-active'));
 					e.target.classList.add('is-active');
 					const f = e.target.getAttribute('data-filter');
-					const newOpts = { ...mainOpts, series: filterData[f].series, labels: filterData[f].labels };
-					mainChart.updateOptions(newOpts);
+					const dataset = datasets[f] ?? { labels: [], series: [] };
+					mainChart.updateOptions({
+						labels: dataset.labels,
+						series: dataset.series,
+					});
 				}
 			});
 

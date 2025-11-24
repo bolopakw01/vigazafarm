@@ -84,7 +84,7 @@
             <div class="bolopa-kai-content">
                 <div class="bolopa-kai-value" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
                     <span style="font-size: 0.35em; color: rgba(255, 255, 255, 0.7); margin-top: 0.2em;">Rp</span>
-                    <span>{{ number_format($totalBiayaPakan, 0, ',', '.') }}</span>
+                    <span id="kai-total-biaya-pakan" data-value="{{ $totalBiayaPakan }}">{{ number_format($totalBiayaPakan, 0, ',', '.') }}</span>
                 </div>
                 <div class="bolopa-kai-label">Total Biaya Pakan</div>
             </div>

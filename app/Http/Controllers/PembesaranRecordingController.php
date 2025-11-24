@@ -229,16 +229,31 @@ class PembesaranRecordingController extends Controller
      */
     public function getPakanList(Pembesaran $pembesaran)
     {
-        
-            $pakanList = Pakan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
-                ->with(['stokPakan', 'feedItem'])
-                ->orderByDesc('tanggal')
-                ->limit(30)
-                ->get();
+        $batchId = $pembesaran->batch_produksi_id;
+
+        $pakanQuery = Pakan::query();
+        if ($batchId) {
+            $pakanQuery->where('batch_produksi_id', $batchId);
+        } else {
+            $pakanQuery->whereNull('batch_produksi_id');
+        }
+
+        $pakanList = (clone $pakanQuery)
+            ->with(['stokPakan', 'feedItem'])
+            ->orderByDesc('tanggal')
+            ->limit(30)
+            ->get();
+
+        $totalKonsumsi = (float) $pakanQuery->sum('jumlah_kg');
+        $totalBiaya = (float) $pakanQuery->sum('total_biaya');
 
         return response()->json([
             'success' => true,
             'data' => $pakanList,
+            'summary' => [
+                'total_konsumsi_kg' => $totalKonsumsi,
+                'total_biaya' => $totalBiaya,
+            ],
         ]);
     }
 
