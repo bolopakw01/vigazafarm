@@ -28,10 +28,10 @@
     </div>
     <div class="col-md-6" id="field_jumlah_telur_container" style="display:none;">
       <label for="jumlah_telur" class="form-label">Jumlah Telur</label>
-      <input type="number" id="jumlah_telur" name="jumlah_telur" class="form-control field-auto-fill" min="1" value="{{ old('jumlah_telur') }}">
+      <input type="number" id="jumlah_telur" name="jumlah_telur" class="form-control field-auto-fill" min="0" value="{{ old('jumlah_telur') }}">
       <div class="form-text">
-        <small class="text-muted field-hint-manual field-hint-penetasan">Masukkan jumlah telur yang akan diproduksi.</small>
-        <small class="text-muted field-hint-penetasan" style="display:none;">Akan terisi otomatis dari batch penetasan yang dipilih.</small>
+        <small class="text-muted field-hint-manual field-hint-produksi">Masukkan jumlah telur yang akan diproduksi.</small>
+        <small class="text-muted field-hint-produksi" style="display:none;">Akan terisi otomatis dari produksi puyuh yang dipilih.</small>
       </div>
     </div>
   </div>
@@ -211,7 +211,7 @@
       <input type="number" step="0.01" id="harga_per_pcs" name="harga_per_pcs" class="form-control" min="0" value="{{ number_format(old('harga_per_pcs'), 0) }}">
       <div class="form-text">
         <small class="text-muted field-hint-manual field-hint-pembesaran" id="harga_hint_manual">Harga jual per ekor puyuh (opsional).</small>
-        <small class="text-muted field-hint-penetasan" style="display:none;" id="harga_hint_penetasan">Harga jual per butir telur (opsional).</small>
+        <small class="text-muted field-hint-produksi" style="display:none;" id="harga_hint_produksi">Harga jual per butir telur (opsional).</small>
       </div>
     </div>
   </div>

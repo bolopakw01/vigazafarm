@@ -3,7 +3,7 @@
   <h6 class="section-title manual">Data Dari Manual</h6>
   <p class="text-muted mb-3">
     <i class="fa-solid fa-info-circle me-1"></i>
-    Isi data indukan secara manual jika tidak berasal dari pembesaran atau penetasan.
+    Isi data indukan secara manual jika tidak berasal dari pembesaran atau produksi puyuh yang sudah ada.
   </p>
   <div class="row g-3">
     <div class="col-12">
@@ -24,7 +24,7 @@
       <div class="form-text">
         <small class="text-muted">
           <strong>Puyuh:</strong> Input data puyuh indukan untuk produksi |
-          <strong>Telur:</strong> Input data telur untuk penetasan
+          <strong>Telur:</strong> Input data telur secara manual (bukan hasil produksi)
         </small>
       </div>
     </div>

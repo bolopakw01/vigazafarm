@@ -985,7 +985,9 @@ document.addEventListener('DOMContentLoaded', function() {
             switch (jenisInput) {
                 case 'manual': return 'Manual';
                 case 'dari_pembesaran': return 'Dari Pembesaran';
-                case 'dari_penetasan': return 'Dari Penetasan';
+                case 'dari_produksi':
+                case 'dari_penetasan':
+                    return 'Dari Produksi';
                 default: return 'Manual';
             }
         })();

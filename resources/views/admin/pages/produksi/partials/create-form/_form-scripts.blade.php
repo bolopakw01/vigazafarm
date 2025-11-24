@@ -42,7 +42,7 @@
       // Select dropdowns (control states)
       kandang_id: document.getElementById('kandang_id')?.value || '',
       pembesaran_id: document.getElementById('pembesaran_id')?.value || '',
-      penetasan_id: document.getElementById('penetasan_id')?.value || '',
+      produksi_sumber_id: document.getElementById('produksi_sumber_id')?.value || '',
       status: document.getElementById('status')?.value || 'aktif',
 
       timestamp: Date.now()
@@ -95,8 +95,8 @@
         document.getElementById('pembesaran_id').value = state.pembesaran_id;
       }
 
-      if (state.penetasan_id && document.getElementById('penetasan_id')) {
-        document.getElementById('penetasan_id').value = state.penetasan_id;
+      if (state.produksi_sumber_id && document.getElementById('produksi_sumber_id')) {
+        document.getElementById('produksi_sumber_id').value = state.produksi_sumber_id;
       }
 
       if (state.status && document.getElementById('status')) {
@@ -138,7 +138,7 @@
     const jenisInput = jenisInputRadio ? jenisInputRadio.value : 'manual';
     let prefix = 'PROD';
 
-    if (jenisInput === 'dari_penetasan') {
+    if (jenisInput === 'dari_produksi') {
       prefix = 'PROD-TEL';
     } else if (jenisInput === 'manual') {
       const fokusManualRadio = document.querySelector('input[name="fokus_manual"]:checked');
@@ -298,19 +298,38 @@
     }
   }
 
-  function autoFillFromPenetasan() {
-    const select = document.getElementById('penetasan_id');
+  function autoFillFromProduksi() {
+    const select = document.getElementById('produksi_sumber_id');
+    if (!select) return;
+
     const selectedOption = select.options[select.selectedIndex];
-    if (selectedOption.value) {
-      // Auto-fill tanggal_mulai from penetasan tanggal_menetas
-      const tanggalMenetas = selectedOption.getAttribute('data-tanggal-menetas');
-      if (tanggalMenetas) {
-        const tanggalMulaiInput = document.getElementById('tanggal_mulai');
-        tanggalMulaiInput.value = tanggalMenetas;
-        tanggalMulaiInput.classList.add('auto-filled');
-        tanggalMulaiInput.dispatchEvent(new Event('input'));
-        // Regenerate batch ID with new date
-        generateBatchId(true);
+    const jumlahTelurField = document.getElementById('jumlah_telur');
+    const persentaseFertilField = document.getElementById('persentase_fertil');
+
+    if (!jumlahTelurField) {
+      return;
+    }
+
+    if (selectedOption && selectedOption.value) {
+      const stokTersedia = parseInt(selectedOption.dataset.telurTersedia || '0', 10);
+      if (!Number.isNaN(stokTersedia) && stokTersedia > 0) {
+        jumlahTelurField.value = stokTersedia;
+        jumlahTelurField.classList.add('auto-filled');
+        if (persentaseFertilField) {
+          persentaseFertilField.value = 100;
+        }
+      } else {
+        jumlahTelurField.value = '';
+        jumlahTelurField.classList.remove('auto-filled');
+        if (persentaseFertilField) {
+          persentaseFertilField.value = '';
+        }
+      }
+    } else {
+      jumlahTelurField.value = '';
+      jumlahTelurField.classList.remove('auto-filled');
+      if (persentaseFertilField) {
+        persentaseFertilField.value = '';
       }
     }
   }
@@ -321,14 +340,15 @@
     // Show/hide sections based on jenis_input
     const manualSection = document.getElementById('manualSection');
     const pembesaranSection = document.getElementById('pembesaranSection');
-    const penetasanSection = document.getElementById('penetasanSection');
+    const produksiSection = document.getElementById('produksiSourceSection');
+    const isProduksiTransfer = selected === 'dari_produksi';
 
     manualSection.style.display = selected === 'manual' ? 'block' : 'none';
     pembesaranSection.style.display = selected === 'dari_pembesaran' ? 'block' : 'none';
-    penetasanSection.style.display = selected === 'dari_penetasan' ? 'block' : 'none';
+    produksiSection.style.display = isProduksiTransfer ? 'block' : 'none';
 
-    // Clear campuran fields when switching to dari_pembesaran or dari_penetasan
-    if (selected === 'dari_pembesaran' || selected === 'dari_penetasan') {
+    // Clear campuran fields when switching to dari_pembesaran or transfer telur
+    if (selected === 'dari_pembesaran' || isProduksiTransfer) {
       document.getElementById('jumlah_jantan').value = '';
       document.getElementById('jumlah_betina').value = '';
       document.getElementById('jumlah_jantan').removeAttribute('name');
@@ -351,7 +371,13 @@
     const beratRataTelurField = document.getElementById('berat_rata_telur');
     const jenisKelaminRadios = document.querySelectorAll('input[name="jenis_kelamin"]');
     const pembesaranIdField = document.getElementById('pembesaran_id');
-    const penetasanIdField = document.getElementById('penetasan_id');
+    const produksiIdField = document.getElementById('produksi_sumber_id');
+
+    if (jumlahTelurField) {
+      jumlahTelurField.readOnly = false;
+      jumlahTelurField.classList.remove('bg-light');
+      jumlahTelurField.removeAttribute('title');
+    }
 
     if (selected === 'manual') {
       const fokus = document.querySelector('input[name="fokus_manual"]:checked').value;
@@ -396,12 +422,12 @@
         pembesaranIdField.value = '';
         pembesaranIdField.classList.remove('is-invalid');
       }
-      if (penetasanIdField) {
-        penetasanIdField.required = false;
-        penetasanIdField.removeAttribute('required');
-        penetasanIdField.disabled = true;
-        penetasanIdField.value = '';
-        penetasanIdField.classList.remove('is-invalid');
+      if (produksiIdField) {
+        produksiIdField.required = false;
+        produksiIdField.removeAttribute('required');
+        produksiIdField.disabled = true;
+        produksiIdField.value = '';
+        produksiIdField.classList.remove('is-invalid');
       }
     } else if (selected === 'dari_pembesaran') {
       fieldJumlahBurung.style.display = 'block';
@@ -425,31 +451,36 @@
         pembesaranIdField.setAttribute('required', 'required');
         pembesaranIdField.disabled = false;
       }
-      // penetasan_id is not required
-      if (penetasanIdField) {
-        penetasanIdField.required = false;
-        penetasanIdField.removeAttribute('required');
-        penetasanIdField.disabled = true;
-        penetasanIdField.value = '';
-        penetasanIdField.classList.remove('is-invalid');
+      // produksi_sumber_id is not required
+      if (produksiIdField) {
+        produksiIdField.required = false;
+        produksiIdField.removeAttribute('required');
+        produksiIdField.disabled = true;
+        produksiIdField.value = '';
+        produksiIdField.classList.remove('is-invalid');
       }
-    } else if (selected === 'dari_penetasan') {
+    } else if (isProduksiTransfer) {
       fieldJumlahBurung.style.display = 'none';
       fieldJumlahTelur.style.display = 'block';
       fieldJenisKelamin.style.display = 'none';
       fieldUmurBerat.style.display = 'none';
-      fieldFertilTelur.style.display = 'block'; // Show fertil fields for penetasan
-      fieldBeratRataTelur.style.display = 'block'; // Show berat rata telur for penetasan
+      fieldFertilTelur.style.display = 'block';
+      fieldBeratRataTelur.style.display = 'block';
       if (fieldInfoPembesaran) fieldInfoPembesaran.style.display = 'none';
 
       // Set required attributes
       jumlahBurungField.required = false;
-      jumlahTelurField.required = true;
-      persentaseFertilField.required = false; // Not required for penetasan transfer
-      beratRataTelurField.required = false; // Optional for penetasan transfer
-      // jenis_kelamin not shown for penetasan
+      jumlahTelurField.required = false;
+      persentaseFertilField.required = false;
+      beratRataTelurField.required = false;
       jenisKelaminRadios.forEach(radio => radio.required = false);
-      // pembesaran_id is not required
+
+      if (jumlahTelurField) {
+        jumlahTelurField.readOnly = true;
+        jumlahTelurField.classList.add('bg-light');
+        jumlahTelurField.setAttribute('title', 'Jumlah telur diambil otomatis dari produksi puyuh terpilih');
+      }
+
       if (pembesaranIdField) {
         pembesaranIdField.required = false;
         pembesaranIdField.removeAttribute('required');
@@ -457,21 +488,27 @@
         pembesaranIdField.value = '';
         pembesaranIdField.classList.remove('is-invalid');
       }
-      // penetasan_id is required for dari_penetasan
-      if (penetasanIdField) {
-        penetasanIdField.required = true;
-        penetasanIdField.setAttribute('required', 'required');
-        penetasanIdField.disabled = false;
+
+      if (produksiIdField) {
+        if (selected === 'dari_produksi') {
+          produksiIdField.required = true;
+          produksiIdField.setAttribute('required', 'required');
+          produksiIdField.disabled = false;
+        } else {
+          produksiIdField.required = false;
+          produksiIdField.removeAttribute('required');
+          produksiIdField.disabled = true;
+        }
       }
     }
 
     // Update dynamic titles
     const dynamicTitles = document.querySelectorAll('.dynamic');
     dynamicTitles.forEach(title => {
-      title.classList.remove('manual', 'pembesaran', 'penetasan');
+      title.classList.remove('manual', 'pembesaran', 'produksi');
       if (selected === 'manual') title.classList.add('manual');
       else if (selected === 'dari_pembesaran') title.classList.add('pembesaran');
-      else if (selected === 'dari_penetasan') title.classList.add('penetasan');
+      else if (isProduksiTransfer) title.classList.add('produksi');
     });
 
     // Update field hints and visibility based on jenis_input
@@ -492,7 +529,7 @@
     const beratRataTelurField = document.getElementById('berat_rata_telur');
     const jenisKelaminRadios = document.querySelectorAll('input[name="jenis_kelamin"]');
     const pembesaranIdField = document.getElementById('pembesaran_id');
-    const penetasanIdField = document.getElementById('penetasan_id');
+    const produksiIdField = document.getElementById('produksi_sumber_id');
 
     // Get label elements
     const jumlahBurungLabel = document.querySelector('label[for="jumlah_burung"]');
@@ -500,7 +537,7 @@
     const persentaseFertilLabel = document.querySelector('label[for="persentase_fertil"]');
     const beratRataTelurLabel = document.querySelector('label[for="berat_rata_telur"]');
     const pembesaranIdLabel = document.querySelector('label[for="pembesaran_id"]');
-    const penetasanIdLabel = document.querySelector('label[for="penetasan_id"]');
+    const produksiIdLabel = document.querySelector('label[for="produksi_sumber_id"]');
 
     // Find the jenis kelamin label more specifically
     const jenisKelaminLabels = document.querySelectorAll('label');
@@ -538,9 +575,9 @@
       pembesaranIdLabel.innerHTML = baseText + (pembesaranIdField && pembesaranIdField.required ? ' <span class="required">*</span>' : '');
     }
 
-    if (penetasanIdLabel) {
-      const baseText = 'Pilih Penetasan';
-      penetasanIdLabel.innerHTML = baseText + (penetasanIdField && penetasanIdField.required ? ' <span class="required">*</span>' : '');
+    if (produksiIdLabel) {
+      const baseText = 'Pilih Produksi Puyuh';
+      produksiIdLabel.innerHTML = baseText + (produksiIdField && produksiIdField.required ? ' <span class="required">*</span>' : '');
     }
 
     // Update jenis kelamin label based on whether it's required
@@ -554,11 +591,11 @@
   function updateHargaLabel(jenisInput) {
     const hargaLabel = document.getElementById('harga_label');
     const hargaHintManual = document.getElementById('harga_hint_manual');
-    const hargaHintPenetasan = document.getElementById('harga_hint_penetasan');
+    const hargaHintProduksi = document.getElementById('harga_hint_produksi');
 
     let isForEggs = false;
 
-    if (jenisInput === 'dari_penetasan') {
+    if (jenisInput === 'dari_produksi') {
       isForEggs = true;
     } else if (jenisInput === 'manual') {
       const fokus = document.querySelector('input[name="fokus_manual"]:checked').value;
@@ -571,32 +608,36 @@
       // For eggs (telur)
       hargaLabel.textContent = 'Harga per Butir';
       hargaHintManual.style.display = 'none';
-      hargaHintPenetasan.style.display = 'block';
+      if (hargaHintProduksi) {
+        hargaHintProduksi.style.display = 'block';
+      }
     } else {
       // For quail (puyuh)
       hargaLabel.textContent = 'Harga per Ekor';
       hargaHintManual.style.display = 'block';
-      hargaHintPenetasan.style.display = 'none';
+      if (hargaHintProduksi) {
+        hargaHintProduksi.style.display = 'none';
+      }
     }
   }
 
   function updateFieldHints(jenisInput) {
     // Hide all hints first
-    document.querySelectorAll('.field-hint-manual, .field-hint-pembesaran, .field-hint-penetasan').forEach(hint => {
+    document.querySelectorAll('.field-hint-manual, .field-hint-pembesaran, .field-hint-produksi').forEach(hint => {
       hint.style.display = 'none';
     });
 
     // Show relevant hints
     const manualHints = document.querySelectorAll('.field-hint-manual');
     const pembesaranHints = document.querySelectorAll('.field-hint-pembesaran');
-    const penetasanHints = document.querySelectorAll('.field-hint-penetasan');
+    const produksiHints = document.querySelectorAll('.field-hint-produksi');
 
     if (jenisInput === 'manual') {
       manualHints.forEach(hint => hint.style.display = 'block');
     } else if (jenisInput === 'dari_pembesaran') {
       pembesaranHints.forEach(hint => hint.style.display = 'block');
-    } else if (jenisInput === 'dari_penetasan') {
-      penetasanHints.forEach(hint => hint.style.display = 'block');
+    } else if (jenisInput === 'dari_produksi') {
+      produksiHints.forEach(hint => hint.style.display = 'block');
     }
 
     // Update harga label and hint based on jenis_input
@@ -701,7 +742,7 @@
 
     initializeDatePlaceholders();
 
-    // Store pembesaran and penetasan data for auto-fill
+    // Store pembesaran data for auto-fill
     const pembesaranData = {!! json_encode($pembesaranList ? $pembesaranList->map(function($p) {
       return [
         'id' => $p->id,
@@ -713,14 +754,6 @@
         'jenis_kelamin' => $p->jenis_kelamin,
         'jumlah_jantan' => $p->jumlah_jantan ?? null,
         'jumlah_betina' => $p->jumlah_betina ?? null
-      ];
-    })->toArray() : []) !!};
-
-    const penetasanData = {!! json_encode($penetasanList ? $penetasanList->map(function($p) {
-      return [
-        'id' => $p->id,
-        'stok_tersedia' => $p->telur_tidak_fertil - ($p->telur_infertil_ditransfer ?? 0),
-        'tanggal_menetas' => $p->tanggal_menetas ? $p->tanggal_menetas->format('Y-m-d') : null
       ];
     })->toArray() : []) !!};
 
@@ -787,34 +820,16 @@
       saveFormState();
     });
 
-    // Auto-fill jumlah_telur when penetasan is selected
-    document.getElementById('penetasan_id').addEventListener('change', function() {
-      const selectedId = this.value;
-      const jumlahTelurField = document.getElementById('jumlah_telur');
-      const persentaseFertilField = document.getElementById('persentase_fertil');
+    const produksiSumberSelect = document.getElementById('produksi_sumber_id');
+    if (produksiSumberSelect) {
+      produksiSumberSelect.addEventListener('change', function() {
+        autoFillFromProduksi();
+        saveFormState();
+      });
 
-      if (selectedId) {
-        const penetasan = penetasanData.find(p => p.id == selectedId);
-        if (penetasan) {
-          // Fill form field with available stock
-          jumlahTelurField.value = penetasan.stok_tersedia;
-          // Set persentase fertil to 100% for penetasan since eggs are already infertile
-          persentaseFertilField.value = 100;
-          // Add auto-filled styling
-          jumlahTelurField.classList.add('auto-filled');
-        }
-      } else {
-        jumlahTelurField.value = '';
-        persentaseFertilField.value = '';
-        // Remove auto-filled styling
-        jumlahTelurField.classList.remove('auto-filled');
-      }
-
-      // Call the new auto-fill function for production fields
-      autoFillFromPenetasan();
-      // Save form state
-      saveFormState();
-    });
+      // Trigger once on load to sync initial values
+      autoFillFromProduksi();
+    }
 
     // Attach change listener for kandang_id
     document.getElementById('kandang_id').addEventListener('change', saveFormState);

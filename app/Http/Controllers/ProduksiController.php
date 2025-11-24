@@ -74,6 +74,8 @@ class ProduksiController extends Controller
             $laporan->tampilkan_di_histori = false;
             $laporan->save();
 
+            $this->syncTelurTurunanFromPuyuh($produksi);
+
             return redirect()->route('admin.produksi.show', $produksi->id)
                 ->with('success', 'Histori berhasil disembunyikan tanpa mengubah total KAI.');
         } catch (\Exception $e) {
@@ -153,6 +155,8 @@ class ProduksiController extends Controller
 
             $laporan->save();
 
+            $this->syncTelurTurunanFromPuyuh($produksi);
+
             return redirect()->route('admin.produksi.show', $produksi->id)
                 ->with('success', 'Histori berhasil di-reset. Menu KAI akan otomatis ter-update.');
         } catch (\Exception $e) {
@@ -170,14 +174,6 @@ class ProduksiController extends Controller
                               ->orderBy('nama_kandang')
                               ->get();
         
-        // Get penetasan with available infertile eggs and load kandang relation
-        // Only get completed penetasan with available infertile eggs
-        $penetasanList = Penetasan::with('kandang')
-                                  ->where('status', 'selesai')
-                                  ->whereRaw('(telur_tidak_fertil - COALESCE(telur_infertil_ditransfer, 0)) > 0')
-                                  ->orderBy('tanggal_menetas', 'desc')
-                                  ->get();
-        
         // Get pembesaran with available breeding stock and load kandang relation
         // Only get completed pembesaran with available stock
         $pembesaranList = Pembesaran::with('kandang')
@@ -185,16 +181,18 @@ class ProduksiController extends Controller
                                     ->whereRaw('(COALESCE(jumlah_siap, 0) - COALESCE(indukan_ditransfer, 0)) > 0')
                                     ->orderBy('tanggal_siap', 'desc')
                                     ->get();
+
+        $produksiSumberList = $this->loadProduksiSumberList();
         
         // Set default jenis_input based on available data
         $defaultJenisInput = 'manual';
         if ($pembesaranList->isNotEmpty()) {
             $defaultJenisInput = 'dari_pembesaran';
-        } elseif ($penetasanList->isNotEmpty()) {
-            $defaultJenisInput = 'dari_penetasan';
+        } elseif ($produksiSumberList->isNotEmpty()) {
+            $defaultJenisInput = 'dari_produksi';
         }
         
-        return view('admin.pages.produksi.create-produksi', compact('kandangList', 'penetasanList', 'pembesaranList', 'defaultJenisInput'));
+        return view('admin.pages.produksi.create-produksi', compact('kandangList', 'pembesaranList', 'produksiSumberList', 'defaultJenisInput'));
     }
 
     /**
@@ -232,13 +230,14 @@ class ProduksiController extends Controller
         // Dynamic validation based on jenis_input and fokus_manual
         $rules = [
             'kandang_id' => 'required|exists:kandang,id',
-            'jenis_input' => 'required|in:manual,dari_pembesaran,dari_penetasan',
+            'jenis_input' => 'required|in:manual,dari_pembesaran,dari_penetasan,dari_produksi',
             'batch_produksi_id' => 'nullable|string|max:50',
             'tanggal_mulai' => 'required|date',
             'tanggal_akhir' => 'nullable|date|after_or_equal:tanggal_mulai',
             'status' => 'required|in:aktif,tidak_aktif',
             'catatan' => 'nullable|string',
             'harga_per_pcs' => 'nullable|numeric|min:0',
+            'produksi_sumber_id' => 'nullable|exists:produksi,id',
         ];
 
         $jenisInput = $mappedData['jenis_input'] ?? 'manual';
@@ -273,6 +272,12 @@ class ProduksiController extends Controller
             $rules = array_merge($rules, [
                 'penetasan_id' => 'required|exists:penetasan,id',
                 'jumlah_telur' => 'required|integer|min:1',
+                'berat_rata_telur' => 'nullable|numeric|min:0',
+            ]);
+        } elseif ($jenisInput === 'dari_produksi') {
+            $rules = array_merge($rules, [
+                'produksi_sumber_id' => 'required|exists:produksi,id',
+                'jumlah_telur' => 'nullable|integer|min:0',
                 'berat_rata_telur' => 'nullable|numeric|min:0',
             ]);
         }
@@ -364,6 +369,17 @@ class ProduksiController extends Controller
             $validated['tipe_produksi'] = 'telur';
             // Set persentase_fertil to 100% for penetasan since eggs are already infertile
             $validated['persentase_fertil'] = 100;
+        } elseif ($validated['jenis_input'] === 'dari_produksi') {
+            $validated['tipe_produksi'] = 'telur';
+            $validated['persentase_fertil'] = $validated['persentase_fertil'] ?? 100;
+        }
+
+        if (($validated['jenis_input'] ?? null) !== 'dari_penetasan') {
+            $validated['penetasan_id'] = null;
+        }
+
+        if (($validated['jenis_input'] ?? null) !== 'dari_produksi') {
+            $validated['produksi_sumber_id'] = null;
         }
 
         DB::beginTransaction();
@@ -440,10 +456,31 @@ class ProduksiController extends Controller
                 $penetasan->increment('telur_infertil_ditransfer', $validated['jumlah_telur']);
             }
 
+            $sumberProduksi = null;
+            if ($validated['jenis_input'] === 'dari_produksi' && $validated['produksi_sumber_id']) {
+                $sumberProduksi = Produksi::findOrFail($validated['produksi_sumber_id']);
+
+                if ($sumberProduksi->tipe_produksi !== 'puyuh') {
+                    throw new \Exception('Sumber produksi tidak valid untuk transfer telur.');
+                }
+
+                $stats = $this->attachTelurStatsToProduksi(collect([$sumberProduksi]))->first();
+                $tersediaTelur = (int) ($stats->total_telur_tersedia ?? 0);
+
+                if (($validated['jumlah_telur'] ?? 0) > $tersediaTelur) {
+                    throw new \Exception("Jumlah telur melebihi stok tersedia ({$tersediaTelur})");
+                }
+
+                $validated['jumlah_telur'] = $tersediaTelur;
+            }
+
             Log::info('Creating production record', $validated);
 
             // Create produksi record
             $produksi = Produksi::create($validated);
+            if ($sumberProduksi) {
+                $this->syncTelurTurunanFromPuyuh($sumberProduksi);
+            }
             
             Log::info('Production record created with ID: ' . $produksi->id);
 
@@ -473,7 +510,7 @@ class ProduksiController extends Controller
      */
     public function show(Produksi $produksi)
     {
-        $produksi->load(['kandang', 'penetasan', 'pembesaran']);
+        $produksi->load(['kandang', 'penetasan', 'pembesaran', 'produksiSumber']);
 
         $laporanHarian = collect();
 
@@ -1021,6 +1058,8 @@ class ProduksiController extends Controller
             $laporan->save();
         }
 
+        $this->syncTelurTurunanFromPuyuh($produksi);
+
         $wasCreated = $isNewRecord;
 
         // Generate specific success message based on active tab
@@ -1079,6 +1118,8 @@ class ProduksiController extends Controller
 
         $history = $this->logTrayHistory($produksi, $laporan, 'updated', $oldValues);
 
+        $this->syncTelurTurunanFromPuyuh($produksi);
+
         return response()->json([
             'message' => 'Tray berhasil diperbarui.',
             'tray' => $this->formatTrayPayload($laporan),
@@ -1106,6 +1147,8 @@ class ProduksiController extends Controller
         $history = $this->logTrayHistory($produksi, $laporan, 'deleted', $oldValues);
         $laporanId = $laporan->id;
         $laporan->delete();
+
+        $this->syncTelurTurunanFromPuyuh($produksi);
 
         return response()->json([
             'message' => 'Tray berhasil dihapus.',
@@ -1537,6 +1580,93 @@ class ProduksiController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()
                            ->with('error', 'Gagal memperbarui status: ' . $e->getMessage());
+        }
+    }
+
+    protected function loadProduksiSumberList()
+    {
+        $candidates = Produksi::with('kandang')
+            ->where('tipe_produksi', 'puyuh')
+            ->where('status', 'aktif')
+            ->orderByDesc('tanggal_mulai')
+            ->get();
+
+        $withStats = $this->attachTelurStatsToProduksi($candidates);
+
+        return $withStats->filter(function ($produksi) {
+            return ($produksi->total_telur_tersedia ?? 0) > 0;
+        })->values();
+    }
+
+    protected function attachTelurStatsToProduksi($produksiList)
+    {
+        $collection = collect($produksiList)->filter();
+
+        if ($collection->isEmpty()) {
+            return collect();
+        }
+
+        $batchIds = $collection->pluck('batch_produksi_id')->filter()->unique()->values();
+
+        $laporanAggregates = collect();
+        if ($batchIds->isNotEmpty()) {
+            $laporanAggregates = LaporanHarian::select('batch_produksi_id')
+                ->selectRaw('COALESCE(SUM(produksi_telur), 0) as total_telur')
+                ->selectRaw('COALESCE(SUM(penjualan_telur_butir), 0) as total_telur_terjual')
+                ->whereIn('batch_produksi_id', $batchIds)
+                ->groupBy('batch_produksi_id')
+                ->get()
+                ->keyBy('batch_produksi_id');
+        }
+
+        $produksiIds = $collection->pluck('id')->filter()->unique()->values();
+
+        $transferAggregates = collect();
+        if ($produksiIds->isNotEmpty()) {
+            $transferAggregates = Produksi::select('produksi_sumber_id', DB::raw('COALESCE(SUM(jumlah_telur), 0) as total_dialihkan'))
+                ->whereNotNull('produksi_sumber_id')
+                ->whereIn('produksi_sumber_id', $produksiIds)
+                ->groupBy('produksi_sumber_id')
+                ->get()
+                ->keyBy('produksi_sumber_id');
+        }
+
+        return $collection->map(function ($produksi) use ($laporanAggregates, $transferAggregates) {
+            $batchId = $produksi->batch_produksi_id;
+            $laporan = $batchId ? $laporanAggregates->get($batchId) : null;
+            $totalTelur = (int) ($laporan->total_telur ?? 0);
+            $totalTerjual = (int) ($laporan->total_telur_terjual ?? 0);
+            $dialihkan = (int) optional($transferAggregates->get($produksi->id))->total_dialihkan;
+            $tersedia = max($totalTelur - $totalTerjual - $dialihkan, 0);
+
+            $produksi->total_telur_tercatat = $totalTelur;
+            $produksi->total_telur_terjual = $totalTerjual;
+            $produksi->total_telur_sudah_dialihkan = $dialihkan;
+            $produksi->total_telur_tersedia = $tersedia;
+
+            return $produksi;
+        });
+    }
+
+    protected function syncTelurTurunanFromPuyuh(?Produksi $sumberProduksi): void
+    {
+        if (!$sumberProduksi || $sumberProduksi->tipe_produksi !== 'puyuh') {
+            return;
+        }
+
+        $turunan = $sumberProduksi->produksiTurunan()
+            ->where('jenis_input', 'dari_produksi')
+            ->get();
+
+        if ($turunan->isEmpty()) {
+            return;
+        }
+
+        $stats = $this->attachTelurStatsToProduksi(collect([$sumberProduksi]))->first();
+        $totalTelurTersedia = (int) ($stats->total_telur_tersedia ?? 0);
+
+        foreach ($turunan as $childProduksi) {
+            $childProduksi->forceFill(['jumlah_telur' => $totalTelurTersedia])->save();
         }
     }
 

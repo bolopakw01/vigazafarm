@@ -39,15 +39,15 @@
           <label class="form-check-label" for="dari_pembesaran"><i class="fa-solid fa-feather me-1"></i>Dari Pembesaran</label>
         </div>
         <div class="form-check">
-          <input class="form-check-input" type="radio" name="jenis_input" id="dari_penetasan" value="dari_penetasan" {{ $jenisInput == 'dari_penetasan' ? 'checked' : '' }} disabled> <!-- Jika mau digunakan hilangkan disable ---->
-          <label class="form-check-label" for="dari_penetasan"><i class="fa-solid fa-egg me-1"></i>Dari Penetasan</label>
+          <input class="form-check-input" type="radio" name="jenis_input" id="dari_produksi" value="dari_produksi" {{ $jenisInput == 'dari_produksi' ? 'checked' : '' }}>
+          <label class="form-check-label" for="dari_produksi"><i class="fa-solid fa-egg me-1"></i>Dari Produksi</label>
         </div>
       </div>
       <div class="form-text">
         <small class="text-muted">
           <strong>Manual:</strong> Input indukan secara manual |
           <strong>Dari Pembesaran:</strong> Transfer indukan dari batch pembesaran |
-          <strong>Dari Penetasan:</strong> Transfer telur infertil dari penetasan
+          <strong>Dari Produksi:</strong> Gunakan stok telur dari produksi puyuh aktif
         </small>
       </div>
     </div>

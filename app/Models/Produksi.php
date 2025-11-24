@@ -16,6 +16,7 @@ class Produksi extends Model
         'batch_produksi_id', 
         'penetasan_id',
         'pembesaran_id',
+        'produksi_sumber_id',
         'tipe_produksi', // telur, puyuh
         'jenis_input',
         'tanggal_mulai',
@@ -67,5 +68,15 @@ class Produksi extends Model
     public function trayHistories()
     {
         return $this->hasMany(TrayHistory::class, 'produksi_id');
+    }
+
+    public function produksiSumber()
+    {
+        return $this->belongsTo(self::class, 'produksi_sumber_id');
+    }
+
+    public function produksiTurunan()
+    {
+        return $this->hasMany(self::class, 'produksi_sumber_id');
     }
 }

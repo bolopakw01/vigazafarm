@@ -13,24 +13,16 @@ Route::get('/test-produksi', function () {
     $kandangList = \App\Models\Kandang::whereIn('status', ['aktif', 'maintenance'])
                               ->orderBy('nama_kandang')
                               ->get();
-    
-    // Get penetasan with available infertile eggs and load kandang relation
-    // Only get completed penetasan with available infertile eggs
-    $penetasanList = \App\Models\Penetasan::with('kandang')
-                                  ->where('status', 'selesai')
-                                  ->whereRaw('(telur_tidak_fertil - COALESCE(telur_infertil_ditransfer, 0)) > 0')
-                                  ->orderBy('tanggal_menetas', 'desc')
-                                  ->get();
-    
-    // Get pembesaran with available breeding stock and load kandang relation
-    // Only get completed pembesaran with available stock
+
     $pembesaranList = \App\Models\Pembesaran::with('kandang')
                                     ->where('status_batch', 'selesai')
                                     ->whereRaw('(COALESCE(jumlah_siap, 0) - COALESCE(indukan_ditransfer, 0)) > 0')
                                     ->orderBy('tanggal_siap', 'desc')
                                     ->get();
-    
-    return view('admin.pages.produksi.create-produksi', compact('kandangList', 'penetasanList', 'pembesaranList'));
+
+    $produksiSumberList = collect();
+
+    return view('admin.pages.produksi.create-produksi', compact('kandangList', 'pembesaranList', 'produksiSumberList'));
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');

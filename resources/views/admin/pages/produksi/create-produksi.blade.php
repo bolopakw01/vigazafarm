@@ -81,7 +81,7 @@
       border-left-color: #28a745;
     }
 
-    .section-title.penetasan {
+    .section-title.produksi {
       color: #fd7e14;
       border-left-color: #fd7e14;
     }
@@ -150,7 +150,7 @@
       font-weight: 600;
     }
 
-    .field-hint-manual, .field-hint-pembesaran, .field-hint-penetasan {
+    .field-hint-manual, .field-hint-pembesaran, .field-hint-produksi {
       transition: opacity 0.3s ease;
     }
 

@@ -55,6 +55,12 @@
         $totalTelurRusak = $summary['total_telur_rusak'] ?? 0;
         $sisaTelur = $summary['sisa_telur'] ?? 0;
 
+        $asalProduksiLabel = null;
+        if (($produksi->jenis_input ?? '') === 'dari_produksi' && $produksi->produksi_sumber_id) {
+            $asalProduksiLabel = optional($produksi->produksiSumber)->batch_produksi_id
+                ?? ('#' . $produksi->produksi_sumber_id);
+        }
+
         $trayEntries = ($laporanHarian ?? collect())
             ->filter(fn ($item) => ($item->produksi_telur ?? 0) > 0 && !empty($item->nama_tray))
             ->filter(fn ($item) => !$soldTrayIds->contains($item->id))
@@ -112,10 +118,17 @@
                                         <i class="fa-solid fa-clock me-1" aria-hidden="true"></i>Selesai:
                                         <span class="fw-semibold ms-1">{{ $endDateFormatted }}</span>
                                     </div>
-                                    <div class="text-muted small hide-on-narrow">
-                                        <i class="fa-solid fa-egg me-1" aria-hidden="true"></i>Total Awal Telur:
-                                        <span id="populasi-awal" class="fw-semibold ms-1">{{ $formatNumber($summary['total_telur_awal']) }} butir</span>
-                                    </div>
+                                    @if ($asalProduksiLabel)
+                                        <div class="text-muted small hide-on-narrow">
+                                            <i class="fa-solid fa-diagram-project me-1" aria-hidden="true"></i>Asal:
+                                            <span class="fw-semibold ms-1">{{ $asalProduksiLabel }}</span>
+                                        </div>
+                                    @else
+                                        <div class="text-muted small hide-on-narrow">
+                                            <i class="fa-solid fa-egg me-1" aria-hidden="true"></i>Total Awal Telur:
+                                            <span id="populasi-awal" class="fw-semibold ms-1">{{ $formatNumber($summary['total_telur_awal']) }} butir</span>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
