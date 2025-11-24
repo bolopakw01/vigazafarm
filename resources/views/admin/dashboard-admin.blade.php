@@ -5,6 +5,20 @@
 @push('styles')
 	<link rel="stylesheet" href="{{ asset('bolopa/css/admin-dashboard.css') }}">
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+	<style>
+		.activity-row { align-items: stretch !important; }
+		.activity-chart-card,
+		.goals-column { display: flex; flex-direction: column; width: 100%; }
+		.goals-panel { flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; }
+		.goals-panel .goal-block { flex-shrink: 0; }
+		.goals-empty { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 32px 16px; border: 1px dashed #e5e7eb; border-radius: 10px; }
+		.goals-empty i { font-size: 32px; margin-bottom: 12px; color: #cbd5f5; }
+		.goals-empty p, .goals-empty small { color: #cbd5f5; }
+		@media (max-width: 991.98px) {
+			.goals-panel { flex-direction: column; }
+			.goals-empty { border-style: solid; }
+		}
+	</style>
 @endpush
 
 @section('content')
@@ -92,72 +106,54 @@
 			</div>
 
 			<div class="box-body">
-				<div class="row g-4 align-items-start">
-					<div class="col-12 col-lg-8">
-						<div class="d-flex justify-content-between align-items-center mb-3">
-							<div class="segmented" id="chartFilter">
-								<button class="seg-btn is-active" data-filter="bulan">Bulan</button>
-								<button class="seg-btn" data-filter="tahun">Tahun</button>
-								<button class="seg-btn" data-filter="hari">Hari</button>
+				<div class="row g-4 activity-row">
+					<div class="col-12 col-lg-8 d-flex">
+						<div class="activity-chart-card">
+							<div class="d-flex justify-content-between align-items-center mb-3">
+								<div class="segmented" id="chartFilter">
+									<button class="seg-btn is-active" data-filter="bulan">Bulan</button>
+									<button class="seg-btn" data-filter="tahun">Tahun</button>
+									<button class="seg-btn" data-filter="hari">Hari</button>
+								</div>
 							</div>
+							<div id="mainChart"></div>
 						</div>
-						<div id="mainChart"></div>
 					</div>
 
-					<div class="col-12 col-lg-4">
-						<div class="subtitle">Goals</div>
+					<div class="col-12 col-lg-4 d-flex">
+						<div class="goals-column">
+							<div class="subtitle d-flex justify-content-between align-items-center">
+								<span>Goals</span>
+								<small class="text-muted d-none d-lg-inline">Progress realtime</small>
+							</div>
 
-						<div id="goalsList" class="goals-panel">
-							<div class="goal-block">
-								<div class="d-flex justify-content-between align-items-center mb-2">
-										<span class="goal-item">Produksi</span>
-										<div class="d-flex align-items-center">
-											<small class="text-muted me-2 goal-text" data-current="160" data-target="200"><span class="current">0</span> / <span class="target">200</span></small>
+							<div id="goalsList" class="goals-panel">
+								@if(isset($goals) && count($goals) > 0)
+									@foreach($goals as $goal)
+										<div class="goal-block">
+											<div class="d-flex justify-content-between align-items-center mb-2">
+												<span class="goal-item">{{ $goal['title'] }}</span>
+												<div class="d-flex align-items-center">
+													<small class="text-muted me-2 goal-text" data-current="{{ $goal['current'] }}" data-target="{{ $goal['target'] }}">
+														<span class="current">0</span> / <span class="target">{{ number_format($goal['target']) }}</span>
+													</small>
+												</div>
+											</div>
+											<div class="progress">
+												<div class="progress-bar" style="background-color: {{ $goal['color'] }}; width:0%"></div>
+											</div>
 										</div>
-								</div>
-									<div class="progress">
-										<div class="progress-bar bg-primary" style="width:0%"></div>
+									@endforeach
+								@else
+									<div class="goals-empty text-muted">
+										<i class="fas fa-bullseye"></i>
+										<p class="mb-1">Belum ada goals yang ditetapkan</p>
+										<small>Silakan atur goals di menu Sistem &gt; Dashboard</small>
 									</div>
-							</div>
-
-							<div class="goal-block">
-								<div class="d-flex justify-content-between align-items-center mb-2">
-									<span class="goal-item">Penetasan</span>
-									<div class="d-flex align-items-center">
-										<small class="text-muted me-2 goal-text" data-current="310" data-target="400"><span class="current">0</span> / <span class="target">400</span></small>
-									</div>
-								</div>
-								<div class="progress">
-									<div class="progress-bar bg-danger" style="width:0%"></div>
-								</div>
-							</div>
-
-							<div class="goal-block">
-								<div class="d-flex justify-content-between align-items-center mb-2">
-									<span class="goal-item">Pembesaran</span>
-									<div class="d-flex align-items-center">
-										<small class="text-muted me-2 goal-text" data-current="480" data-target="800"><span class="current">0</span> / <span class="target">800</span></small>
-									</div>
-								</div>
-								<div class="progress">
-									<div class="progress-bar bg-success" style="width:0%"></div>
-								</div>
-							</div>
-
-							<div class="goal-block mb-0">
-								<div class="d-flex justify-content-between align-items-center mb-2">
-									<span class="goal-item">User</span>
-									<div class="d-flex align-items-center">
-										<small class="text-muted me-2 goal-text" data-current="250" data-target="500"><span class="current">0</span> / <span class="target">500</span></small>
-									</div>
-								</div>
-								<div class="progress">
-									<div class="progress-bar bg-warning" style="width:0%"></div>
-								</div>
+								@endif
 							</div>
 
 						</div>
-
 					</div>
 				</div>
 			</div>
@@ -467,6 +463,6 @@
 
 		})();
 	</script>
-	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+	<script src="{{ asset('bolopa/js/bootstrap.bundle.min.js') }}"></script>
 @endpush
 

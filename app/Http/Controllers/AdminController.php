@@ -9,7 +9,11 @@ class AdminController extends Controller
 {
     public function dashboard()
     {
-        return view('admin.dashboard-admin');
+        // Load dashboard goals from SistemController
+        $sistemController = new \App\Http\Controllers\SistemController();
+        $goals = $sistemController->getDashboardGoals();
+
+        return view('admin.dashboard-admin', compact('goals'));
     }
 
     public function kandang()

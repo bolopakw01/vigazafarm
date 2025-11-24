@@ -61,6 +61,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/karyawan/{karyawan}/edit', [App\Http\Controllers\KaryawanController::class, 'edit'])->name('admin.karyawan.edit');
         Route::patch('/admin/karyawan/{karyawan}', [App\Http\Controllers\KaryawanController::class, 'update'])->name('admin.karyawan.update');
         Route::delete('/admin/karyawan/{karyawan}', [App\Http\Controllers\KaryawanController::class, 'destroy'])->name('admin.karyawan.destroy');
+
+        // Sistem
+        Route::get('/admin/sistem', [App\Http\Controllers\SistemController::class, 'index'])->name('admin.sistem');
+        Route::get('/admin/sistem/dashboard', [App\Http\Controllers\SistemController::class, 'dashboard'])->name('admin.sistem.dashboard');
+        Route::put('/admin/sistem/dashboard', [App\Http\Controllers\SistemController::class, 'updateDashboard'])->name('admin.sistem.dashboard.update');
     });
 
     // Operational routes (All authenticated users)

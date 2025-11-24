@@ -6,6 +6,11 @@ use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
+    protected function fetchDashboardGoals(): array
+    {
+        return app(SistemController::class)->getDashboardGoals();
+    }
+
     public function index()
     {
         if (!Auth::check()) {
@@ -18,6 +23,8 @@ class DashboardController extends Controller
         }
 
         // Owner ke dashboard utama
-        return view('admin.dashboard-admin');
+        $goals = $this->fetchDashboardGoals();
+
+        return view('admin.dashboard-admin', compact('goals'));
     }
 }

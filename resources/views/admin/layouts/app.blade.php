@@ -7,7 +7,7 @@
     <title>@yield('title', 'Vigaza Farm') | Vigaza Farm</title>
     <link rel="icon" type="image/png" href="{{ asset('bolopa/img/icon.png') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ asset('bolopa/css/bootstrap.min.css') }}" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     
     <!-- Load SweetAlert2 in head to ensure it's available for inline scripts -->
@@ -105,7 +105,7 @@
     </section>
 
     <!-- Bootstrap JS for tabs and components -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <script src="{{ asset('bolopa/js/bootstrap.bundle.min.js') }}" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     @stack('scripts')
 </body>

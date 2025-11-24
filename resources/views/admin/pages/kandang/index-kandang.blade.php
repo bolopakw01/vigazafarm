@@ -5,7 +5,7 @@
 @push('styles')
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-kandang.css') }}">
 <!-- Bootstrap for SweetAlert form styling -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="{{ asset('bolopa/css/bootstrap.min.css') }}" rel="stylesheet">
 @endpush
 
 @section('content')

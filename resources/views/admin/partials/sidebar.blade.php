@@ -11,7 +11,7 @@
     if ($currentRoute) {
       if (request()->routeIs('admin.penetasan*') || request()->routeIs('admin.pembesaran*') || request()->routeIs('admin.produksi*')) {
         $activeGroup = 'operasional';
-      } elseif (request()->routeIs('admin.kandang*') || request()->routeIs('admin.karyawan*')) {
+      } elseif (request()->routeIs('admin.kandang*') || request()->routeIs('admin.karyawan*') || request()->routeIs('admin.sistem*')) {
         $activeGroup = 'master';
       }
     }
@@ -82,6 +82,13 @@
                 <span class="links_name">Karyawan</span>
             </a>
             <span class="tooltip">Karyawan</span>
+        </li>
+        <li data-group="master">
+      <a href="{{ route('admin.sistem') }}" class="menu-link {{ request()->routeIs('admin.sistem*') ? 'active' : '' }}">
+                <img src="{{ asset('bolopa/img/icon/eos-icons--secure-data-outlined.svg') }}" alt="Sistem" class="menu-icon" />
+                <span class="links_name">Sistem VF</span>
+            </a>
+            <span class="tooltip">Sistem</span>
         </li>
         @endif
         <!-- profile/logout -->
@@ -595,7 +602,7 @@ function loadActiveMenuState() {
   // Determine which menu should be active based on route
   let activeMenu = 'operasional'; // default
 
-  if (currentRoute === 'admin.kandang' || currentRoute === 'admin.karyawan') {
+  if (currentRoute === 'admin.kandang' || currentRoute === 'admin.karyawan' || currentRoute === 'admin.sistem' || currentRoute === 'admin.sistem.dashboard') {
     activeMenu = 'master';
   } else if (currentRoute === 'admin.penetasan' || currentRoute === 'admin.pembesaran' || currentRoute === 'admin.produksi') {
     activeMenu = 'operasional';
