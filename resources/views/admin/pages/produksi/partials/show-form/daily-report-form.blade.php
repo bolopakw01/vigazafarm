@@ -13,6 +13,7 @@
             ['id' => 'pakan', 'label' => 'Pakan'],
             ['id' => 'vitamin', 'label' => 'Vitamin'],
             ['id' => 'kematian', 'label' => 'Kematian'],
+            ['id' => 'penjualan', 'label' => 'Penjualan'],
             ['id' => 'laporan', 'label' => 'Laporan'],
         ];
 
@@ -20,6 +21,12 @@
     $trayEggsPerTray = $eggsPerTray ?? 30;
     $formatTrayNumber = fn ($value, $decimals = 0) => number_format((float) ($value ?? 0), $decimals, ',', '.');
     $defaultHargaPerButir = $defaultHargaPerButir ?? null;
+    $defaultHargaPakan = $defaultHargaPakan ?? null;
+    $defaultHargaVitamin = $defaultHargaVitamin ?? null;
+    $feedOptions = collect($feedOptions ?? []);
+    $vitaminOptions = collect($vitaminOptions ?? []);
+    $feedUnitLabel = $feedOptions->first()->unit ?? 'kg';
+    $vitaminUnitLabel = $vitaminOptions->first()->unit ?? 'L';
 @endphp
 
 <div class="card mb-4">
@@ -282,6 +289,33 @@
                                     <div class="form-hint">Pilih tanggal pencatatan pakan (format YYYY-MM-DD).</div>
                                 </div>
                                 <div class="col-12 col-md-4">
+                                    <label for="feed_item_id" class="form-label">Pilih Jenis Pakan</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-seedling"></i></span>
+                                        <select name="feed_item_id" id="feed_item_id" class="form-select">
+                                            <option value="" {{ old('feed_item_id') ? '' : 'selected' }}>Pilih dari daftar</option>
+                                            @if ($feedOptions->isEmpty())
+                                                <option value="" disabled>Belum ada data pakan aktif</option>
+                                            @else
+                                                @foreach ($feedOptions as $item)
+                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-unit="{{ $item->unit }}" {{ (string) old('feed_item_id') === (string) $item->id ? 'selected' : '' }}>
+                                                        {{ $item->name }} ({{ $item->unit }}) — Rp {{ number_format((float) $item->price, 0, ',', '.') }}
+                                                    </option>
+                                                @endforeach
+                                            @endif
+                                        </select>
+                                    </div>
+                                    <div class="form-hint">Daftar ini tersinkron dari menu Set Pakan &amp; Vitamin.</div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label for="harga_pakan_per_kg" class="form-label">Harga Pakan per Satuan (Rp)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-tags"></i></span>
+                                        <input type="number" step="0.01" name="harga_pakan_per_kg" id="harga_pakan_per_kg" class="form-control" min="0" value="{{ $defaultHargaPakan }}">
+                                    </div>
+                                    <div class="form-hint">Terisi otomatis saat memilih pakan. Satuan: <span id="feed_unit_label" class="fw-semibold" data-default-unit="{{ $feedUnitLabel }}">{{ $feedUnitLabel }}</span>.</div>
+                                </div>
+                                <div class="col-12 col-md-4">
                                     <label for="konsumsi_pakan_kg" class="form-label">Pakan Terpakai (kg)</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fa-solid fa-wheat-awn"></i></span>
@@ -312,6 +346,33 @@
                                         <input type="date" name="tanggal" id="tanggal_vitamin" class="form-control" value="{{ $defaultTanggal }}">
                                     </div>
                                     <div class="form-hint">Pilih tanggal pencatatan vitamin (format YYYY-MM-DD).</div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label for="vitamin_item_id" class="form-label">Pilih Vitamin</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-prescription-bottle"></i></span>
+                                        <select name="vitamin_item_id" id="vitamin_item_id" class="form-select">
+                                            <option value="" {{ old('vitamin_item_id') ? '' : 'selected' }}>Pilih dari daftar</option>
+                                            @if ($vitaminOptions->isEmpty())
+                                                <option value="" disabled>Belum ada data vitamin aktif</option>
+                                            @else
+                                                @foreach ($vitaminOptions as $item)
+                                                    <option value="{{ $item->id }}" data-price="{{ $item->price }}" data-unit="{{ $item->unit }}" {{ (string) old('vitamin_item_id') === (string) $item->id ? 'selected' : '' }}>
+                                                        {{ $item->name }} ({{ $item->unit }}) — Rp {{ number_format((float) $item->price, 0, ',', '.') }}
+                                                    </option>
+                                                @endforeach
+                                            @endif
+                                        </select>
+                                    </div>
+                                    <div class="form-hint">Memilih vitamin akan mengisi harga otomatis.</div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label for="harga_vitamin_per_liter" class="form-label">Harga Vitamin per Satuan (Rp)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-tags"></i></span>
+                                        <input type="number" step="0.01" name="harga_vitamin_per_liter" id="harga_vitamin_per_liter" class="form-control" min="0" value="{{ $defaultHargaVitamin }}">
+                                    </div>
+                                    <div class="form-hint">Terisi otomatis saat memilih vitamin. Satuan: <span id="vitamin_unit_label" class="fw-semibold" data-default-unit="{{ $vitaminUnitLabel }}">{{ $vitaminUnitLabel }}</span>.</div>
                                 </div>
                                 <div class="col-12 col-md-4">
                                     <label for="vitamin_terpakai" class="form-label">Vitamin Terpakai (L)</label>
@@ -369,6 +430,49 @@
                                     <label for="keterangan_kematian" class="form-label">Keterangan</label>
                                     <textarea name="keterangan_kematian" id="keterangan_kematian" rows="3" class="form-control" placeholder="opsional"></textarea>
                                     <div class="form-hint">Catatan singkat (opsional): mis. gejala, dugaan penyebab.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="penjualan" role="tabpanel" aria-labelledby="penjualan-tab">
+                        <div class="record-section">
+                            <h6><i class="fa-solid fa-cash-register"></i> Catat Penjualan Puyuh</h6>
+                            <div class="row g-3">
+                                <div class="col-12 col-md-4">
+                                    <label for="tanggal_penjualan" class="form-label">Tanggal Penjualan</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-calendar-days"></i></span>
+                                        <input type="date" name="tanggal_penjualan" id="tanggal_penjualan" class="form-control" value="{{ $defaultTanggal }}">
+                                    </div>
+                                    <div class="form-hint">Pilih tanggal transaksi penjualan puyuh.</div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label for="jenis_kelamin_penjualan" class="form-label">Jenis Kelamin</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-venus-mars"></i></span>
+                                        <select name="jenis_kelamin_penjualan" id="jenis_kelamin_penjualan" class="form-select">
+                                            <option value="" disabled {{ old('jenis_kelamin_penjualan', $defaultJenisKelaminPenjualan ?? null) ? '' : 'selected' }}>Pilih jenis kelamin</option>
+                                            <option value="jantan" {{ old('jenis_kelamin_penjualan', $defaultJenisKelaminPenjualan ?? null) === 'jantan' ? 'selected' : '' }}>Jantan</option>
+                                            <option value="betina" {{ old('jenis_kelamin_penjualan', $defaultJenisKelaminPenjualan ?? null) === 'betina' ? 'selected' : '' }}>Betina</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-hint">Tentukan jenis kelamin puyuh yang dijual.</div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label for="penjualan_puyuh_ekor" class="form-label">Jumlah Terjual (ekor)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-dove"></i></span>
+                                        <input type="number" name="penjualan_puyuh_ekor" id="penjualan_puyuh_ekor" class="form-control" min="1" value="{{ old('penjualan_puyuh_ekor', $defaultPenjualanPuyuh) }}" placeholder="Masukkan jumlah">
+                                    </div>
+                                    <div class="form-hint">Masukkan jumlah puyuh yang terjual.</div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <label for="harga_penjualan" class="form-label">Harga per Ekor (Rp)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-money-bill-wave"></i></span>
+                                        <input type="number" name="harga_penjualan" id="harga_penjualan" class="form-control" min="0" step="100" value="{{ old('harga_penjualan', number_format($defaultHargaPerButir, 0, '.', '')) }}" placeholder="Masukkan harga">
+                                    </div>
+                                    <div class="form-hint">Masukkan harga jual per ekor.</div>
                                 </div>
                             </div>
                         </div>
@@ -438,6 +542,45 @@
                     .replace(/>/g, '&gt;')
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, '&#039;');
+
+                const setupPakvitAutoFill = (selectId, priceInputId, unitLabelId) => {
+                    const selectEl = document.getElementById(selectId);
+                    const priceInput = document.getElementById(priceInputId);
+                    const unitLabel = unitLabelId ? document.getElementById(unitLabelId) : null;
+
+                    if (!selectEl || !priceInput) {
+                        return;
+                    }
+
+                    const defaultUnit = unitLabel ? (unitLabel.dataset?.defaultUnit || unitLabel.textContent || '') : '';
+
+                    const applyFromOption = () => {
+                        const option = selectEl.options[selectEl.selectedIndex];
+                        if (!option || !selectEl.value) {
+                            if (unitLabel) {
+                                unitLabel.textContent = defaultUnit || '-';
+                            }
+                            return;
+                        }
+
+                        const { price: rawPrice = '', unit = '' } = option.dataset || {};
+                        const numericPrice = Number(rawPrice);
+                        if (!Number.isNaN(numericPrice)) {
+                            const isInteger = Number.isInteger(numericPrice);
+                            priceInput.value = isInteger ? numericPrice.toString() : numericPrice.toFixed(2);
+                        }
+
+                        if (unitLabel) {
+                            unitLabel.textContent = unit || defaultUnit || '-';
+                        }
+                    };
+
+                    selectEl.addEventListener('change', applyFromOption);
+
+                    if (selectEl.value) {
+                        applyFromOption();
+                    }
+                };
 
                 function filterTrays(searchTerm) {
                     return originalTrayEntries.filter(entry => {
@@ -565,23 +708,32 @@
                         countElement.textContent = filteredEntries.length;
                     }
                 }                // Initial render
-                renderTrays(sortTrays(originalTrayEntries, 'date-desc'));
+                if (trayListView && trayGridView) {
+                    renderTrays(sortTrays(originalTrayEntries, 'date-desc'));
+                }
 
                 // Search and sort listeners
-                document.getElementById('traySearch').addEventListener('input', function() {
-                    const searchTerm = this.value;
-                    const filtered = filterTrays(searchTerm);
-                    const sorted = sortTrays(filtered, document.getElementById('traySort').value);
-                    renderTrays(sorted);
-                });
+                const traySearchEl = document.getElementById('traySearch');
+                const traySortEl = document.getElementById('traySort');
+                
+                if (traySearchEl) {
+                    traySearchEl.addEventListener('input', function() {
+                        const searchTerm = this.value;
+                        const filtered = filterTrays(searchTerm);
+                        const sorted = sortTrays(filtered, traySortEl ? traySortEl.value : 'date-desc');
+                        renderTrays(sorted);
+                    });
+                }
 
-                document.getElementById('traySort').addEventListener('change', function() {
-                    const sortBy = this.value;
-                    const searchTerm = document.getElementById('traySearch').value;
-                    const filtered = filterTrays(searchTerm);
-                    const sorted = sortTrays(filtered, sortBy);
-                    renderTrays(sorted);
-                });
+                if (traySortEl) {
+                    traySortEl.addEventListener('change', function() {
+                        const sortBy = this.value;
+                        const searchTerm = traySearchEl ? traySearchEl.value : '';
+                        const filtered = filterTrays(searchTerm);
+                        const sorted = sortTrays(filtered, sortBy);
+                        renderTrays(sorted);
+                    });
+                }
 
                 const tabLabels = {
                     telur: 'Telur',
@@ -715,11 +867,14 @@
                 });
 
                 function updateRequiredFields(activeTabId) {
-                    // Define required fields per tab
+                    const penjualanFields = formVariant === 'telur'
+                        ? ['tanggal_penjualan', 'tray_penjualan', 'jumlah_telur_terjual', 'harga_penjualan']
+                        : ['tanggal_penjualan', 'jenis_kelamin_penjualan', 'penjualan_puyuh_ekor', 'harga_penjualan'];
+
                     const tabFields = {
                         telur: ['tanggal', 'produksi_telur'],
-                        tray: [], // tray tab has no direct form fields
-                        penjualan: ['tanggal_penjualan', 'tray_penjualan', 'jumlah_telur_terjual', 'harga_penjualan'],
+                        tray: [],
+                        penjualan: penjualanFields,
                         pakan: ['tanggal_pakan', 'konsumsi_pakan_kg'],
                         vitamin: ['tanggal_vitamin', 'vitamin_terpakai'],
                         kematian: ['tanggal_kematian', 'jumlah_kematian', 'jenis_kelamin_kematian'],
@@ -727,7 +882,7 @@
                     };
 
                     // Remove required from all fields first
-                    const allFields = ['tanggal', 'produksi_telur', 'tanggal_penjualan', 'tray_penjualan', 'jumlah_telur_terjual', 'harga_penjualan', 'tanggal_pakan', 'konsumsi_pakan_kg', 'tanggal_vitamin', 'vitamin_terpakai', 'tanggal_kematian', 'jumlah_kematian', 'jenis_kelamin_kematian', 'tanggal_laporan', 'catatan_kejadian'];
+                    const allFields = ['tanggal', 'produksi_telur', 'tanggal_penjualan', 'tray_penjualan', 'jumlah_telur_terjual', 'penjualan_puyuh_ekor', 'jenis_kelamin_penjualan', 'harga_penjualan', 'tanggal_pakan', 'konsumsi_pakan_kg', 'tanggal_vitamin', 'vitamin_terpakai', 'tanggal_kematian', 'jumlah_kematian', 'jenis_kelamin_kematian', 'tanggal_laporan', 'catatan_kejadian'];
                     allFields.forEach(fieldId => {
                         const field = document.getElementById(fieldId);
                         if (field) {
@@ -1085,6 +1240,8 @@
                         jumlahTelurInput.value = maxJumlah > 0 ? maxJumlah : '';
                     }
                 }
+                setupPakvitAutoFill('feed_item_id', 'harga_pakan_per_kg', 'feed_unit_label');
+                setupPakvitAutoFill('vitamin_item_id', 'harga_vitamin_per_liter', 'vitamin_unit_label');
             });
         </script>
     </div>

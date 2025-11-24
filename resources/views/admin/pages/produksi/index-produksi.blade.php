@@ -303,7 +303,7 @@
                                             data-jenis-input="{{ $row->jenis_input ?? 'manual' }}"
                                             data-tanggal="{{ $startDateFormatted }}"
                                             data-expired="{{ $endDateFormatted }}"
-                                            data-harga="{{ number_format($row->harga_per_kg ?? 0, 0, ',', '.') }}"
+                                            data-harga="{{ $row->tipe_produksi === 'puyuh' ? number_format($row->harga_per_pcs ?? 0, 0, ',', '.') : number_format($row->harga_per_kg ?? 0, 0, ',', '.') }}"
                                             data-status="{{ $row->status ?? '-' }}"
                                             data-jumlah-indukan="{{ $row->jumlah_indukan ?? '-' }}"
                                             data-umur="{{ $umurMulai ?? '-' }}"
@@ -1041,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const priceLabelText = isTelur ? 'Harga Telur' : 'Harga';
             const priceLabelHtml = escapeHtml(priceLabelText);
-            const priceSuffix = harga !== '-' ? (isTelur ? ' / Kg' : ' / Kg') : '';
+            const priceSuffix = harga !== '-' ? (isTelur ? ' / Kg' : ' / Ekor') : '';
             const hargaDisplay = harga !== '-' ? `Rp ${harga}${priceSuffix}` : '-';
 
             const ekonomiSection = `

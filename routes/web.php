@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\FeedVitaminController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -66,7 +67,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/sistem', [App\Http\Controllers\SistemController::class, 'index'])->name('admin.sistem');
         Route::get('/admin/sistem/dashboard', [App\Http\Controllers\SistemController::class, 'dashboard'])->name('admin.sistem.dashboard');
         Route::put('/admin/sistem/dashboard', [App\Http\Controllers\SistemController::class, 'updateDashboard'])->name('admin.sistem.dashboard.update');
+        Route::get('/admin/sistem/pakan-vitamin', [FeedVitaminController::class, 'index'])->name('admin.sistem.pakanvitamin');
+        Route::post('/admin/sistem/pakan-vitamin', [FeedVitaminController::class, 'store'])->name('admin.sistem.pakanvitamin.store');
+        Route::put('/admin/sistem/pakan-vitamin/{item}', [FeedVitaminController::class, 'update'])->name('admin.sistem.pakanvitamin.update');
+        Route::delete('/admin/sistem/pakan-vitamin/{item}', [FeedVitaminController::class, 'destroy'])->name('admin.sistem.pakanvitamin.destroy');
     });
+
+    Route::get('/admin/sistem/pakan-vitamin/options', [FeedVitaminController::class, 'options'])->name('admin.sistem.pakanvitamin.options');
 
     // Operational routes (All authenticated users)
     

@@ -200,6 +200,22 @@
                     </a>
                 </div>
             </div>
+            <!-- Feed/Vitamin Settings Card -->
+            <div class="goals-card">
+                <div class="goals-card-icon efficiency">
+                    <i class="fas fa-leaf"></i>
+                </div>
+                <h3 class="goals-card-title">Pakan & Vitamin</h3>
+                <div class="goals-description">
+                    Buat daftar pakan dan vitamin lengkap dengan harga serta satuan untuk dipakai di form produksi.
+                </div>
+                <div class="goals-card-actions">
+                    <a href="{{ route('admin.sistem.pakanvitamin') }}" class="goals-btn goals-btn-primary">
+                        <i class="fas fa-sliders-h"></i>
+                        Set Pakan/Vitamin
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>

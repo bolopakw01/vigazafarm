@@ -8,6 +8,7 @@ use App\Models\Penetasan;
 use App\Models\Pembesaran;
 use App\Models\LaporanHarian;
 use App\Models\TrayHistory;
+use App\Models\FeedVitaminItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -106,6 +107,12 @@ class ProduksiController extends Controller
                 if (Schema::hasColumn('laporan_harian', 'sisa_pakan_kg')) {
                     $laporan->sisa_pakan_kg = null;
                 }
+                if (Schema::hasColumn('laporan_harian', 'harga_pakan_per_kg')) {
+                    $laporan->harga_pakan_per_kg = null;
+                }
+                if (Schema::hasColumn('laporan_harian', 'biaya_pakan_harian')) {
+                    $laporan->biaya_pakan_harian = null;
+                }
             }
 
             // Reset vitamin data if present
@@ -115,14 +122,33 @@ class ProduksiController extends Controller
                 if (Schema::hasColumn('laporan_harian', 'sisa_vitamin_liter')) {
                     $laporan->sisa_vitamin_liter = null;
                 }
+                if (Schema::hasColumn('laporan_harian', 'harga_vitamin_per_liter')) {
+                    $laporan->harga_vitamin_per_liter = null;
+                }
+                if (Schema::hasColumn('laporan_harian', 'biaya_vitamin_harian')) {
+                    $laporan->biaya_vitamin_harian = null;
+                }
             }
 
             // Reset death data if present
-            if ($laporan->jumlah_kematian > 0) {
+            if (($laporan->jumlah_kematian ?? 0) > 0) {
                 $laporan->jumlah_kematian = 0;
-                // Optionally clear related death fields
                 $laporan->jenis_kelamin_kematian = null;
                 $laporan->keterangan_kematian = null;
+            }
+
+            // Reset sales data (telur & puyuh) if present
+            if (($laporan->penjualan_telur_butir ?? 0) > 0 || ($laporan->penjualan_puyuh_ekor ?? 0) > 0) {
+                $laporan->penjualan_telur_butir = 0;
+                $laporan->penjualan_puyuh_ekor = 0;
+                $laporan->pendapatan_harian = 0;
+                $laporan->tray_penjualan_id = null;
+                $laporan->nama_tray_penjualan = null;
+                $laporan->harga_per_butir = null;
+
+                if (Schema::hasColumn('laporan_harian', 'jenis_kelamin_penjualan')) {
+                    $laporan->jenis_kelamin_penjualan = null;
+                }
             }
 
             $laporan->save();
@@ -495,10 +521,16 @@ class ProduksiController extends Controller
             'total_penjualan_telur' => $laporanHarian->sum('penjualan_telur_butir'),
             'total_penjualan_puyuh' => $laporanHarian->sum('penjualan_puyuh_ekor'),
             'total_pendapatan' => $laporanHarian->sum('pendapatan_harian'),
+            'total_pakan_kg' => $laporanHarian->sum('konsumsi_pakan_kg'),
+            'total_vitamin_liter' => $laporanHarian->sum('vitamin_terpakai'),
+            'total_biaya_pakan' => $laporanHarian->sum('biaya_pakan_harian'),
+            'total_biaya_vitamin' => $laporanHarian->sum('biaya_vitamin_harian'),
             'last_sisa_pakan' => optional($laporanHarian->first())->sisa_pakan_kg,
             'last_sisa_telur' => optional($laporanHarian->first())->sisa_telur,
             'laporan_count' => $laporanHarian->count(),
         ];
+
+        $summary['total_pengeluaran'] = ($summary['total_biaya_pakan'] ?? 0) + ($summary['total_biaya_vitamin'] ?? 0);
 
         $summary['total_telur_rusak'] = $laporanHarian->sum('telur_rusak');
         $summary['eggs_per_tray'] = max($eggsPerTray, 1);
@@ -535,6 +567,15 @@ class ProduksiController extends Controller
                 ->sum('jumlah_kematian'),
         ];
 
+        $salesByGender = [
+            'jantan' => $laporanHarian
+                ->where('jenis_kelamin_penjualan', 'jantan')
+                ->sum('penjualan_puyuh_ekor'),
+            'betina' => $laporanHarian
+                ->where('jenis_kelamin_penjualan', 'betina')
+                ->sum('penjualan_puyuh_ekor'),
+        ];
+
         $initialMale = $produksi->jumlah_jantan;
         $initialFemale = $produksi->jumlah_betina;
         $jenisKelaminProduksi = strtolower($produksi->jenis_kelamin ?? '');
@@ -565,12 +606,17 @@ class ProduksiController extends Controller
         $initialMale = $initialMale ?? 0;
         $initialFemale = $initialFemale ?? 0;
 
-        $currentMale = max($initialMale - $deathByGender['jantan'], 0);
-        $currentFemale = max($initialFemale - $deathByGender['betina'], 0);
+        $currentMale = max($initialMale - $deathByGender['jantan'] - $salesByGender['jantan'], 0);
+        $currentFemale = max($initialFemale - $deathByGender['betina'] - $salesByGender['betina'], 0);
         $currentPopulationFromGender = max($currentMale + $currentFemale, 0);
 
         if ($currentPopulationFromGender === 0 && ($produksi->jumlah_indukan ?? 0) > 0) {
-            $currentPopulationFromGender = max(($produksi->jumlah_indukan ?? 0) - $summary['total_kematian'], 0);
+            $currentPopulationFromGender = max(
+                ($produksi->jumlah_indukan ?? 0)
+                - $summary['total_kematian']
+                - ($summary['total_penjualan_puyuh'] ?? 0),
+                0
+            );
         }
 
         $summary['total_kematian_jantan'] = $deathByGender['jantan'];
@@ -580,6 +626,8 @@ class ProduksiController extends Controller
         $summary['initial_betina'] = $initialFemale;
         $summary['current_jantan'] = $currentMale;
         $summary['current_betina'] = $currentFemale;
+        $summary['total_penjualan_jantan'] = $salesByGender['jantan'];
+        $summary['total_penjualan_betina'] = $salesByGender['betina'];
         $summary['current_population'] = $currentPopulationFromGender;
 
         $existingEntriesByTab = [
@@ -617,6 +665,7 @@ class ProduksiController extends Controller
 
             if (
                 $laporanItem->penjualan_telur_butir !== null ||
+                $laporanItem->penjualan_puyuh_ekor !== null ||
                 $laporanItem->pendapatan_harian !== null
             ) {
                 $existingEntriesByTab['penjualan'][$dateKey] = true;
@@ -642,6 +691,21 @@ class ProduksiController extends Controller
             ? 'admin.pages.produksi.show-telur'
             : 'admin.pages.produksi.show-puyuh';
 
+        $feedOptions = collect();
+        $vitaminOptions = collect();
+
+        if (Schema::hasTable('feed_vitamin_items')) {
+            $feedOptions = FeedVitaminItem::active()
+                ->where('category', 'pakan')
+                ->orderBy('name')
+                ->get(['id', 'name', 'price', 'unit']);
+
+            $vitaminOptions = FeedVitaminItem::active()
+                ->where('category', 'vitamin')
+                ->orderBy('name')
+                ->get(['id', 'name', 'price', 'unit']);
+        }
+
         return view($view, compact(
             'produksi',
             'laporanHarian',
@@ -653,7 +717,9 @@ class ProduksiController extends Controller
             'historyClearRoute',
             'existingEntriesByTab',
             'soldTrayIds',
-            'soldTrayNames'
+            'soldTrayNames',
+            'feedOptions',
+            'vitaminOptions'
         ));
     }
 
@@ -665,6 +731,8 @@ class ProduksiController extends Controller
         if (empty($produksi->batch_produksi_id)) {
             return redirect()->back()->with('error', 'Produksi ini belum memiliki kode batch. Tambahkan batch terlebih dahulu sebelum mencatat laporan.');
         }
+
+        $isTelurBatch = $produksi->tipe_produksi === 'telur';
 
         // Handle comma decimal separator for pakan fields before validation
         $requestData = $request->all();
@@ -679,6 +747,12 @@ class ProduksiController extends Controller
         }
         if (isset($requestData['sisa_vitamin_liter']) && is_string($requestData['sisa_vitamin_liter'])) {
             $requestData['sisa_vitamin_liter'] = str_replace(',', '.', $requestData['sisa_vitamin_liter']);
+        }
+        if (isset($requestData['harga_pakan_per_kg']) && is_string($requestData['harga_pakan_per_kg'])) {
+            $requestData['harga_pakan_per_kg'] = str_replace(',', '.', $requestData['harga_pakan_per_kg']);
+        }
+        if (isset($requestData['harga_vitamin_per_liter']) && is_string($requestData['harga_vitamin_per_liter'])) {
+            $requestData['harga_vitamin_per_liter'] = str_replace(',', '.', $requestData['harga_vitamin_per_liter']);
         }
         $request->merge($requestData);
 
@@ -695,13 +769,16 @@ class ProduksiController extends Controller
             'keterangan_kematian' => 'nullable|string|max:225',
             'konsumsi_pakan_kg' => 'nullable|numeric|min:0',
             'sisa_pakan_kg' => 'nullable|numeric|min:0',
+            'harga_pakan_per_kg' => 'nullable|numeric|min:0',
             'sisa_tray_bal' => 'nullable|numeric|min:0',
             'sisa_tray_lembar' => 'nullable|integer|min:0',
             'sisa_vitamin_liter' => 'nullable|numeric|min:0',
             'vitamin_terpakai' => 'nullable|numeric|min:0',
+            'harga_vitamin_per_liter' => 'nullable|numeric|min:0',
             'sisa_telur' => 'nullable|integer|min:0',
             'penjualan_telur_butir' => 'nullable|integer|min:0',
             'penjualan_puyuh_ekor' => 'nullable|integer|min:0',
+            'jenis_kelamin_penjualan' => 'nullable|in:jantan,betina',
             'pendapatan_harian' => 'nullable|numeric|min:0',
             'tray_penjualan' => 'nullable|integer|exists:laporan_harian,id',
             'jumlah_telur_terjual' => 'nullable|integer|min:1',
@@ -709,15 +786,26 @@ class ProduksiController extends Controller
             'catatan_kejadian' => 'nullable|string|max:2500',
         ];
 
+        if (Schema::hasTable('feed_vitamin_items')) {
+            $rules['feed_item_id'] = 'nullable|exists:feed_vitamin_items,id';
+            $rules['vitamin_item_id'] = 'nullable|exists:feed_vitamin_items,id';
+        }
+
         // Make the main field required based on active tab
         switch ($activeTab) {
             case 'telur':
                 $rules['produksi_telur'] = 'required|integer|min:0';
                 break;
             case 'penjualan':
-                $rules['tray_penjualan'] = 'required|integer|exists:laporan_harian,id';
-                $rules['jumlah_telur_terjual'] = 'required|integer|min:1';
-                $rules['harga_penjualan'] = 'required|numeric|min:0';
+                if ($isTelurBatch) {
+                    $rules['tray_penjualan'] = 'required|integer|exists:laporan_harian,id';
+                    $rules['jumlah_telur_terjual'] = 'required|integer|min:1';
+                    $rules['harga_penjualan'] = 'required|numeric|min:0';
+                } else {
+                    $rules['jenis_kelamin_penjualan'] = 'required|in:jantan,betina';
+                    $rules['penjualan_puyuh_ekor'] = 'required|integer|min:1';
+                    $rules['harga_penjualan'] = 'required|numeric|min:0';
+                }
                 break;
             case 'pakan':
                 $rules['konsumsi_pakan_kg'] = 'required|numeric|min:0';
@@ -766,9 +854,12 @@ class ProduksiController extends Controller
             'penjualan_telur_butir.integer' => 'Penjualan telur butir harus berupa angka bulat.',
             'penjualan_telur_butir.min' => 'Penjualan telur butir tidak boleh negatif.',
             'penjualan_puyuh_ekor.integer' => 'Penjualan puyuh ekor harus berupa angka bulat.',
-            'penjualan_puyuh_ekor.min' => 'Penjualan puyuh ekor tidak boleh negatif.',
+            'penjualan_puyuh_ekor.min' => 'Jumlah puyuh terjual tidak boleh kurang dari :min.',
+            'penjualan_puyuh_ekor.required' => 'Jumlah puyuh terjual harus diisi.',
             'pendapatan_harian.numeric' => 'Pendapatan harian harus berupa angka.',
             'pendapatan_harian.min' => 'Pendapatan harian tidak boleh negatif.',
+                        'jenis_kelamin_penjualan.required' => 'Jenis kelamin penjualan harus dipilih.',
+                        'jenis_kelamin_penjualan.in' => 'Jenis kelamin penjualan tidak valid.',
             'tray_penjualan.required' => 'Pilih tray yang akan dijual.',
             'tray_penjualan.integer' => 'Tray yang dipilih tidak valid.',
             'tray_penjualan.exists' => 'Tray yang dipilih tidak ditemukan.',
@@ -784,7 +875,32 @@ class ProduksiController extends Controller
             'penjualan_telur_butir.required' => 'Jumlah telur terjual harus diisi.',
         ]);
 
+        $selectedFeedItem = null;
+        $selectedVitaminItem = null;
+
+        if ($request->filled('feed_item_id') && Schema::hasTable('feed_vitamin_items')) {
+            $selectedFeedItem = FeedVitaminItem::active()
+                ->where('category', 'pakan')
+                ->whereKey($request->input('feed_item_id'))
+                ->first();
+        }
+
+        if ($request->filled('vitamin_item_id') && Schema::hasTable('feed_vitamin_items')) {
+            $selectedVitaminItem = FeedVitaminItem::active()
+                ->where('category', 'vitamin')
+                ->whereKey($request->input('vitamin_item_id'))
+                ->first();
+        }
+
         $activeTab = $validated['active_tab'];
+
+        if ($activeTab === 'pakan' && $selectedFeedItem) {
+            $validated['harga_pakan_per_kg'] = (float) $selectedFeedItem->price;
+        }
+
+        if ($activeTab === 'vitamin' && $selectedVitaminItem) {
+            $validated['harga_vitamin_per_liter'] = (float) $selectedVitaminItem->price;
+        }
 
         // Find existing record or create new one
         $existingLaporan = LaporanHarian::where('batch_produksi_id', $produksi->batch_produksi_id)
@@ -815,44 +931,70 @@ class ProduksiController extends Controller
                 break;
 
             case 'penjualan':
-                if (isset($validated['tray_penjualan']) && $validated['tray_penjualan']) {
-                    // Verify the selected tray belongs to this production batch
-                    $selectedTray = LaporanHarian::where('id', $validated['tray_penjualan'])
-                        ->where('batch_produksi_id', $produksi->batch_produksi_id)
-                        ->whereNotNull('nama_tray')
-                        ->first();
+                if ($isTelurBatch) {
+                    if (isset($validated['tray_penjualan']) && $validated['tray_penjualan']) {
+                        $selectedTray = LaporanHarian::where('id', $validated['tray_penjualan'])
+                            ->where('batch_produksi_id', $produksi->batch_produksi_id)
+                            ->whereNotNull('nama_tray')
+                            ->first();
 
-                    if (!$selectedTray) {
-                        return redirect()->back()->withErrors(['tray_penjualan' => 'Tray yang dipilih tidak valid atau tidak tersedia.']);
+                        if (!$selectedTray) {
+                            return redirect()->back()->withErrors(['tray_penjualan' => 'Tray yang dipilih tidak valid atau tidak tersedia.']);
+                        }
+
+                        $availableEggs = $selectedTray->produksi_telur ?? 0;
+                        if ($validated['jumlah_telur_terjual'] > $availableEggs) {
+                            return redirect()->back()->withErrors(['jumlah_telur_terjual' => "Jumlah telur terjual tidak boleh melebihi stok tray ({$availableEggs} butir)."]);
+                        }
+
+                        $updateData['tray_penjualan_id'] = $validated['tray_penjualan'];
+                        $updateData['penjualan_telur_butir'] = $validated['jumlah_telur_terjual'];
+                        $updateData['harga_per_butir'] = $validated['harga_penjualan'];
+                        $updateData['pendapatan_harian'] = $validated['jumlah_telur_terjual'] * $validated['harga_penjualan'];
+                        $updateData['nama_tray_penjualan'] = $selectedTray->nama_tray;
                     }
+                } else {
+                    $jumlahTerjual = isset($validated['penjualan_puyuh_ekor']) ? (int) $validated['penjualan_puyuh_ekor'] : 0;
+                    $hargaSatuan = isset($validated['harga_penjualan']) ? (float) $validated['harga_penjualan'] : 0;
 
-                    // Check if quantity doesn't exceed available eggs in the tray
-                    $availableEggs = $selectedTray->produksi_telur ?? 0;
-                    if ($validated['jumlah_telur_terjual'] > $availableEggs) {
-                        return redirect()->back()->withErrors(['jumlah_telur_terjual' => "Jumlah telur terjual tidak boleh melebihi stok tray ({$availableEggs} butir)."]);
+                    if ($jumlahTerjual > 0) {
+                        $updateData['penjualan_puyuh_ekor'] = $jumlahTerjual;
+                        $updateData['jenis_kelamin_penjualan'] = $validated['jenis_kelamin_penjualan'] ?? null;
+                        $updateData['harga_per_butir'] = $hargaSatuan; // reuse column as harga satuan
+                        $updateData['pendapatan_harian'] = $jumlahTerjual * $hargaSatuan;
                     }
-
-                    $updateData['tray_penjualan_id'] = $validated['tray_penjualan'];
-                    $updateData['penjualan_telur_butir'] = $validated['jumlah_telur_terjual'];
-                    $updateData['harga_per_butir'] = $validated['harga_penjualan'];
-                    $updateData['pendapatan_harian'] = $validated['jumlah_telur_terjual'] * $validated['harga_penjualan'];
-                    $updateData['nama_tray_penjualan'] = $selectedTray->nama_tray;
                 }
                 break;
 
             case 'pakan':
                 if (isset($validated['konsumsi_pakan_kg']) && $validated['konsumsi_pakan_kg'] !== null && $validated['konsumsi_pakan_kg'] !== '') {
-                    $updateData['konsumsi_pakan_kg'] = (float) $validated['konsumsi_pakan_kg'];
+                    $totalPakan = (float) $validated['konsumsi_pakan_kg'];
+                    $updateData['konsumsi_pakan_kg'] = $totalPakan;
                     $updateData['sisa_pakan_kg'] = isset($validated['sisa_pakan_kg']) && $validated['sisa_pakan_kg'] !== null && $validated['sisa_pakan_kg'] !== '' ? (float) $validated['sisa_pakan_kg'] : null;
+
+                    $hargaPakan = isset($validated['harga_pakan_per_kg']) && $validated['harga_pakan_per_kg'] !== ''
+                        ? (float) $validated['harga_pakan_per_kg']
+                        : null;
+
+                    $updateData['harga_pakan_per_kg'] = $hargaPakan;
+                    $updateData['biaya_pakan_harian'] = $hargaPakan !== null ? round($totalPakan * $hargaPakan, 2) : null;
                 }
                 break;
 
             case 'vitamin':
                 if (isset($validated['vitamin_terpakai']) && $validated['vitamin_terpakai'] !== null && $validated['vitamin_terpakai'] !== '') {
-                    $updateData['vitamin_terpakai'] = (float) $validated['vitamin_terpakai'];
+                    $totalVitamin = (float) $validated['vitamin_terpakai'];
+                    $updateData['vitamin_terpakai'] = $totalVitamin;
                     $updateData['sisa_vitamin_liter'] = isset($validated['sisa_vitamin_liter']) && $validated['sisa_vitamin_liter'] !== ''
                         ? (float) $validated['sisa_vitamin_liter']
                         : null;
+
+                    $hargaVitamin = isset($validated['harga_vitamin_per_liter']) && $validated['harga_vitamin_per_liter'] !== ''
+                        ? (float) $validated['harga_vitamin_per_liter']
+                        : null;
+
+                    $updateData['harga_vitamin_per_liter'] = $hargaVitamin;
+                    $updateData['biaya_vitamin_harian'] = $hargaVitamin !== null ? round($totalVitamin * $hargaVitamin, 2) : null;
                 }
                 break;
 
@@ -869,14 +1011,6 @@ class ProduksiController extends Controller
                     $updateData['catatan_kejadian'] = $validated['catatan_kejadian'];
                 }
                 break;
-        }
-
-        // Handle other fields that might be submitted from any tab
-        $otherFields = ['penjualan_puyuh_ekor'];
-        foreach ($otherFields as $field) {
-            if (isset($validated[$field]) && $validated[$field] !== null && $validated[$field] !== '') {
-                $updateData[$field] = $validated[$field];
-            }
         }
 
         $laporan->fill($updateData);

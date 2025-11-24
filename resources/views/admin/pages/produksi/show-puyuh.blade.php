@@ -11,6 +11,30 @@
 @section('content')
     @php
         $formatNumber = fn ($value, $decimals = 0) => number_format((float) ($value ?? 0), $decimals, ',', '.');
+        $formatLargeNumber = function ($value, $allowDecimals = true) {
+            $value = (float) ($value ?? 0);
+            $precision = $allowDecimals ? 1 : 0;
+
+            if ($value >= 1000000000) {
+                $scaled = $allowDecimals
+                    ? round($value / 1000000000, 1)
+                    : round($value / 1000000000);
+                return number_format($scaled, $precision, ',', '.') . '<small style="font-size:0.45em;"> M</small>';
+            }
+            if ($value >= 1000000) {
+                $scaled = $allowDecimals
+                    ? round($value / 1000000, 1)
+                    : round($value / 1000000);
+                return number_format($scaled, $precision, ',', '.') . '<small style="font-size:0.45em;"> Jt</small>';
+            }
+            if ($value >= 1000) {
+                $scaled = $allowDecimals
+                    ? round($value / 1000, 1)
+                    : round($value / 1000);
+                return number_format($scaled, $precision, ',', '.') . '<small style="font-size:0.45em;"> Rb</small>';
+            }
+            return number_format($value, 0, ',', '.');
+        };
 
         $startDate = $produksi->tanggal_mulai ?? $produksi->tanggal ?? optional($produksi->pembesaran)->tanggal_siap;
         $startDateFormatted = $startDate ? \Carbon\Carbon::parse($startDate)->locale('id')->translatedFormat('d M Y') : '-';
@@ -21,8 +45,14 @@
         $batchCode = $produksi->batch_produksi_id ?? 'Tanpa Kode Batch';
         $initialPopulation = $produksi->jumlah_indukan ?? (($produksi->jumlah_jantan ?? 0) + ($produksi->jumlah_betina ?? 0));
         $totalTelur = $summary['total_telur'] ?? 0;
+        $totalPendapatan = $summary['total_pendapatan'] ?? 0;
         $totalPakanKg = $laporanHarian->sum('konsumsi_pakan_kg');
         $totalVitaminL = $laporanHarian->sum('vitamin_terpakai');
+        $totalBiayaPakan = $laporanHarian->sum('biaya_pakan_harian');
+        $totalBiayaVitamin = $laporanHarian->sum('biaya_vitamin_harian');
+        $totalPengeluaran = $totalBiayaPakan + $totalBiayaVitamin;
+        $latestPakanPrice = optional($laporanHarian->first(fn ($laporan) => $laporan->harga_pakan_per_kg !== null))->harga_pakan_per_kg;
+        $latestVitaminPrice = optional($laporanHarian->first(fn ($laporan) => $laporan->harga_vitamin_per_liter !== null))->harga_vitamin_per_liter;
         $totalKematian = $summary['total_kematian'] ?? 0;
         $currentPopulation = $summary['current_population'] ?? max($initialPopulation - $totalKematian, 0);
 
@@ -138,12 +168,64 @@
                         <div class="card-kai kai-yellow" id="kai-pakan-card">
                             <div>
                                 <div class="value" id="kai-pakan-value">
-                                    <span class="kai-main">{{ $formatNumber($totalPakanKg, 2) }} kg</span>
-                                    <span class="kai-sub">{{ $formatNumber($totalVitaminL, 2) }} L</span>
+                                    <span class="kai-main">{{ $formatNumber($totalPakanKg, 2) }}<small style="font-size:0.45em;"> kg</small></span>
+                                    <span class="kai-sub">Rp {{ $formatNumber($totalBiayaPakan) }}</span>
                                 </div>
-                                <div class="label" id="kai-pakan-label">Pakan + Vitamin Terpakai</div>
+                                <div class="label" id="kai-pakan-label">Pakan Terpakai</div>
+                                {{-- @if ($latestPakanPrice)
+                                    <div class="footnote">Rp {{ $formatNumber($latestPakanPrice) }} / kg</div>
+                                @endif --}}
                             </div>
                             <i class="fa-solid fa-bowl-food icon-faint"></i>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6 col-6">
+                        <div class="card-kai kai-violet" id="kai-vitamin-card">
+                            <div>
+                                <div class="value" id="kai-vitamin-value">
+                                    <span class="kai-main">{{ $formatNumber($totalVitaminL, 2) }}<small style="font-size:0.45em;"> L</small></span>
+                                    <span class="kai-sub">Rp {{ $formatNumber($totalBiayaVitamin) }}</span>
+                                </div>
+                                <div class="label" id="kai-vitamin-label">Vitamin Terpakai</div>
+                                {{-- @if ($latestVitaminPrice)
+                                    <div class="footnote">Rp {{ $formatNumber($latestVitaminPrice) }} / L</div>
+                                @endif --}}
+                            </div>
+                            <i class="fa-solid fa-capsules icon-faint"></i>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6 col-6">
+                        <div class="card-kai kai-green" id="kai-penjualan-card">
+                            <div>
+                                <div class="value" id="kai-penjualan-value">Rp {!! $formatLargeNumber($totalPendapatan, false) !!}</div>
+                                <div class="label" id="kai-penjualan-label">Total Pendapatan</div>
+                            </div>
+                            <i class="fa-solid fa-coins icon-faint"></i>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6 col-6">
+                        <div class="card-kai kai-orange" id="kai-pengeluaran-card">
+                            <div>
+                                <div class="value" id="kai-pengeluaran-value">Rp {!! $formatLargeNumber($totalPengeluaran, false) !!}</div>
+                                <div class="label" id="kai-pengeluaran-label">Total Pengeluaran</div>
+                                @if ($totalBiayaPakan || $totalBiayaVitamin)
+                                    <div class="footnote">
+                                        {{-- @if ($totalBiayaPakan)
+                                            Pakan Rp {{ $formatNumber($totalBiayaPakan) }}
+                                        @endif
+                                        @if ($totalBiayaPakan && $totalBiayaVitamin)
+                                            <span class="mx-1">•</span>
+                                        @endif
+                                        @if ($totalBiayaVitamin)
+                                            Vitamin Rp {{ $formatNumber($totalBiayaVitamin) }}
+                                        @endif --}}
+                                    </div>
+                                @endif
+                            </div>
+                            <i class="fa-solid fa-wallet icon-faint"></i>
                         </div>
                     </div>
                 </div>
@@ -162,17 +244,21 @@
                 'defaultSisaTrayLembar' => old('sisa_tray_lembar', optional($todayLaporan)->sisa_tray_lembar),
                 'defaultKonsumsiPakan' => old('konsumsi_pakan_kg', optional($todayLaporan)->konsumsi_pakan_kg),
                 'defaultSisaPakan' => old('sisa_pakan_kg', optional($todayLaporan)->sisa_pakan_kg),
+                'defaultHargaPakan' => old('harga_pakan_per_kg', optional($todayLaporan)->harga_pakan_per_kg),
                 'defaultVitaminTerpakai' => old('vitamin_terpakai', optional($todayLaporan)->vitamin_terpakai),
                 'defaultSisaVitamin' => old('sisa_vitamin_liter', optional($todayLaporan)->sisa_vitamin_liter),
+                'defaultHargaVitamin' => old('harga_vitamin_per_liter', optional($todayLaporan)->harga_vitamin_per_liter),
                 'defaultJumlahKematian' => old('jumlah_kematian', optional($todayLaporan)->jumlah_kematian),
                 'defaultPenjualanPuyuh' => old('penjualan_puyuh_ekor', optional($todayLaporan)->penjualan_puyuh_ekor),
-                'defaultPendapatan' => old('pendapatan_harian', optional($todayLaporan)->pendapatan_harian),
+                'defaultJenisKelaminPenjualan' => old('jenis_kelamin_penjualan', optional($todayLaporan)->jenis_kelamin_penjualan),
                 'defaultCatatan' => old('catatan_kejadian', optional($todayLaporan)->catatan_kejadian),
                 'defaultHargaPerButir' => old(
                     'harga_penjualan',
                     optional($todayLaporan)->harga_per_butir ?? $produksi->harga_per_pcs ?? null
                 ),
                 'tabVariant' => 'puyuh',
+                'feedOptions' => $feedOptions,
+                'vitaminOptions' => $vitaminOptions,
             ])
 
             <div class="card mb-4" id="history-card">
@@ -225,7 +311,11 @@
                                                 $entries[] = [
                                                     'type' => 'pakan',
                                                     'value' => $laporan->konsumsi_pakan_kg,
-                                                    'unit' => 'kg pakan'
+                                                    'unit' => 'kg pakan',
+                                                    'meta' => [
+                                                        'biaya' => $laporan->biaya_pakan_harian,
+                                                        'harga' => $laporan->harga_pakan_per_kg,
+                                                    ],
                                                 ];
                                             }
                                             
@@ -233,10 +323,27 @@
                                                 $entries[] = [
                                                     'type' => 'vitamin',
                                                     'value' => $laporan->vitamin_terpakai,
-                                                    'unit' => 'L vitamin'
+                                                    'unit' => 'L vitamin',
+                                                    'meta' => [
+                                                        'biaya' => $laporan->biaya_vitamin_harian,
+                                                        'harga' => $laporan->harga_vitamin_per_liter,
+                                                    ],
                                                 ];
                                             }
                                             
+                                            if (($laporan->penjualan_puyuh_ekor ?? 0) > 0) {
+                                                $entries[] = [
+                                                    'type' => 'penjualan',
+                                                    'value' => $laporan->penjualan_puyuh_ekor,
+                                                    'unit' => 'ekor terjual',
+                                                    'meta' => [
+                                                        'gender' => $laporan->jenis_kelamin_penjualan,
+                                                        'pendapatan' => $laporan->pendapatan_harian,
+                                                        'harga' => $laporan->harga_per_butir,
+                                                    ],
+                                                ];
+                                            }
+
                                             if (($laporan->jumlah_kematian ?? 0) > 0) {
                                                 $entries[] = [
                                                     'type' => 'kematian',
@@ -272,6 +379,7 @@
                                                     'telur' => 'fa-egg',
                                                     'pakan' => 'fa-bowl-food',
                                                     'vitamin' => 'fa-capsules',
+                                                    'penjualan' => 'fa-cash-register',
                                                     'kematian' => 'fa-skull-crossbones',
                                                     'laporan' => 'fa-file-lines',
                                                 ][$entry['type']] ?? 'fa-file-lines';
@@ -282,10 +390,37 @@
                                                     $consumed = $formatNumber($entry['value'], 2);
                                                     $remaining = $formatNumber($laporan->sisa_pakan_kg ?? 0, 2);
                                                     $ringkasan = $consumed . ' kg pakan (sisa: ' . $remaining . ' kg)';
+                                                    $feedCost = $entry['meta']['biaya'] ?? null;
+                                                    if ($feedCost) {
+                                                        $ringkasan .= ' — Rp ' . $formatNumber($feedCost);
+                                                        $unitPrice = $entry['meta']['harga'] ?? null;
+                                                        if ($unitPrice) {
+                                                            $ringkasan .= ' (Rp ' . $formatNumber($unitPrice) . ' / kg)';
+                                                        }
+                                                    }
                                                 } elseif ($entry['type'] === 'vitamin') {
                                                     $consumed = $formatNumber($entry['value'], 2);
                                                     $remaining = $formatNumber($laporan->sisa_vitamin_liter ?? 0, 2);
                                                     $ringkasan = $consumed . ' L vitamin (sisa: ' . $remaining . ' L)';
+                                                    $vitCost = $entry['meta']['biaya'] ?? null;
+                                                    if ($vitCost) {
+                                                        $ringkasan .= ' — Rp ' . $formatNumber($vitCost);
+                                                        $unitPrice = $entry['meta']['harga'] ?? null;
+                                                        if ($unitPrice) {
+                                                            $ringkasan .= ' (Rp ' . $formatNumber($unitPrice) . ' / L)';
+                                                        }
+                                                    }
+                                                } elseif ($entry['type'] === 'penjualan') {
+                                                    $gender = $entry['meta']['gender'] ?? null;
+                                                    $genderLabel = $gender ? ' (' . ucfirst($gender) . ')' : '';
+                                                    $pendapatan = $entry['meta']['pendapatan'] ?? null;
+                                                    $harga = $entry['meta']['harga'] ?? null;
+                                                    $ringkasan = $formatNumber($entry['value']) . ' ekor terjual' . $genderLabel;
+                                                    if ($pendapatan !== null && $pendapatan !== '') {
+                                                        $ringkasan .= ' — Rp ' . $formatNumber($pendapatan);
+                                                    } elseif ($harga !== null && $harga !== '') {
+                                                        $ringkasan .= ' @ Rp ' . $formatNumber($harga);
+                                                    }
                                                 } elseif ($entry['type'] === 'kematian') {
                                                     $gender = $entry['meta']['gender'] ?? null;
                                                     $genderLabel = $gender ? ' (' . ucfirst($gender) . ')' : '';
@@ -552,6 +687,7 @@
             function filterHistoryEntries(activeTabId) {
                 const tabTitles = {
                     'telur': 'Telur',
+                    'penjualan': 'Penjualan',
                     'pakan': 'Pakan',
                     'vitamin': 'Vitamin',
                     'kematian': 'Kematian',
@@ -560,6 +696,7 @@
 
                 const tabColors = {
                     'telur': 'text-telur',
+                    'penjualan': 'text-penjualan',
                     'pakan': 'text-pakan',
                     'vitamin': 'text-vitamin',
                     'kematian': 'text-kematian',
@@ -591,6 +728,9 @@
                             case 'pakan':
                                 shouldShow = entryData.includes('kg pakan') && entry.classList.contains('entry-pakan');
                                 break;
+                            case 'penjualan':
+                                shouldShow = entryData.includes('ekor terjual') && entry.classList.contains('entry-penjualan');
+                                break;
                             case 'vitamin':
                                 shouldShow = entryData.includes('L vitamin') && entry.classList.contains('entry-vitamin');
                                 break;
@@ -616,7 +756,13 @@
             }
 
             // Restore active tab from localStorage
-            const savedActiveTab = localStorage.getItem('activeProduksiTab');
+            let savedActiveTab;
+            try {
+                savedActiveTab = localStorage.getItem('activeProduksiTab');
+            } catch (e) {
+                // localStorage blocked by tracking prevention
+                savedActiveTab = null;
+            }
             if (savedActiveTab) {
                 const savedTabElement = document.querySelector(`#pencatatanTabs .nav-link[data-bs-target="#${savedActiveTab}"]`);
                 if (savedTabElement) {
@@ -648,7 +794,11 @@
                 tab.addEventListener('shown.bs.tab', function(event) {
                     const targetId = event.target.getAttribute('data-bs-target').substring(1);
                     // Save active tab to localStorage
-                    localStorage.setItem('activeProduksiTab', targetId);
+                    try {
+                        localStorage.setItem('activeProduksiTab', targetId);
+                    } catch (e) {
+                        // localStorage blocked by tracking prevention
+                    }
                     filterHistoryEntries(targetId);
                 });
             });

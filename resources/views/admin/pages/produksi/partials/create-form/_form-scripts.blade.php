@@ -551,6 +551,35 @@
     }
   }
 
+  function updateHargaLabel(jenisInput) {
+    const hargaLabel = document.getElementById('harga_label');
+    const hargaHintManual = document.getElementById('harga_hint_manual');
+    const hargaHintPenetasan = document.getElementById('harga_hint_penetasan');
+
+    let isForEggs = false;
+
+    if (jenisInput === 'dari_penetasan') {
+      isForEggs = true;
+    } else if (jenisInput === 'manual') {
+      const fokus = document.querySelector('input[name="fokus_manual"]:checked').value;
+      if (fokus === 'telur') {
+        isForEggs = true;
+      }
+    }
+
+    if (isForEggs) {
+      // For eggs (telur)
+      hargaLabel.textContent = 'Harga per Butir';
+      hargaHintManual.style.display = 'none';
+      hargaHintPenetasan.style.display = 'block';
+    } else {
+      // For quail (puyuh)
+      hargaLabel.textContent = 'Harga per Ekor';
+      hargaHintManual.style.display = 'block';
+      hargaHintPenetasan.style.display = 'none';
+    }
+  }
+
   function updateFieldHints(jenisInput) {
     // Hide all hints first
     document.querySelectorAll('.field-hint-manual, .field-hint-pembesaran, .field-hint-penetasan').forEach(hint => {
@@ -569,6 +598,9 @@
     } else if (jenisInput === 'dari_penetasan') {
       penetasanHints.forEach(hint => hint.style.display = 'block');
     }
+
+    // Update harga label and hint based on jenis_input
+    updateHargaLabel(jenisInput);
 
     // Reset auto-filled styling for info fields
     document.querySelectorAll('.field-auto-fill').forEach(field => {

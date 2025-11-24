@@ -11,17 +11,32 @@
 @section('content')
     @php
         $formatNumber = fn ($value, $decimals = 0) => number_format((float) ($value ?? 0), $decimals, ',', '.');
-        $formatLargeNumber = function ($value) {
+        $formatLargeNumber = function ($value, $allowDecimals = true) {
             $value = (float) ($value ?? 0);
+            $precision = $allowDecimals ? 1 : 0;
+
             if ($value >= 1000000000) {
-                return number_format($value / 1000000000, 1, ',', '.') . 'M'; // Miliar
-            } elseif ($value >= 1000000) {
-                return number_format($value / 1000000, 1, ',', '.') . 'Jt'; // Juta
-            } elseif ($value >= 1000) {
-                return number_format($value / 1000, 1, ',', '.') . 'Rb'; // Ribu
-            } else {
-                return number_format($value, 0, ',', '.');
+                $scaled = $allowDecimals
+                    ? round($value / 1000000000, 1)
+                    : round($value / 1000000000);
+                return number_format($scaled, $precision, ',', '.') . 'M';
             }
+
+            if ($value >= 1000000) {
+                $scaled = $allowDecimals
+                    ? round($value / 1000000, 1)
+                    : round($value / 1000000);
+                return number_format($scaled, $precision, ',', '.') . 'Jt';
+            }
+
+            if ($value >= 1000) {
+                $scaled = $allowDecimals
+                    ? round($value / 1000, 1)
+                    : round($value / 1000);
+                return number_format($scaled, $precision, ',', '.') . 'Rb';
+            }
+
+            return number_format($value, 0, ',', '.');
         };
 
         $startDate = $produksi->tanggal_mulai ?? $produksi->tanggal ?? optional($produksi->pembesaran)->tanggal_siap;
@@ -130,7 +145,7 @@
                     <div class="col-lg-3 col-md-6 col-6">
                         <div class="card-kai kai-teal" id="kai-tray-card">
                             <div>
-                                <div class="value" id="kai-tray-value">{{ $formatLargeNumber($totalTray) }}</div>
+                                <div class="value" id="kai-tray-value">{!! $formatLargeNumber($totalTray) !!}</div>
                                 <div class="label" id="kai-tray-label">Total Tray ({{ $eggsPerTray }} butir/tray)</div>
                             </div>
                             <i class="fa-solid fa-layer-group icon-faint"></i>
@@ -150,7 +165,7 @@
                     <div class="col-lg-3 col-md-6 col-6">
                         <div class="card-kai kai-green" id="kai-pendapatan-card">
                             <div>
-                                <div class="value" id="kai-pendapatan-value">Rp {{ $formatLargeNumber($totalPendapatan) }}</div>
+                                <div class="value" id="kai-pendapatan-value">Rp {!! $formatLargeNumber($totalPendapatan, false) !!}</div>
                                 <div class="label" id="kai-pendapatan-label">Total Pendapatan</div>
                             </div>
                             <i class="fa-solid fa-coins icon-faint"></i>
@@ -172,11 +187,13 @@
                 'defaultSisaTrayLembar' => old('sisa_tray_lembar', optional($todayLaporan)->sisa_tray_lembar),
                 'defaultKonsumsiPakan' => old('konsumsi_pakan_kg', optional($todayLaporan)->konsumsi_pakan_kg),
                 'defaultSisaPakan' => old('sisa_pakan_kg', optional($todayLaporan)->sisa_pakan_kg),
+                'defaultHargaPakan' => old('harga_pakan_per_kg', optional($todayLaporan)->harga_pakan_per_kg),
                 'defaultVitaminTerpakai' => old('vitamin_terpakai', optional($todayLaporan)->vitamin_terpakai),
                 'defaultSisaVitamin' => old('sisa_vitamin_liter', optional($todayLaporan)->sisa_vitamin_liter),
+                'defaultHargaVitamin' => old('harga_vitamin_per_liter', optional($todayLaporan)->harga_vitamin_per_liter),
                 'defaultJumlahKematian' => old('jumlah_kematian', optional($todayLaporan)->jumlah_kematian),
                 'defaultPenjualanPuyuh' => old('penjualan_puyuh_ekor', optional($todayLaporan)->penjualan_puyuh_ekor),
-                'defaultPendapatan' => old('pendapatan_harian', optional($todayLaporan)->pendapatan_harian),
+                'defaultJenisKelaminPenjualan' => old('jenis_kelamin_penjualan', optional($todayLaporan)->jenis_kelamin_penjualan),
                 'defaultCatatan' => old('catatan_kejadian', optional($todayLaporan)->catatan_kejadian),
                 'defaultHargaPerButir' => old(
                     'harga_penjualan',
@@ -185,6 +202,8 @@
                 'trayEntries' => $trayEntries,
                 'eggsPerTray' => $eggsPerTray,
                 'tabVariant' => 'telur',
+                'feedOptions' => $feedOptions,
+                'vitaminOptions' => $vitaminOptions,
             ])
 
             <div class="card mb-4" id="history-card">
@@ -559,7 +578,7 @@
                                                                 $sisaTelurValue = $formatNumber($sisaTelurHarian);
                                                                 $totalTelurAwalValue = $formatNumber($totalTelurAwalHarian);
                                                                 $totalTrayValue = $formatNumber($totalTrayHarian);
-                                                                $totalPendapatanValue = $formatLargeNumber($totalPendapatanHarian);
+                                                                $totalPendapatanValue = $formatLargeNumber($totalPendapatanHarian, false);
                                                                 $totalTelurRusakValue = $formatNumber($totalTelurRusakHarian);
                                                             @endphp
                                                             <button type="button"
