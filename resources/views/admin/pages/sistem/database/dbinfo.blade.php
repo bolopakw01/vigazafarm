@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Koneksi Database')
+@section('title', 'Informasi Database')
 
 @push('styles')
 <style>
@@ -99,6 +99,45 @@
         align-items: center;
     }
 
+    .info-item {
+        margin-bottom: 20px;
+    }
+
+    .info-label {
+        display: block;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 5px;
+        font-size: 0.9rem;
+    }
+
+    .info-value {
+        padding: 10px 15px;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.95rem;
+        color: #1f2937;
+        word-break: break-all;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .status-success {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+    }
+
     .form-text { color: #6b7280; }
 </style>
 @endpush
@@ -109,10 +148,10 @@
         <div class="card-header">
             <div class="header-left">
                 <h1 class="set-database-title">
-                    <i class="fas fa-database"></i>
-                    Koneksi Database
+                    <i class="fas fa-info-circle"></i>
+                    Informasi Database
                 </h1>
-                <p class="set-database-subtitle">Perbarui kredensial koneksi MySQL yang digunakan aplikasi.</p>
+                <p class="set-database-subtitle">Lihat informasi lengkap tentang konfigurasi dan status database saat ini.</p>
             </div>
             <div class="header-right">
                 <button onclick="history.back()" class="btn btn-secondary">
@@ -126,41 +165,56 @@
                 <div class="alert-box alert-success">{{ session('success') }}</div>
             @endif
 
-            <form method="POST" action="{{ route('admin.sistem.database.connection.update') }}" class="row g-3">
-                @csrf
+            <div class="row g-4">
                 <div class="col-md-6">
-                    <label class="form-label">Host</label>
-                    <input type="text" class="form-control @error('host') is-invalid @enderror" name="host" value="{{ old('host', $connection['host']) }}" placeholder="127.0.0.1">
-                    @error('host')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Port</label>
-                    <input type="number" class="form-control @error('port') is-invalid @enderror" name="port" value="{{ old('port', $connection['port']) }}" placeholder="3306">
-                    @error('port')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="info-item">
+                        <label class="info-label">Host</label>
+                        <div class="info-value">{{ $connection['host'] }}</div>
+                    </div>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Nama Database</label>
-                    <input type="text" class="form-control @error('database') is-invalid @enderror" name="database" value="{{ old('database', $connection['database']) }}" placeholder="vigazafarm">
-                    @error('database')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="info-item">
+                        <label class="info-label">Port</label>
+                        <div class="info-value">{{ $connection['port'] }}</div>
+                    </div>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Username</label>
-                    <input type="text" class="form-control @error('username') is-invalid @enderror" name="username" value="{{ old('username', $connection['username']) }}" placeholder="root">
-                    @error('username')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="info-item">
+                        <label class="info-label">Nama Database</label>
+                        <div class="info-value">{{ $connection['database'] }}</div>
+                    </div>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Password</label>
-                    <input type="password" class="form-control @error('password') is-invalid @enderror" name="password" value="{{ old('password', $connection['password']) }}" placeholder="********">
-                    <div class="form-text">Biarkan kosong jika tidak ingin mengubah password.</div>
-                    @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="info-item">
+                        <label class="info-label">Username</label>
+                        <div class="info-value">{{ $connection['username'] }}</div>
+                    </div>
                 </div>
-                <div class="col-12 d-flex justify-content-between flex-wrap gap-2">
-                    <div class="text-muted small">Perubahan ini akan menuliskan ulang nilai pada file <code>.env</code> dan me-reload konfigurasi.</div>
-                    <button class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Simpan Perubahan
-                    </button>
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <label class="info-label">Status Koneksi</label>
+                        <div class="info-value">
+                            <span class="status-badge status-success">
+                                <i class="fas fa-check-circle"></i> Terhubung
+                            </span>
+                        </div>
+                    </div>
                 </div>
-            </form>
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <label class="info-label">Versi MySQL</label>
+                        <div class="info-value">{{ $mysql_version ?? 'N/A' }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 p-3 bg-light rounded">
+                <h6 class="mb-2"><i class="fas fa-info-circle text-info"></i> Catatan</h6>
+                <p class="text-muted small mb-0">
+                    Informasi koneksi database ini bersifat read-only. Untuk mengubah konfigurasi database,
+                    silakan edit file <code>.env</code> secara manual atau hubungi administrator sistem.
+                </p>
+            </div>
         </div>
     </div>
 </div>

@@ -101,12 +101,20 @@ class DatabaseMaintenanceController extends Controller
             ->with('success', 'Database berhasil direstore dari backup.');
     }
 
-    public function showConnection()
+    public function showInfo()
     {
         $connection = config('database.default');
         $config = config("database.connections.{$connection}");
 
-        return view('admin.pages.sistem.database.dbkoneksi', [
+        // Get MySQL version
+        $mysql_version = null;
+        try {
+            $mysql_version = DB::select('SELECT VERSION() as version')[0]->version ?? null;
+        } catch (\Exception $e) {
+            // Ignore if can't get version
+        }
+
+        return view('admin.pages.sistem.database.dbinfo', [
             'connection' => [
                 'driver' => $connection,
                 'host' => Arr::get($config, 'host'),
@@ -115,6 +123,7 @@ class DatabaseMaintenanceController extends Controller
                 'username' => Arr::get($config, 'username'),
                 'password' => Arr::get($config, 'password'),
             ],
+            'mysql_version' => $mysql_version,
         ]);
     }
 
@@ -138,7 +147,7 @@ class DatabaseMaintenanceController extends Controller
 
         Artisan::call('config:clear');
 
-        return redirect()->route('admin.sistem.database.connection')
+        return redirect()->route('admin.sistem.database.info')
             ->with('success', 'Koneksi database berhasil diperbarui.');
     }
 

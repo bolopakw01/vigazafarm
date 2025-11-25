@@ -78,7 +78,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/restore', 'showRestore')->name('restore');
             Route::post('/restore', 'runRestore')->name('restore.run');
 
-            Route::get('/koneksi', 'showConnection')->name('connection');
+            Route::get('/info', 'showInfo')->name('info');
             Route::post('/koneksi', 'updateConnection')->name('connection.update');
 
             Route::get('/optimasi', 'showOptimization')->name('optimization');

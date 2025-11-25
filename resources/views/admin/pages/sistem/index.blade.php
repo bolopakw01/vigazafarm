@@ -51,19 +51,14 @@
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         padding: 20px;
         border: 1px solid #e0e0e0;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
         display: flex;
         flex-direction: column;
         align-items: center;
         text-align: center;
-        aspect-ratio: 1 / 1; /* Make it square */
+        height: 280px; /* Fixed height for consistency */
+        width: 100%;
         max-width: 250px;
         margin: 0 auto;
-    }
-
-    .goals-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
     }
 
     .goals-card-title {
@@ -97,12 +92,18 @@
         margin-bottom: 20px;
         line-height: 1.4;
         flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 60px; /* Ensure consistent description height */
         font-family: 'AlanSans', sans-serif;
     }
 
     .goals-card-actions {
         width: 100%;
         margin-top: auto;
+        padding-top: 15px;
+        border-top: 1px solid #f0f0f0;
     }
 
     .goals-btn {
@@ -141,6 +142,7 @@
 
         .goals-card {
             max-width: 100%;
+            height: 260px; /* Slightly smaller height for mobile */
             padding: 20px;
         }
 
@@ -164,6 +166,7 @@
 
         .goals-description {
             font-size: 0.8rem;
+            min-height: 50px; /* Smaller min-height for mobile */
         }
 
         .goals-btn {
@@ -297,16 +300,16 @@
             <!-- Database Connection Card -->
             <div class="goals-card">
                 <div class="goals-card-icon revenue">
-                    <i class="fas fa-server"></i>
+                    <i class="fas fa-info-circle"></i>
                 </div>
-                <h3 class="goals-card-title">Koneksi Database</h3>
+                <h3 class="goals-card-title">Informasi Database</h3>
                 <div class="goals-description">
-                    Konfigurasi pengaturan koneksi database seperti host, port, dan kredensial.
+                    Lihat informasi lengkap tentang konfigurasi dan status database yang sedang digunakan.
                 </div>
                 <div class="goals-card-actions">
-                    <a href="{{ route('admin.sistem.database.connection') }}" class="goals-btn goals-btn-primary">
-                        <i class="fas fa-cogs"></i>
-                        Set Koneksi
+                    <a href="{{ route('admin.sistem.database.info') }}" class="goals-btn goals-btn-primary">
+                        <i class="fas fa-info"></i>
+                        Lihat Info
                     </a>
                 </div>
             </div>
