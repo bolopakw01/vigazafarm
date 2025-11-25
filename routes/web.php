@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\FeedVitaminController;
+use App\Http\Controllers\DatabaseMaintenanceController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -67,6 +68,22 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/sistem/pakan-vitamin', [FeedVitaminController::class, 'store'])->name('admin.sistem.pakanvitamin.store');
         Route::put('/admin/sistem/pakan-vitamin/{item}', [FeedVitaminController::class, 'update'])->name('admin.sistem.pakanvitamin.update');
         Route::delete('/admin/sistem/pakan-vitamin/{item}', [FeedVitaminController::class, 'destroy'])->name('admin.sistem.pakanvitamin.destroy');
+
+        Route::prefix('/admin/sistem/database')->name('admin.sistem.database.')->controller(DatabaseMaintenanceController::class)->group(function () {
+            Route::get('/backup', 'showBackup')->name('backup');
+            Route::post('/backup', 'runBackup')->name('backup.run');
+            Route::get('/backup/download/{filename}', 'downloadBackup')->name('backup.download');
+            Route::delete('/backup/{filename}', 'deleteBackup')->name('backup.delete');
+
+            Route::get('/restore', 'showRestore')->name('restore');
+            Route::post('/restore', 'runRestore')->name('restore.run');
+
+            Route::get('/koneksi', 'showConnection')->name('connection');
+            Route::post('/koneksi', 'updateConnection')->name('connection.update');
+
+            Route::get('/optimasi', 'showOptimization')->name('optimization');
+            Route::post('/optimasi', 'runOptimization')->name('optimization.run');
+        });
     });
 
     Route::get('/admin/sistem/pakan-vitamin/options', [FeedVitaminController::class, 'options'])->name('admin.sistem.pakanvitamin.options');

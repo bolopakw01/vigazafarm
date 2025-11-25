@@ -129,10 +129,10 @@
 						</div>
 					</div>
 					<div class="col-6 col-md-4 col-lg-2">
-						<div class="mini-kpi-card theme-red" style="cursor:pointer;">
-							<div class="mini-value" data-target="12500">0</div>
-							<div class="mini-label">Cost</div>
-							<i class="fa-solid fa-coins mini-icon" aria-hidden="true"></i>
+						<div class="mini-kpi-card theme-yellow" style="cursor:pointer;">
+							<div class="mini-value" data-target="{{ \App\Models\Pakan::count() }}">0</div>
+							<div class="mini-label">Pakan</div>
+							<i class="fa-solid fa-wheat-awn mini-icon" aria-hidden="true"></i>
 						</div>
 					</div>
 				</div>

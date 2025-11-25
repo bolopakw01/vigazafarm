@@ -251,6 +251,84 @@
             </div>
         </div>
     </div>
+
+    <!-- Database Settings Section -->
+    <div class="sistem-section">
+        <h2 class="sistem-section-title">
+            <i class="fas fa-database"></i>
+            Pengaturan Database
+        </h2>
+
+        <div class="dashboard-settings-grid">
+            <!-- Backup Database Card -->
+            <div class="goals-card">
+                <div class="goals-card-icon production">
+                    <i class="fas fa-download"></i>
+                </div>
+                <h3 class="goals-card-title">Backup Database</h3>
+                <div class="goals-description">
+                    Buat cadangan data database secara berkala untuk keamanan dan pemulihan data.
+                </div>
+                <div class="goals-card-actions">
+                    <a href="{{ route('admin.sistem.database.backup') }}" class="goals-btn goals-btn-primary">
+                        <i class="fas fa-cloud-download-alt"></i>
+                        Backup Sekarang
+                    </a>
+                </div>
+            </div>
+
+            <!-- Restore Database Card -->
+            <div class="goals-card">
+                <div class="goals-card-icon efficiency">
+                    <i class="fas fa-upload"></i>
+                </div>
+                <h3 class="goals-card-title">Restore Database</h3>
+                <div class="goals-description">
+                    Pulihkan data dari file backup yang telah dibuat sebelumnya.
+                </div>
+                <div class="goals-card-actions">
+                    <a href="{{ route('admin.sistem.database.restore') }}" class="goals-btn goals-btn-primary">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        Restore Data
+                    </a>
+                </div>
+            </div>
+
+            <!-- Database Connection Card -->
+            <div class="goals-card">
+                <div class="goals-card-icon revenue">
+                    <i class="fas fa-server"></i>
+                </div>
+                <h3 class="goals-card-title">Koneksi Database</h3>
+                <div class="goals-description">
+                    Konfigurasi pengaturan koneksi database seperti host, port, dan kredensial.
+                </div>
+                <div class="goals-card-actions">
+                    <a href="{{ route('admin.sistem.database.connection') }}" class="goals-btn goals-btn-primary">
+                        <i class="fas fa-cogs"></i>
+                        Set Koneksi
+                    </a>
+                </div>
+            </div>
+
+            <!-- Database Optimization Card -->
+            <div class="goals-card">
+                <div class="goals-card-icon quality">
+                    <i class="fas fa-tachometer-alt"></i>
+                </div>
+                <h3 class="goals-card-title">Optimasi Database</h3>
+                <div class="goals-description">
+                    Lakukan optimasi performa database dengan indexing dan maintenance rutin.
+                </div>
+                <div class="goals-card-actions">
+                    <a href="{{ route('admin.sistem.database.optimization') }}" class="goals-btn goals-btn-primary">
+                        <i class="fas fa-wrench"></i>
+                        Optimalkan
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 
