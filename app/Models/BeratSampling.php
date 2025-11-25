@@ -18,6 +18,7 @@ class BeratSampling extends Model
         'berat_rata_rata',
         'jumlah_sampel',
         'catatan',
+        'pengguna_id',
     ];
 
     protected $casts = [
@@ -31,5 +32,13 @@ class BeratSampling extends Model
     public function batchProduksi()
     {
         return $this->belongsTo(BatchProduksi::class, 'batch_produksi_id', 'id');
+    }
+
+    /**
+     * Relasi ke pengguna pencatat.
+     */
+    public function pengguna()
+    {
+        return $this->belongsTo(User::class, 'pengguna_id');
     }
 }

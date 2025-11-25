@@ -96,6 +96,12 @@ function updateKesehatanSummary(totalBiaya) {
 
 // ========== HELPER FUNCTIONS ==========
 
+function getRecorderName(record) {
+    const user = record?.pengguna;
+    if (!user) return '-';
+    return user.nama_pengguna || user.username || user.nama || user.name || '-';
+}
+
 function showToast(message, type = 'success') {
     const colors = { success: '#10b981', error: '#ef4444', warning: '#f59e0b' };
     const icons = { success: '✅', error: '❌', warning: '⚠️' };
@@ -919,10 +925,11 @@ function renderPakanHistory(data) {
         <table class="table table-sm table-hover mb-0">
             <thead>
                 <tr>
-                    <th style="width:25%" class="text-start">Tanggal</th>
-                    <th style="width:35%" class="text-start">Jenis Pakan</th>
-                    <th style="width:20%" class="text-end">Jumlah</th>
-                    <th style="width:20%" class="text-end">Biaya</th>
+                    <th style="width:20%" class="text-start">Tanggal</th>
+                    <th style="width:28%" class="text-start">Jenis Pakan</th>
+                    <th style="width:15%" class="text-end">Jumlah</th>
+                    <th style="width:17%" class="text-end">Biaya</th>
+                    <th style="width:20%" class="text-start">Dicatat Oleh</th>
                 </tr>
             </thead>
             <tbody>
@@ -934,6 +941,7 @@ function renderPakanHistory(data) {
                             <td class="text-start"><small>${feedLabel}</small></td>
                             <td class="text-end">${parseFloat(d.jumlah_kg).toFixed(2)} kg</td>
                             <td class="text-end"><small>Rp ${(parseFloat(d.total_biaya) || 0).toLocaleString('id-ID')}</small></td>
+                            <td class="text-start"><small>${getRecorderName(d)}</small></td>
                         </tr>
                     `;
                 }).join('')}
@@ -964,19 +972,26 @@ function renderKematianHistory(data) {
         <table class="table table-sm table-hover mb-0">
             <thead>
                 <tr>
-                    <th style="width:30%" class="text-start">Tanggal</th>
-                    <th style="width:25%" class="text-end">Jumlah</th>
-                    <th style="width:45%" class="text-start">Penyebab</th>
+                    <th style="width:20%" class="text-start">Tanggal</th>
+                    <th style="width:15%" class="text-end">Jumlah</th>
+                    <th style="width:20%" class="text-start">Penyebab</th>
+                    <th style="width:25%" class="text-start">Catatan</th>
+                    <th style="width:20%" class="text-start">Dicatat Oleh</th>
                 </tr>
             </thead>
             <tbody>
-                ${data.slice(0, 10).map(d => `
-                    <tr>
-                        <td class="text-start">${new Date(d.tanggal).toLocaleDateString('id-ID', {day:'2-digit', month:'short'})}</td>
-                        <td class="text-end">${d.jumlah} ekor</td>
-                        <td class="text-start"><small>${d.penyebab || '-'}</small></td>
-                    </tr>
-                `).join('')}
+                ${data.slice(0, 10).map(d => {
+                    const note = d.keterangan || d.catatan || '-';
+                    return `
+                        <tr>
+                            <td class="text-start">${new Date(d.tanggal).toLocaleDateString('id-ID', {day:'2-digit', month:'short'})}</td>
+                            <td class="text-end">${d.jumlah} ekor</td>
+                            <td class="text-start"><small>${d.penyebab || '-'}</small></td>
+                            <td class="text-start"><small>${note}</small></td>
+                            <td class="text-start"><small>${getRecorderName(d)}</small></td>
+                        </tr>
+                    `;
+                }).join('')}
             </tbody>
         </table>
         ${data.length > 10 ? `<p class="text-muted small mt-2 mb-0 text-center">Menampilkan 10 dari ${data.length} data</p>` : ''}
@@ -1004,21 +1019,28 @@ function renderMonitoringHistory(data) {
         <table class="table table-sm table-hover mb-0">
             <thead>
                 <tr>
-                    <th style="width:30%">Waktu</th>
-                    <th style="width:20%" class="text-end">Suhu</th>
-                    <th style="width:25%" class="text-end">Kelembaban</th>
-                    <th style="width:25%">Ventilasi</th>
+                    <th style="width:22%">Waktu</th>
+                    <th style="width:12%" class="text-end">Suhu</th>
+                    <th style="width:18%" class="text-end">Kelembaban</th>
+                    <th style="width:18%">Ventilasi</th>
+                    <th style="width:15%">Catatan</th>
+                    <th style="width:15%">Dicatat Oleh</th>
                 </tr>
             </thead>
             <tbody>
-                ${data.slice(0, 10).map(d => `
-                    <tr>
-                        <td><small>${new Date(d.waktu_pencatatan || d.tanggal).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}</small></td>
-                        <td class="text-end">${parseFloat(d.suhu).toFixed(1)}°C</td>
-                        <td class="text-end">${parseFloat(d.kelembaban).toFixed(1)}%</td>
-                        <td><small>${d.kondisi_ventilasi || '-'}</small></td>
-                    </tr>
-                `).join('')}
+                ${data.slice(0, 10).map(d => {
+                    const note = d.catatan || '-';
+                    return `
+                        <tr>
+                            <td><small>${new Date(d.waktu_pencatatan || d.tanggal).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}</small></td>
+                            <td class="text-end">${parseFloat(d.suhu).toFixed(1)}°C</td>
+                            <td class="text-end">${parseFloat(d.kelembaban).toFixed(1)}%</td>
+                            <td><small>${d.kondisi_ventilasi || '-'}</small></td>
+                            <td><small>${note}</small></td>
+                            <td><small>${getRecorderName(d)}</small></td>
+                        </tr>
+                    `;
+                }).join('')}
             </tbody>
         </table>
         ${data.length > 10 ? `<p class="text-muted small mt-2 mb-0 text-center">Menampilkan 10 dari ${data.length} data</p>` : ''}
@@ -1124,6 +1146,7 @@ function renderKesehatanHistory(data) {
                 <td class="text-end">${item.jumlah_burung || '-'}</td>
                 <td class="text-end">${biaya}</td>
                 <td class="text-start">${item.petugas || '-'}</td>
+                <td class="text-start">${getRecorderName(item)}</td>
                 <td class="text-start">${item.gejala || '-'}</td>
             </tr>
         `;
@@ -1140,6 +1163,7 @@ function renderKesehatanHistory(data) {
                         <th class="text-end">Jumlah Burung</th>
                         <th class="text-end">Biaya</th>
                         <th class="text-start">Petugas</th>
+                        <th class="text-start">Dicatat Oleh</th>
                         <th class="text-start">Gejala/Keterangan</th>
                     </tr>
                 </thead>
@@ -1185,6 +1209,7 @@ function renderBeratHistory(data) {
                 <td class="text-end">${beratGram.toFixed(0)} g</td>
                 <td class="text-end">${beratKg} kg</td>
                 <td class="text-start">${item.catatan || '-'}</td>
+                <td class="text-start">${getRecorderName(item)}</td>
             </tr>
         `;
     }).join('');
@@ -1199,6 +1224,7 @@ function renderBeratHistory(data) {
                         <th class="text-end">Berat (gram)</th>
                         <th class="text-end">Berat (kg)</th>
                         <th class="text-start">Catatan</th>
+                        <th class="text-start">Dicatat Oleh</th>
                     </tr>
                 </thead>
                 <tbody>

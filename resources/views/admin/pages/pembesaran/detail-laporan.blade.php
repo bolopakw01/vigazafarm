@@ -224,7 +224,7 @@
                     <div class="laporan-detail-info-item text-md-end">
                         <small><i class="fa-solid fa-user me-1"></i>Dibuat Oleh</small>
                         <div class="fw-semibold">
-                            {{ $laporan->pengguna->name ?? 'N/A' }}
+                            {{ $laporan->pengguna->nama_pengguna ?? 'N/A' }}
                             @if(auth()->id() === $laporan->pengguna_id)
                                 <span class="badge bg-success ms-1" style="font-size: 0.7rem;">Anda</span>
                             @endif

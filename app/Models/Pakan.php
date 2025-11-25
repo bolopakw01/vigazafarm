@@ -24,6 +24,7 @@ class Pakan extends Model
         'jumlah_karung',
         'harga_per_kg',
         'total_biaya',
+        'pengguna_id',
     ];
 
     protected $casts = [
@@ -66,6 +67,14 @@ class Pakan extends Model
     public function batchProduksi()
     {
         return $this->belongsTo(BatchProduksi::class, 'batch_produksi_id');
+    }
+
+    /**
+     * Relasi ke pengguna yang mencatat.
+     */
+    public function pengguna()
+    {
+        return $this->belongsTo(User::class, 'pengguna_id');
     }
 
     /**

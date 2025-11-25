@@ -30,6 +30,7 @@ class Kesehatan extends Model
         'tindakan',
         'biaya',
         'petugas',
+        'pengguna_id',
     ];
 
     protected $casts = [
@@ -46,6 +47,14 @@ class Kesehatan extends Model
     public function batchProduksi()
     {
         return $this->belongsTo(BatchProduksi::class, 'batch_produksi_id');
+    }
+
+    /**
+     * Relasi ke pengguna pencatat.
+     */
+    public function pengguna()
+    {
+        return $this->belongsTo(User::class, 'pengguna_id');
     }
 
     /**

@@ -92,6 +92,7 @@ class PembesaranRecordingController extends Controller
             'jumlah_karung' => $validated['jumlah_karung'] ?? 0,
             'harga_per_kg' => $hargaPerKg,
             'total_biaya' => $hargaPerKg !== null ? $validated['jumlah_kg'] * $hargaPerKg : null,
+            'pengguna_id' => Auth::id(),
         ]);
 
         if ($stokPakan) {
@@ -102,10 +103,12 @@ class PembesaranRecordingController extends Controller
             $stokPakan->save();
         }
 
+        $pakan->load(['stokPakan', 'feedItem', 'pengguna']);
+
         return response()->json([
             'success' => true,
             'message' => 'Data pakan berhasil disimpan',
-            'data' => $pakan->load(['stokPakan', 'feedItem']),
+            'data' => $pakan,
         ]);
     }
 
@@ -239,7 +242,7 @@ class PembesaranRecordingController extends Controller
         }
 
         $pakanList = (clone $pakanQuery)
-            ->with(['stokPakan', 'feedItem'])
+            ->with(['stokPakan', 'feedItem', 'pengguna'])
             ->orderByDesc('tanggal')
             ->limit(30)
             ->get();
@@ -284,6 +287,7 @@ class PembesaranRecordingController extends Controller
             'jumlah' => $validated['jumlah'],
             'penyebab' => $validated['penyebab'],
             'keterangan' => $validated['keterangan'],
+            'pengguna_id' => Auth::id(),
         ]);
 
         // Hitung mortalitas
@@ -299,7 +303,7 @@ class PembesaranRecordingController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Data kematian berhasil disimpan',
-            'data' => $kematian,
+            'data' => $kematian->load('pengguna'),
             'total_mati' => $totalMati,
             'mortalitas' => $mortalitas,
             'is_high_mortality' => $isHighMortality,
@@ -351,6 +355,7 @@ class PembesaranRecordingController extends Controller
     {
         
         $kematianList = Kematian::where('batch_produksi_id', $pembesaran->batch_produksi_id)
+            ->with('pengguna')
             ->orderByDesc('tanggal')
             ->limit(30)
             ->get();
@@ -560,6 +565,7 @@ class PembesaranRecordingController extends Controller
             'intensitas_cahaya' => $validated['intensitas_cahaya'],
             'kondisi_ventilasi' => $validated['kondisi_ventilasi'],
             'catatan' => $validated['catatan'],
+            'pengguna_id' => Auth::id(),
         ]);
 
         // Check status lingkungan
@@ -568,7 +574,7 @@ class PembesaranRecordingController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Data monitoring berhasil disimpan',
-            'data' => $monitoring,
+            'data' => $monitoring->load('pengguna'),
             'status' => $status,
         ]);
     }
@@ -580,6 +586,7 @@ class PembesaranRecordingController extends Controller
     {
         
         $monitoringList = MonitoringLingkungan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
+            ->with('pengguna')
             ->orderByDesc('waktu_pencatatan')
             ->limit(50)
             ->get();
@@ -633,12 +640,13 @@ class PembesaranRecordingController extends Controller
             'tindakan' => $validated['tindakan'],
             'biaya' => $validated['biaya'],
             'petugas' => $validated['petugas'],
+            'pengguna_id' => Auth::id(),
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Data kesehatan berhasil disimpan',
-            'data' => $kesehatan,
+            'data' => $kesehatan->load('pengguna'),
         ]);
     }
 
@@ -649,6 +657,7 @@ class PembesaranRecordingController extends Controller
     {
         
         $kesehatanList = Kesehatan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
+            ->with('pengguna')
             ->orderByDesc('tanggal')
             ->get();
 
@@ -703,6 +712,7 @@ class PembesaranRecordingController extends Controller
             'berat_rata_rata' => $validated['berat_rata_rata'],
             'jumlah_sampel' => $validated['jumlah_sampel'] ?? null,
             'catatan' => $validated['catatan'] ?? null,
+            'pengguna_id' => Auth::id(),
         ]);
 
         // Get parameter standar untuk grower
@@ -730,7 +740,7 @@ class PembesaranRecordingController extends Controller
             'success' => true,
             'message' => 'Berat rata-rata berhasil disimpan',
             'data' => $pembesaran,
-            'sampling' => $beratSampling,
+            'sampling' => $beratSampling->load('pengguna'),
             'standar' => $paramStandar,
             'status' => [
                 'status' => $status,
@@ -797,6 +807,7 @@ class PembesaranRecordingController extends Controller
     public function getBeratList(Pembesaran $pembesaran)
     {
         $beratList = \App\Models\BeratSampling::where('batch_produksi_id', $pembesaran->batch_produksi_id)
+            ->with('pengguna')
             ->orderBy('tanggal_sampling', 'asc')
             ->get();
 

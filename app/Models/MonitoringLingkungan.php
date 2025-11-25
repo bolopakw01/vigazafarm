@@ -27,6 +27,7 @@ class MonitoringLingkungan extends Model
         'intensitas_cahaya',
         'kondisi_ventilasi',
         'catatan',
+        'pengguna_id',
     ];
 
     protected $casts = [
@@ -52,6 +53,14 @@ class MonitoringLingkungan extends Model
     public function batchProduksi()
     {
         return $this->belongsTo(BatchProduksi::class, 'batch_produksi_id');
+    }
+
+    /**
+     * Relasi ke pengguna pencatat.
+     */
+    public function pengguna()
+    {
+        return $this->belongsTo(User::class, 'pengguna_id');
     }
 
     /**
