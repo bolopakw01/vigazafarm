@@ -7,6 +7,13 @@ use Illuminate\Validation\Rule;
 
 class ProfileUpdateRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('password') && $this->input('password') === '') {
+            $this->merge(['password' => null]);
+        }
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -14,10 +21,15 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        $passwordRules = ['nullable', 'string'];
+        if ($this->user()?->peran !== 'owner') {
+            $passwordRules[] = 'min:8';
+        }
+
         $rules = [
             'nama' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('pengguna', 'surel')->ignore($this->user()->id)],
-            'password' => ['nullable', 'string', 'min:8'],
+            'password' => $passwordRules,
             'alamat' => ['nullable', 'string', 'max:500'],
             'profile_picture' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ];

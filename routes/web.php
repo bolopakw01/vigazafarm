@@ -84,6 +84,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/optimasi', 'showOptimization')->name('optimization');
             Route::post('/optimasi', 'runOptimization')->name('optimization.run');
         });
+
+        Route::get('/admin/sistem/iot', [App\Http\Controllers\SistemController::class, 'iot'])->name('admin.sistem.iot');
+        Route::put('/admin/sistem/iot', [App\Http\Controllers\SistemController::class, 'updateIot'])->name('admin.sistem.iot.update');
     });
 
     Route::get('/admin/sistem/pakan-vitamin/options', [FeedVitaminController::class, 'options'])->name('admin.sistem.pakanvitamin.options');

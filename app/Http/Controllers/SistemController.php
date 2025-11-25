@@ -12,18 +12,54 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class SistemController extends Controller
 {
     protected string $goalsStorage = 'dashboard_goals.json';
     protected string $matrixStorage = 'dashboard_matrix.json';
     protected string $performanceStorage = 'dashboard_performance.json';
+    protected string $iotSettingsStorage = 'iot_settings.json';
     protected float $matrixEqualityTolerance = 500;
 
     public function index()
     {
         return view('admin.pages.sistem.index');
+    }
+
+    public function iot()
+    {
+        $settings = $this->loadIotSettings();
+
+        return view('admin.pages.sistem.plugin.suhudankelembapan', compact('settings'));
+    }
+
+    public function updateIot(Request $request)
+    {
+        $mode = $request->input('mode', 'simple');
+
+        $rules = [
+            'mode' => ['required', Rule::in(['simple', 'iot'])],
+            'api_endpoint' => [$mode === 'iot' ? 'required' : 'nullable', 'url'],
+            'api_key' => [$mode === 'iot' ? 'required' : 'nullable', 'string', 'max:255'],
+            'device_id' => [$mode === 'iot' ? 'required' : 'nullable', 'string', 'max:100'],
+            'update_interval' => [$mode === 'iot' ? 'required' : 'nullable', 'integer', Rule::in([30, 60, 300, 600])],
+        ];
+
+        $validated = Validator::make($request->all(), $rules)->validate();
+
+        $settings = $this->normalizeIotSettings($validated);
+
+        Storage::disk('local')->put(
+            $this->iotSettingsStorage,
+            json_encode($settings, JSON_PRETTY_PRINT)
+        );
+
+        return redirect()
+            ->route('admin.sistem.iot')
+            ->with('success', 'Pengaturan IoT berhasil diperbarui.');
     }
 
     public function dashboard()
@@ -200,6 +236,11 @@ class SistemController extends Controller
     public function getDashboardGoals()
     {
         return $this->applyLiveMetrics($this->loadDashboardGoals());
+    }
+
+    public function getIotSettings(): array
+    {
+        return $this->loadIotSettings();
     }
 
     protected function loadDashboardGoals(): array
@@ -433,6 +474,54 @@ class SistemController extends Controller
         return [
             'series' => $series->all(),
             'categories' => $categories->all(),
+        ];
+    }
+
+    protected function loadIotSettings(): array
+    {
+        if (!Storage::disk('local')->exists($this->iotSettingsStorage)) {
+            return $this->defaultIotSettings();
+        }
+
+        $stored = json_decode(Storage::disk('local')->get($this->iotSettingsStorage), true);
+
+        return is_array($stored)
+            ? $this->normalizeIotSettings($stored)
+            : $this->defaultIotSettings();
+    }
+
+    protected function defaultIotSettings(): array
+    {
+        return [
+            'mode' => 'simple',
+            'api_endpoint' => null,
+            'api_key' => null,
+            'device_id' => null,
+            'update_interval' => 60,
+        ];
+    }
+
+    protected function normalizeIotSettings(array $settings): array
+    {
+        $defaults = $this->defaultIotSettings();
+
+        $rawMode = $settings['mode'] ?? $defaults['mode'];
+        $mode = in_array($rawMode, ['simple', 'iot'], true)
+            ? $rawMode
+            : $defaults['mode'];
+
+        $allowedIntervals = [30, 60, 300, 600];
+        $interval = (int) ($settings['update_interval'] ?? $defaults['update_interval']);
+        if (!in_array($interval, $allowedIntervals, true)) {
+            $interval = $defaults['update_interval'];
+        }
+
+        return [
+            'mode' => $mode,
+            'api_endpoint' => $settings['api_endpoint'] ?? $defaults['api_endpoint'],
+            'api_key' => $settings['api_key'] ?? $defaults['api_key'],
+            'device_id' => $settings['device_id'] ?? $defaults['device_id'],
+            'update_interval' => $interval,
         ];
     }
 

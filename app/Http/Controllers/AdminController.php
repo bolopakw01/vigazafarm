@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MonitoringLingkungan;
 use App\Models\Penetasan;
 use App\Models\Pembesaran;
 use App\Models\Produksi;
@@ -80,8 +81,42 @@ class AdminController extends Controller
         } else {
             $penetasan = $query->orderBy('dibuat_pada', 'desc')->paginate($perPage);
         }
+
+        $sistemController = app(SistemController::class);
+        $iotSettings = $sistemController->getIotSettings();
+        $iotMode = $iotSettings['mode'] ?? 'simple';
+        $iotSnapshots = [];
+
+        if ($iotMode === 'iot') {
+            $penetasanItems = collect($penetasan->items());
+            $kandangIds = $penetasanItems
+                ->pluck('kandang_id')
+                ->filter(fn ($id) => $id !== null)
+                ->unique();
+
+            if ($kandangIds->isNotEmpty()) {
+                $iotSnapshots = MonitoringLingkungan::whereIn('kandang_id', $kandangIds)
+                    ->orderByDesc('waktu_pencatatan')
+                    ->get()
+                    ->unique('kandang_id')
+                    ->mapWithKeys(function ($record) {
+                        $recordedAt = $record->waktu_pencatatan instanceof Carbon
+                            ? $record->waktu_pencatatan
+                            : ($record->waktu_pencatatan ? Carbon::parse($record->waktu_pencatatan) : null);
+
+                        return [
+                            $record->kandang_id => [
+                                'suhu' => $record->suhu,
+                                'kelembaban' => $record->kelembaban,
+                                'waktu' => $recordedAt ? $recordedAt->format('d/m/Y H:i') : null,
+                            ],
+                        ];
+                    })
+                    ->toArray();
+            }
+        }
         
-        return view('admin.pages.penetasan.index-penetasan', compact('penetasan'));
+        return view('admin.pages.penetasan.index-penetasan', compact('penetasan', 'iotMode', 'iotSnapshots'));
     }
 
     public function produksi(Request $request)

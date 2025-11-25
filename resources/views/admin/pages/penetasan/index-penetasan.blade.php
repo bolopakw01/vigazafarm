@@ -150,6 +150,9 @@
                         </td>
                         <td class="bolopa-tabel-text-center" style="text-align: center;">
                             <div class="bolopa-tabel-actions">
+                                @php
+                                    $kandangSnapshot = $item->kandang_id ? ($iotSnapshots[$item->kandang_id] ?? null) : null;
+                                @endphp
                                 <button type="button"
                                     class="bolopa-tabel-btn bolopa-tabel-btn-info bolopa-tabel-btn-action"
                                     title="Lihat Detail"
@@ -175,7 +178,9 @@
                                         'catatan' => $item->catatan,
                                         'status' => $item->status ?? 'proses',
                                         'formatted_dibuat_pada' => optional($item->dibuat_pada)->format('d/m/Y H:i'),
-                                        'formatted_diperbarui_pada' => optional($item->diperbarui_pada)->format('d/m/Y H:i')
+                                        'formatted_diperbarui_pada' => optional($item->diperbarui_pada)->format('d/m/Y H:i'),
+                                        'iot_mode' => $iotMode ?? 'simple',
+                                        'iot_snapshot' => $kandangSnapshot
                                     ]))">
                                     <img src="{{ asset('bolopa/img/icon/line-md--watch.svg') }}" alt="View" width="14" height="14">
                                 </button>
@@ -586,6 +591,14 @@
             const numeric = toNumber(value);
             return numeric === null ? '-' : new Intl.NumberFormat('id-ID').format(numeric);
         };
+        const getRandomInRange = (min, max, decimals = 1) => {
+            const factor = Math.pow(10, decimals);
+            return Math.round((Math.random() * (max - min) + min) * factor) / factor;
+        };
+        const createSimpleSimulation = () => ({
+            suhu: getRandomInRange(36.5, 38, 1),
+            kelembaban: getRandomInRange(55, 65, 1)
+        });
 
         // Parse data
         const totalTelur = toNumber(data.jumlah_telur);
@@ -593,10 +606,29 @@
         const doc = toNumber(data.jumlah_doc);
         const tidakFertil = toNumber(data.telur_tidak_fertil);
         const persentase = toNumber(data.persentase_tetas);
-        const suhu = toNumber(data.suhu_penetasan);
-        const kelembaban = toNumber(data.kelembaban_penetasan);
+        const manualTemp = toNumber(data.suhu_penetasan);
+        const manualHum = toNumber(data.kelembaban_penetasan);
+        const useIotMode = (data.iot_mode || 'simple') === 'iot';
+        const iotSnapshot = data.iot_snapshot || null;
+        const sensorTemp = toNumber(iotSnapshot ? iotSnapshot.suhu : null);
+        const sensorHum = toNumber(iotSnapshot ? iotSnapshot.kelembaban : null);
+        const sensorTime = iotSnapshot && iotSnapshot.waktu ? iotSnapshot.waktu : null;
+        const hasManualReadings = manualTemp !== null && manualHum !== null;
+        let suhu = useIotMode ? sensorTemp : manualTemp;
+        let kelembaban = useIotMode ? sensorHum : manualHum;
         const status = (data.status || 'proses').toLowerCase();
         const isCompleted = status === 'selesai';
+        let envSourceLabel = '';
+
+        if (useIotMode) {
+            // envSourceLabel = sensorTime ? `bolopa • ${sensorTime}` : 'bolopa';
+        } else {
+            if (!hasManualReadings) {
+                const simulated = createSimpleSimulation();
+                suhu = simulated.suhu;
+                kelembaban = simulated.kelembaban;
+            }
+        }
         const gagal = isCompleted && totalTelur !== null ? Math.max(totalTelur - (menetas ?? 0) - (tidakFertil ?? 0), 0) : null;
 
         // Split date and time helper
@@ -634,6 +666,8 @@
                 .bolopa-popup-content .stats-grid .stat-item .stat-body{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
                 .bolopa-popup-content .stats-grid .stat-item .stat-body .label{white-space:nowrap;font-weight:600;font-size:0.95rem;color:#000}
                 .bolopa-popup-content .stats-grid .stat-item .stat-body .desc{white-space:normal;word-wrap:break-word;width:100%;color:var(--muted);font-size:0.72rem;line-height:1.3}
+                .source-pill{margin-top:4px;font-size:.72rem;color:#64748b;font-weight:600}
+                .source-pill[data-mode="iot"]{color:#0d6efd}
                 @media (max-width:520px){
                     .bolopa-popup-content .stats-grid .stat-item .stat-body .label{font-size:.88rem}
                     .bolopa-popup-content .stats-grid .stat-item .stat-body .desc{font-size:.68rem}
@@ -676,8 +710,8 @@
 
             <div class="right">
                 <div class="metrics-row">
-                    <div class="card-simple" id="cardTemp" role="region" aria-label="Suhu"><div><p class="label">Suhu</p><div style="display:flex;align-items:baseline;gap:.4rem"><div class="value"><span id="metric-temp">${suhu !== null ? suhu.toFixed(1) : '—'}</span><span class="unit">°C</span></div></div><div class="target">Target: 37–38°C</div></div><div style="text-align:right"><div class="icon temp"><i class="fa-solid fa-temperature-half"></i></div></div></div>
-                    <div class="card-simple" id="cardHum" role="region" aria-label="Kelembapan"><div><p class="label">Kelembapan</p><div style="display:flex;align-items:baseline;gap:.4rem"><div class="value"><span id="metric-hum">${kelembaban !== null ? kelembaban.toFixed(1) : '—'}</span><span class="unit">%</span></div></div><div class="target">Target: 55–65%</div></div><div style="text-align:right"><div class="icon hum"><i class="fa-solid fa-droplet"></i></div></div></div>
+                    <div class="card-simple" id="cardTemp" role="region" aria-label="Suhu"><div><p class="label">Suhu</p><div style="display:flex;align-items:baseline;gap:.4rem"><div class="value"><span id="metric-temp">${suhu !== null ? suhu.toFixed(1) : '—'}</span><span class="unit">°C</span></div></div><div class="target">Target: 37–38°C</div><div class="source-pill" data-mode="${useIotMode ? 'iot' : 'simple'}">${escapeHtml(envSourceLabel)}</div></div><div style="text-align:right"><div class="icon temp"><i class="fa-solid fa-temperature-half"></i></div></div></div>
+                    <div class="card-simple" id="cardHum" role="region" aria-label="Kelembapan"><div><p class="label">Kelembapan</p><div style="display:flex;align-items:baseline;gap:.4rem"><div class="value"><span id="metric-hum">${kelembaban !== null ? kelembaban.toFixed(1) : '—'}</span><span class="unit">%</span></div></div><div class="target">Target: 55–65%</div><div class="source-pill" data-mode="${useIotMode ? 'iot' : 'simple'}">${escapeHtml(envSourceLabel)}</div></div><div style="text-align:right"><div class="icon hum"><i class="fa-solid fa-droplet"></i></div></div></div>
                 </div>
 
                 <div class="panel timeline-panel">
@@ -775,6 +809,7 @@
                 // Store original values
                 const originalTemp = suhu !== null ? suhu : 37.5;
                 const originalHum = kelembaban !== null ? kelembaban : 60;
+                const hasRealtimeMetrics = suhu !== null && kelembaban !== null;
                 
                 // Random fluctuation range
                 const tempRange = 0.3;  // ±0.3°C
@@ -782,7 +817,7 @@
                 
                 // Animation interval
                 let intervalId = null;
-                if (tempEl && humEl) {
+                if (tempEl && humEl && hasRealtimeMetrics) {
                     intervalId = setInterval(() => {
                         // Generate random values within range
                         const tempFluctuation = (Math.random() - 0.5) * 2 * tempRange;
@@ -824,8 +859,9 @@
                         `DOC: ${root.querySelector('#sw-doc')?.textContent || ''}`,
                         `Tidak Fertil: ${root.querySelector('#sw-fertil')?.textContent || ''}`,
                         `Gagal: ${root.querySelector('#sw-gagal')?.textContent || ''}`,
-                        `Suhu: ${originalTemp.toFixed(1)}°C`,
-                        `Kelembapan: ${originalHum.toFixed(1)}%`
+                        `Suhu: ${hasRealtimeMetrics ? `${originalTemp.toFixed(1)}°C` : '—'}`,
+                        `Kelembapan: ${hasRealtimeMetrics ? `${originalHum.toFixed(1)}%` : '—'}`,
+                        `Sumber: ${envSourceLabel}`
                     ].join('\n');
                     try {
                         await navigator.clipboard.writeText(summary);
