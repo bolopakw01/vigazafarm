@@ -18,6 +18,7 @@ class SistemController extends Controller
 {
     protected string $goalsStorage = 'dashboard_goals.json';
     protected string $matrixStorage = 'dashboard_matrix.json';
+    protected string $performanceStorage = 'dashboard_performance.json';
     protected float $matrixEqualityTolerance = 500;
 
     public function index()
@@ -75,11 +76,13 @@ class SistemController extends Controller
 
     public function matrix()
     {
-        $targets = $this->loadMatrixTargets();
+        $matrixData = $this->loadMatrixData();
+        $targets = $matrixData['targets'];
+        $matriks_enabled = (bool) ($matrixData['enabled'] ?? true);
         $metrics = $this->calculateFinancialMetrics();
         $snapshot = $this->buildMatrixSnapshot($targets, $metrics);
 
-        return view('admin.pages.sistem.dashboard.setmatriks', compact('targets', 'metrics', 'snapshot'));
+        return view('admin.pages.sistem.dashboard.setmatriks', compact('targets', 'metrics', 'snapshot', 'matriks_enabled'));
     }
 
     public function updateMatrix(Request $request)
@@ -89,13 +92,20 @@ class SistemController extends Controller
             'targets.pendapatan' => 'required|numeric|min:0',
             'targets.pengeluaran' => 'required|numeric|min:0',
             'targets.laba' => 'required|numeric|min:0',
+            'matriks_enabled' => 'nullable|boolean',
         ]);
 
         $targets = $this->normalizeMatrixTargets($validated['targets']);
+        $enabled = $request->boolean('matriks_enabled');
+
+        $data = [
+            'targets' => $targets,
+            'enabled' => $enabled,
+        ];
 
         Storage::disk('local')->put(
             $this->matrixStorage,
-            json_encode($targets, JSON_PRETTY_PRINT)
+            json_encode($data, JSON_PRETTY_PRINT)
         );
 
         if ($request->expectsJson()) {
@@ -108,6 +118,83 @@ class SistemController extends Controller
 
         return redirect()->route('admin.sistem.matriks')
                         ->with('success', 'Target matriks berhasil diperbarui!');
+    }
+
+    public function performance()
+    {
+        $performance = $this->loadPerformanceSettings();
+
+        return view('admin.pages.sistem.dashboard.setperformance', compact('performance'));
+    }
+
+    public function updatePerformance(Request $request)
+    {
+        $validated = $request->validate([
+            'series' => 'required|array|min:1|max:4',
+            'series.*.key' => 'nullable|string|max:60',
+            'series.*.label' => 'required|string|max:50',
+            'series.*.color' => ['required', 'regex:/^#([0-9a-fA-F]{3}){1,2}$/'],
+            'categories' => 'required|array|min:3|max:8',
+            'categories.*.label' => 'required|string|max:60',
+            'categories.*.values' => 'required|array',
+            'categories.*.values.*' => 'nullable|numeric|min:0|max:200',
+        ]);
+
+        $series = collect($validated['series'])
+            ->map(function ($item) {
+                $label = trim($item['label']);
+                $rawKey = $item['key'] ?? $label;
+                $key = Str::slug($rawKey ?: $label ?: Str::random(4), '_');
+                if (!$key) {
+                    $key = Str::slug(Str::random(8), '_');
+                }
+                return [
+                    'key' => $key,
+                    'label' => $label ?: 'Series',
+                    'color' => $item['color'],
+                ];
+            })
+            ->unique('key')
+            ->values();
+
+        $seriesKeys = $series->pluck('key');
+
+        $categories = collect($validated['categories'])
+            ->map(function ($item) use ($seriesKeys) {
+                $values = collect($item['values'] ?? [])
+                    ->map(fn ($value) => (float) $value)
+                    ->all();
+
+                $normalized = $seriesKeys->mapWithKeys(function ($key) use ($values) {
+                    return [$key => (float) ($values[$key] ?? 0)];
+                });
+
+                return [
+                    'label' => trim($item['label']) ?: 'Kategori',
+                    'values' => $normalized->all(),
+                ];
+            })
+            ->values();
+
+        $payload = [
+            'series' => $series->all(),
+            'categories' => $categories->all(),
+        ];
+
+        Storage::disk('local')->put(
+            $this->performanceStorage,
+            json_encode($payload, JSON_PRETTY_PRINT)
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Konfigurasi grafik performance berhasil diperbarui!'
+            ]);
+        }
+
+        return redirect()->route('admin.sistem.performance')
+            ->with('success', 'Konfigurasi grafik performance berhasil diperbarui!');
     }
 
     public function getDashboardGoals()
@@ -218,12 +305,135 @@ class SistemController extends Controller
 
     public function getMatrixSnapshot(): array
     {
-        $targets = $this->loadMatrixTargets();
+        $matrixData = $this->loadMatrixData();
+
+        if (!$matrixData['enabled']) {
+            return [];
+        }
+
+        $targets = $matrixData['targets'];
         $metrics = $this->calculateFinancialMetrics();
 
         $snapshot = $this->buildMatrixSnapshot($targets, $metrics);
 
         return $this->appendGoalsMatrixCard($snapshot);
+    }
+
+    public function isMatrixEnabled(): bool
+    {
+        return $this->loadMatrixData()['enabled'];
+    }
+
+    public function getPerformanceChartConfig(): array
+    {
+        $settings = $this->loadPerformanceSettings();
+        $series = $settings['series'] ?? [];
+        $categories = $settings['categories'] ?? [];
+
+        $labels = collect($categories)->pluck('label')->map(fn ($label) => $label ?: 'Kategori')->values()->all();
+
+        $seriesData = collect($series)->map(function ($serie) use ($categories) {
+            $key = $serie['key'];
+            $data = collect($categories)
+                ->map(fn ($category) => (float) ($category['values'][$key] ?? 0))
+                ->values()
+                ->all();
+
+            return [
+                'name' => $serie['label'],
+                'data' => $data,
+            ];
+        })->values()->all();
+
+        $colors = collect($series)->pluck('color')->values()->all();
+
+        return [
+            'labels' => $labels,
+            'series' => $seriesData,
+            'colors' => $colors,
+        ];
+    }
+
+    protected function loadPerformanceSettings(): array
+    {
+        if (!Storage::disk('local')->exists($this->performanceStorage)) {
+            return $this->defaultPerformanceSettings();
+        }
+
+        $stored = json_decode(Storage::disk('local')->get($this->performanceStorage), true);
+
+        return is_array($stored)
+            ? $this->normalizePerformanceSettings($stored)
+            : $this->defaultPerformanceSettings();
+    }
+
+    protected function defaultPerformanceSettings(): array
+    {
+        return [
+            'series' => [
+                ['key' => 'produksi', 'label' => 'Produksi', 'color' => '#198754'],
+                ['key' => 'pendapatan', 'label' => 'Pendapatan', 'color' => '#0d6efd'],
+                ['key' => 'pengeluaran', 'label' => 'Pengeluaran', 'color' => '#ffc107'],
+            ],
+            'categories' => [
+                ['label' => 'Kualitas', 'values' => ['produksi' => 80, 'pendapatan' => 20, 'pengeluaran' => 44]],
+                ['label' => 'Keuntungan', 'values' => ['produksi' => 50, 'pendapatan' => 30, 'pengeluaran' => 76]],
+                ['label' => 'Efisiensi', 'values' => ['produksi' => 30, 'pendapatan' => 40, 'pengeluaran' => 78]],
+                ['label' => 'Pertumbuhan', 'values' => ['produksi' => 40, 'pendapatan' => 80, 'pengeluaran' => 13]],
+                ['label' => 'Stabilitas', 'values' => ['produksi' => 100, 'pendapatan' => 20, 'pengeluaran' => 43]],
+                ['label' => 'Resiko', 'values' => ['produksi' => 20, 'pendapatan' => 80, 'pengeluaran' => 10]],
+            ],
+        ];
+    }
+
+    protected function normalizePerformanceSettings(array $settings): array
+    {
+        $defaults = $this->defaultPerformanceSettings();
+        $series = collect($settings['series'] ?? $defaults['series'])
+            ->map(function ($serie) {
+                $label = trim($serie['label'] ?? 'Series');
+                return [
+                    'key' => Str::slug($serie['key'] ?? $label, '_'),
+                    'label' => $label,
+                    'color' => $serie['color'] ?? '#0d6efd',
+                ];
+            })
+            ->filter(fn ($item) => $item['key'])
+            ->unique('key')
+            ->values();
+
+        if ($series->isEmpty()) {
+            $series = collect($defaults['series']);
+        }
+
+        $seriesKeys = $series->pluck('key');
+
+        $categories = collect($settings['categories'] ?? $defaults['categories'])
+            ->map(function ($category) use ($seriesKeys) {
+                $values = collect($category['values'] ?? [])
+                    ->map(fn ($value) => (float) $value)
+                    ->all();
+
+                $normalizedValues = $seriesKeys->mapWithKeys(function ($key) use ($values) {
+                    return [$key => (float) ($values[$key] ?? 0)];
+                });
+
+                return [
+                    'label' => trim($category['label'] ?? 'Kategori'),
+                    'values' => $normalizedValues->all(),
+                ];
+            })
+            ->filter(fn ($item) => $item['label'])
+            ->values();
+
+        if ($categories->isEmpty()) {
+            $categories = collect($defaults['categories']);
+        }
+
+        return [
+            'series' => $series->all(),
+            'categories' => $categories->all(),
+        ];
     }
 
     protected function defaultMatrixTargets(): array
@@ -250,9 +460,13 @@ class SistemController extends Controller
         ];
     }
 
-    protected function loadMatrixTargets(): array
+    protected function loadMatrixData(): array
     {
-        $default = $this->defaultMatrixTargets();
+        $defaultTargets = $this->defaultMatrixTargets();
+        $default = [
+            'targets' => $defaultTargets,
+            'enabled' => true,
+        ];
 
         if (!Storage::disk('local')->exists($this->matrixStorage)) {
             return $default;
@@ -264,7 +478,19 @@ class SistemController extends Controller
             return $default;
         }
 
-        return $this->normalizeMatrixTargets(array_merge($default, $stored));
+        $hasStructuredData = array_key_exists('targets', $stored) || array_key_exists('enabled', $stored);
+        $targetsRaw = $hasStructuredData ? ($stored['targets'] ?? $defaultTargets) : $stored;
+        $enabled = (bool) ($hasStructuredData ? ($stored['enabled'] ?? $default['enabled']) : $default['enabled']);
+
+        return [
+            'targets' => $this->normalizeMatrixTargets($targetsRaw),
+            'enabled' => $enabled,
+        ];
+    }
+
+    protected function loadMatrixTargets(): array
+    {
+        return $this->loadMatrixData()['targets'];
     }
 
     protected function normalizeMatrixTargets(array $targets): array

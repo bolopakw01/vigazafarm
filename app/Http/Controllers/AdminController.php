@@ -7,18 +7,27 @@ use App\Models\Pembesaran;
 use App\Models\Produksi;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class AdminController extends Controller
 {
+    protected array $activityDateColumns = [
+        Produksi::class => ['tanggal_mulai', 'tanggal', Produksi::CREATED_AT],
+        Penetasan::class => ['tanggal_menetas', 'tanggal_simpan_telur', Penetasan::CREATED_AT],
+        Pembesaran::class => ['tanggal_masuk', 'tanggal_siap', Pembesaran::CREATED_AT],
+    ];
+
     public function dashboard()
     {
         // Load dashboard goals from SistemController
         $sistemController = app(SistemController::class);
         $goals = $sistemController->getDashboardGoals();
         $matrixCards = $sistemController->getMatrixSnapshot();
+        $matrixEnabled = $sistemController->isMatrixEnabled();
         $activityDatasets = $this->prepareActivityDatasets();
+        $performanceChart = $sistemController->getPerformanceChartConfig();
 
-        return view('admin.dashboard-admin', compact('goals', 'matrixCards', 'activityDatasets'));
+        return view('admin.dashboard-admin', compact('goals', 'matrixCards', 'matrixEnabled', 'activityDatasets', 'performanceChart'));
     }
 
     public function kandang()
@@ -269,11 +278,12 @@ class AdminController extends Controller
 
     protected function hydrateMonthlyData(string $modelClass, int $year): array
     {
-        $column = $this->resolveCreatedColumn($modelClass);
-        $raw = $modelClass::selectRaw('MONTH(' . $column . ') as month_key, COUNT(*) as total')
-            ->whereYear($column, $year)
-            ->whereNotNull($column)
-            ->groupByRaw('MONTH(' . $column . ')')
+        $dateExpression = $this->resolveActivityDateExpression($modelClass);
+        $raw = $modelClass::query()
+            ->selectRaw('MONTH(' . $dateExpression . ') as month_key, COUNT(*) as total')
+            ->whereRaw($dateExpression . ' IS NOT NULL')
+            ->whereRaw('YEAR(' . $dateExpression . ') = ?', [$year])
+            ->groupByRaw('MONTH(' . $dateExpression . ')')
             ->pluck('total', 'month_key')
             ->all();
 
@@ -288,14 +298,15 @@ class AdminController extends Controller
             return [];
         }
 
-        $column = $this->resolveCreatedColumn($modelClass);
+        $dateExpression = $this->resolveActivityDateExpression($modelClass);
         $start = Carbon::create(min($years), 1, 1)->startOfYear();
         $end = Carbon::create(max($years), 12, 31)->endOfYear();
 
-        $raw = $modelClass::selectRaw('YEAR(' . $column . ') as year_key, COUNT(*) as total')
-            ->whereBetween($column, [$start, $end])
-            ->whereNotNull($column)
-            ->groupByRaw('YEAR(' . $column . ')')
+        $raw = $modelClass::query()
+            ->selectRaw('YEAR(' . $dateExpression . ') as year_key, COUNT(*) as total')
+            ->whereRaw($dateExpression . ' IS NOT NULL')
+            ->whereRaw($dateExpression . ' BETWEEN ? AND ?', [$start, $end])
+            ->groupByRaw('YEAR(' . $dateExpression . ')')
             ->pluck('total', 'year_key')
             ->all();
 
@@ -306,12 +317,13 @@ class AdminController extends Controller
 
     protected function hydrateDailyData(string $modelClass, Carbon $start, Carbon $end, array $dateKeys): array
     {
-        $column = $this->resolveCreatedColumn($modelClass);
+        $dateExpression = $this->resolveActivityDateExpression($modelClass);
 
-        $raw = $modelClass::selectRaw('DATE(' . $column . ') as date_key, COUNT(*) as total')
-            ->whereBetween($column, [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
-            ->whereNotNull($column)
-            ->groupByRaw('DATE(' . $column . ')')
+        $raw = $modelClass::query()
+            ->selectRaw('DATE(' . $dateExpression . ') as date_key, COUNT(*) as total')
+            ->whereRaw($dateExpression . ' IS NOT NULL')
+            ->whereRaw($dateExpression . ' BETWEEN ? AND ?', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
+            ->groupByRaw('DATE(' . $dateExpression . ')')
             ->pluck('total', 'date_key')
             ->all();
 
@@ -329,5 +341,34 @@ class AdminController extends Controller
         $model = new $modelClass();
 
         return $model->getCreatedAtColumn();
+    }
+
+    protected function resolveActivityDateExpression(string $modelClass): string
+    {
+        $columns = $this->resolveExistingDateColumns($modelClass);
+
+        if (empty($columns)) {
+            return $this->resolveCreatedColumn($modelClass);
+        }
+
+        return count($columns) === 1
+            ? $columns[0]
+            : 'COALESCE(' . implode(', ', $columns) . ')';
+    }
+
+    protected function resolveExistingDateColumns(string $modelClass): array
+    {
+        $model = new $modelClass();
+        $table = $model->getTable();
+
+        $columns = array_filter(array_map('trim', $this->activityDateColumns[$modelClass] ?? []));
+        $columns[] = $this->resolveCreatedColumn($modelClass);
+        $columns = array_unique($columns);
+
+        if (!Schema::hasTable($table)) {
+            return $columns;
+        }
+
+        return array_values(array_filter($columns, fn ($column) => Schema::hasColumn($table, $column)));
     }
 }

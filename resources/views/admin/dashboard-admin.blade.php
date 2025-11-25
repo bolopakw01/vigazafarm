@@ -30,6 +30,36 @@
 		.kpi-indicator-danger {
 			filter: hue-rotate(-30deg) saturate(1.3);
 		}
+		.page-content {
+			padding-top: 0.5rem !important;
+		}
+		.table-wrap table td,
+		.table-wrap table th {
+			word-break: break-word;
+		}
+		.table-dashboard-compact tbody td {
+			font-size: 0.85rem;
+			line-height: 1.2;
+		}
+		.badge-type {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0.25rem 0.7rem;
+			border-radius: 999px;
+			font-size: 0.75rem;
+			font-weight: 600;
+			line-height: 1;
+			white-space: nowrap;
+		}
+		.badge-type-telur {
+			background: #fff4d6;
+			color: #b46900;
+		}
+		.badge-type-puyuh {
+			background: #e0ebff;
+			color: #1a4fa3;
+		}
 	</style>
 @endpush
 
@@ -174,13 +204,16 @@
 		<!-- KPI Matrix Card -->
 		@php
 			$matrixCards = $matrixCards ?? [];
+			$matrixEnabled = $matrixEnabled ?? true;
 			$activityDatasets = $activityDatasets ?? [];
+			$performanceChart = $performanceChart ?? ['labels' => [], 'series' => [], 'colors' => []];
 		@endphp
-		<div class="app-card section-gap kpi-card">
-			<div class="box-body" style="padding: 12px 18px;">
-				@if(count($matrixCards))
-					<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3">
-						@foreach($matrixCards as $card)
+		@if($matrixEnabled)
+			<div class="app-card section-gap kpi-card">
+				<div class="box-body" style="padding: 12px 18px;">
+					@if(count($matrixCards))
+						<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3">
+							@foreach($matrixCards as $card)
 							@php
 								$trendValue = $card['trend'] ?? 'left';
 								$percentTarget = max(0, (int) round($card['percent'] ?? 0));
@@ -226,15 +259,25 @@
 									<div class="label">{{ $label }}</div>
 								</div>
 							</div>
-						@endforeach
-					</div>
-				@else
-					<div class="text-center text-muted py-4">
-						Data matriks belum tersedia. Silakan set target di menu Sistem &gt; Set Matriks.
-					</div>
-				@endif
+							@endforeach
+						</div>
+					@else
+						<div class="text-center text-muted py-4">
+							Data matriks belum tersedia. Silakan set target di menu Sistem &gt; Set Matriks.
+						</div>
+					@endif
+				</div>
 			</div>
-		</div>
+		@else
+			<div class="app-card section-gap kpi-card">
+				<div class="box-body text-center py-4">
+					<div class="d-flex align-items-center justify-content-center gap-2">
+						<img src="{{ asset('bolopa/img/icon/line-md--loading-twotone-loop.svg') }}" alt="Loading" style="width: 20px; height: 20px; filter: invert(46%) sepia(8%) saturate(642%) hue-rotate(182deg) brightness(93%) contrast(87%);">
+						<p class="text-muted mb-0" style="color: #6b7280 !important;">Matriks sedang update</p>
+					</div>
+				</div>
+			</div>
+		@endif
 
 		<!-- SECTION 2: Table Produksi + Radar Chart -->
 		<div class="row g-4">
@@ -251,29 +294,38 @@
 					</div>
 					<div class="table-wrap">
 						<div class="table-responsive">
-							<table class="table align-middle">
+							<table class="table align-middle table-dashboard-compact">
 								<thead>
 									<tr>
 										<th class="text-start">Tanggal</th>
-										<th class="text-start">Kandang</th>
-										<th class="text-start">Jenis</th>
+										<th class="text-start">Batch</th>
 										<th class="text-start">Jumlah</th>
-										<th class="text-start">Status</th>
+										<th class="text-start">Tipe</th>
 									</tr>
 								</thead>
 								<tbody>
-									@foreach(\App\Models\Produksi::latest()->take(6)->get() as $row)
+									@foreach(\App\Models\Produksi::latest()->take(5)->get() as $row)
 										@php
-											$createdAt = $row->dibuat_pada ?? $row->created_at;
-											$jenisProduksi = $row->tipe_produksi ?? $row->jenis_input ?? 'Telur';
-											$jumlahProduksi = $row->jumlah_telur ?? $row->jumlah_indukan ?? $row->jumlah ?? 0;
+											$dateSource = $row->tanggal_mulai ?? $row->tanggal ?? $row->dibuat_pada ?? $row->created_at;
+											$batchLabel = $row->batch_produksi_id ?? ($row->batch ?? '-');
+											$tipeProduksi = strtolower($row->tipe_produksi ?? $row->jenis_input ?? 'telur');
+											$jumlahTelur = $row->jumlah_telur ?? null;
+											$jumlahPuyuh = $row->jumlah_indukan ?? $row->jumlah_jantan ?? $row->jumlah_betina ?? null;
+											$jumlahFallback = $row->jumlah ?? 0;
+											$jumlahUtama = $tipeProduksi === 'telur'
+												? ($jumlahTelur ?? $jumlahPuyuh ?? $jumlahFallback)
+												: ($jumlahPuyuh ?? $jumlahTelur ?? $jumlahFallback);
+											$satuan = $tipeProduksi === 'telur' ? 'butir' : 'ekor';
+											$tipeLabel = ucfirst($tipeProduksi);
 										@endphp
 									<tr>
-										<td>{{ optional($createdAt)->format('d/m/Y') ?? '-' }}</td>
-										<td>{{ $row->kandang?->nama_kandang ?? '-' }}</td>
-										<td>{{ ucfirst($jenisProduksi) }}</td>
-										<td>{{ number_format($jumlahProduksi, 0, ',', '.') }}</td>
-										<td><span class="badge badge-pill badge-selesai">Selesai</span></td>
+										<td>{{ $dateSource ? optional(\Illuminate\Support\Carbon::parse($dateSource))->format('d/m/Y') : '-' }}</td>
+										<td class="text-break">{{ $batchLabel ?: '-' }}</td>
+										<td>{{ number_format($jumlahUtama, 0, ',', '.') }} {{ $satuan }}</td>
+										@php
+											$badgeClass = $tipeProduksi === 'telur' ? 'badge-type badge-type-telur' : 'badge-type badge-type-puyuh';
+										@endphp
+										<td><span class="{{ $badgeClass }}">{{ $tipeLabel }}</span></td>
 									</tr>
 									@endforeach
 								</tbody>
@@ -318,7 +370,7 @@
 			<div class="box-body">
 				<div class="table-wrap penetasan-table">
 					<div class="table-responsive">
-						<table class="table align-middle">
+						<table class="table align-middle table-dashboard-compact">
 							<thead>
 								<tr>
 									<th class="text-start">Tanggal</th>
@@ -329,7 +381,7 @@
 								</tr>
 							</thead>
 							<tbody>
-								@foreach(\App\Models\Penetasan::latest()->take(6)->get() as $r)
+								@foreach(\App\Models\Penetasan::latest()->take(5)->get() as $r)
 									@php
 										$createdAt = $r->dibuat_pada ?? $r->created_at;
 										$jumlahTelur = $r->jumlah_telur ?? 0;
@@ -368,7 +420,7 @@
 			<div class="box-body">
 				<div class="table-wrap penetasan-table">
 					<div class="table-responsive">
-						<table class="table align-middle">
+						<table class="table align-middle table-dashboard-compact">
 							<thead>
 								<tr>
 									<th class="text-start">Tanggal</th>
@@ -379,7 +431,7 @@
 								</tr>
 							</thead>
 							<tbody>
-								@foreach(\App\Models\Pembesaran::latest()->take(6)->get() as $pr)
+								@foreach(\App\Models\Pembesaran::latest()->take(5)->get() as $pr)
 									@php
 										$createdAt = $pr->dibuat_pada ?? $pr->created_at;
 										$jenisKelamin = $pr->jenis_kelamin ?? $pr->jenis ?? '-';
@@ -414,6 +466,7 @@
 		// replicate mainChart + filters and radar chart + export menu and animations from lopadashboard.html
 		(function(){
 			const rawDatasets = @json($activityDatasets ?? []);
+			const performanceConfig = @json($performanceChart ?? []);
 			const safeDataset = (key) => {
 				const source = rawDatasets && rawDatasets[key] ? rawDatasets[key] : {};
 				return {
@@ -464,13 +517,29 @@
 			});
 
 			// radar chart
+			const defaultRadarSeries = [
+				{ name: 'Sales', data: [80,50,30,40,100,20] },
+				{ name: 'Income', data: [20,30,40,80,20,80] },
+				{ name: 'Expense', data: [44,76,78,13,43,10] }
+			];
+			const defaultRadarLabels = ['Jan','Feb','Mar','Apr','May','Jun'];
+			const defaultRadarColors = ['#198754','#0d6efd','#ffc107'];
+			const resolvedRadarSeries = Array.isArray(performanceConfig.series) && performanceConfig.series.length
+				? performanceConfig.series
+				: defaultRadarSeries;
+			const resolvedRadarLabels = Array.isArray(performanceConfig.labels) && performanceConfig.labels.length
+				? performanceConfig.labels
+				: defaultRadarLabels;
+			const resolvedRadarColors = Array.isArray(performanceConfig.colors) && performanceConfig.colors.length
+				? performanceConfig.colors
+				: defaultRadarColors;
 			const radarOptions = {
 				chart: { type: 'radar', height: '100%', toolbar: { show:false }, foreColor: '#6c757d', parentHeightOffset: 0 },
-				series: [ { name: 'Sales', data: [80,50,30,40,100,20] }, { name: 'Income', data: [20,30,40,80,20,80] }, { name: 'Expense', data: [44,76,78,13,43,10] } ],
-				labels: ['Jan','Feb','Mar','Apr','May','Jun'],
-				colors: ['#198754','#0d6efd','#ffc107'],
+				series: resolvedRadarSeries,
+				labels: resolvedRadarLabels,
+				colors: resolvedRadarColors,
 				stroke: { width: 2 }, fill: { opacity: 0.3 }, markers: { size: 4 }, dataLabels: { enabled: false }, yaxis: { show: false }, grid: { show: false },
-				legend: { position: 'bottom', horizontalAlign: 'center', fontWeight: 700, fontSize: '14px', markers: { width: 14, height: 14, radius: 12 }, itemMargin: { horizontal: 16, vertical: 8 }, offsetY: 8 },
+				legend: { position: 'bottom', horizontalAlign: 'center', fontWeight: 700, fontSize: '14px', markers: { width: 14, height: 14, radius: 12 }, itemMargin: { horizontal: 16, vertical: 8 }, offsetY: 20 },
 				xaxis: { labels: { style: { fontSize: '13px', fontWeight: 600, colors: '#495057' } } },
 				plotOptions: { radar: { size: 180, polygons: { strokeColors: '#e9ecef', connectorColors: '#e9ecef', strokeWidth: 1 } } },
 				responsive: [ { breakpoint: 992, options: { plotOptions: { radar: { size: 150 } } } }, { breakpoint: 576, options: { plotOptions: { radar: { size: 120 } }, legend: { itemMargin: { horizontal: 12, vertical: 6 } } } } ]

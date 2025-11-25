@@ -232,6 +232,23 @@
                     </a>
                 </div>
             </div>
+
+            <!-- Performance Chart Settings Card -->
+            <div class="goals-card">
+                <div class="goals-card-icon quality">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h3 class="goals-card-title">Grafik Performance</h3>
+                <div class="goals-description">
+                    Atur label radar chart, seri, dan nilai untuk menampilkan performa operasional sesuai kebutuhan.
+                </div>
+                <div class="goals-card-actions">
+                    <a href="{{ route('admin.sistem.performance') }}" class="goals-btn goals-btn-primary">
+                        <i class="fas fa-chart-radar"></i>
+                        Set Performance
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>

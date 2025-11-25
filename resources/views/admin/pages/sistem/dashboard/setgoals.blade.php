@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Set Goals Dashboard')
+@section('title', 'Set Goals')
 
 @push('styles')
 <style>
