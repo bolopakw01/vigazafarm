@@ -60,6 +60,20 @@
 			background: #e0ebff;
 			color: #1a4fa3;
 		}
+		.table-dashboard-compact .text-truncate {
+			max-width: 150px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+		@media (max-width: 767.98px) {
+			.mini-kpi-cards,
+			.activity-section,
+			.kpi-matrix-section,
+			.performance-section {
+				display: none !important;
+			}
+		}
 	</style>
 @endpush
 
@@ -86,7 +100,7 @@
 		</div> --}}
 
 		<!-- MINI KPI / MENU CARDS -->
-		<div class="app-card section-gap">
+		<div class="app-card section-gap mini-kpi-cards">
 			<div class="box-body">
 				<div class="row g-3">
 					<div class="col-6 col-md-4 col-lg-2">
@@ -139,7 +153,7 @@
 			</div>
 		</div>
 
-		<div class="app-card section-gap">
+		<div class="app-card section-gap activity-section">
 			<div class="card-head">
 				<div class="w-100 d-flex justify-content-between align-items-center">
 					<h2 class="card-title mb-0">Activity</h2>
@@ -209,7 +223,7 @@
 			$performanceChart = $performanceChart ?? ['labels' => [], 'series' => [], 'colors' => []];
 		@endphp
 		@if($matrixEnabled)
-			<div class="app-card section-gap kpi-card">
+			<div class="app-card section-gap kpi-card kpi-matrix-section">
 				<div class="box-body" style="padding: 12px 18px;">
 					@if(count($matrixCards))
 						<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3">
@@ -319,9 +333,9 @@
 											$tipeLabel = ucfirst($tipeProduksi);
 										@endphp
 									<tr>
-										<td>{{ $dateSource ? optional(\Illuminate\Support\Carbon::parse($dateSource))->format('d/m/Y') : '-' }}</td>
-										<td class="text-break">{{ $batchLabel ?: '-' }}</td>
-										<td>{{ number_format($jumlahUtama, 0, ',', '.') }} {{ $satuan }}</td>
+										<td class="text-truncate" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $dateSource ? optional(\Illuminate\Support\Carbon::parse($dateSource))->format('d/m/Y') : '-' }}</td>
+										<td class="text-truncate" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $batchLabel ?: '-' }}</td>
+										<td class="text-truncate" style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ number_format($jumlahUtama, 0, ',', '.') }} {{ $satuan }}</td>
 										@php
 											$badgeClass = $tipeProduksi === 'telur' ? 'badge-type badge-type-telur' : 'badge-type badge-type-puyuh';
 										@endphp
@@ -333,13 +347,13 @@
 						</div>
 						<p class="hint ms-1">
 							Data Produksi Terbaru.
-							<a href="#" class="text-decoration-none" style="color:#0b74da;">Lihat Semua</a>
+							<a href="{{ route('admin.produksi') }}" class="text-decoration-none" style="color:#0b74da;">Lihat Semua</a>
 						</p>
 					</div>
 				</div>
 			</div>
 
-			<div class="col-12 col-lg-6">
+			<div class="col-12 col-lg-6 performance-section">
 				<div class="app-card h-100 section-gap">
 					<div class="card-head">
 						<div class="w-100 d-flex justify-content-between align-items-center">
@@ -388,8 +402,8 @@
 									@endphp
 								<tr>
 									<td>{{ optional($createdAt)->format('d/m/Y') ?? '-' }}</td>
-									<td>{{ $r->kandang?->nama_kandang ?? '-' }}</td>
-									<td>{{ $r->batch ?? '—' }}</td>
+									<td class="text-truncate">{{ $r->kandang?->nama_kandang ?? '-' }}</td>
+									<td class="text-truncate">{{ $r->batch ?? '—' }}</td>
 									<td>{{ number_format($jumlahTelur, 0, ',', '.') }}</td>
 									<td><span class="badge badge-pill badge-aktif">Aktif</span></td>
 								</tr>
@@ -397,7 +411,7 @@
 							</tbody>
 						</table>
 					</div>
-					<p class="hint ms-1">Data penetasan terbaru. <a href="#" class="text-decoration-none" style="color:#0b74da;">Lihat Semua</a></p>
+					<p class="hint ms-1">Data penetasan terbaru. <a href="{{ route('admin.penetasan') }}" class="text-decoration-none" style="color:#0b74da;">Lihat Semua</a></p>
 				</div>
 			</div>
 				</div>
@@ -440,16 +454,16 @@
 									@endphp
 								<tr>
 									<td>{{ optional($createdAt)->format('d/m/Y') ?? '-' }}</td>
-									<td>{{ $pr->kandang?->nama_kandang ?? '-' }}</td>
+									<td class="text-truncate">{{ $pr->kandang?->nama_kandang ?? '-' }}</td>
 									<td>{{ ucfirst($jenisKelamin) }}</td>
 									<td>{{ number_format($jumlahAnak, 0, ',', '.') }}</td>
-									<td><span class="badge badge-pill badge-aktif">{{ ucfirst($keterangan) }}</span></td>
+									<td class="text-truncate"><span class="badge badge-pill badge-aktif">{{ ucfirst($keterangan) }}</span></td>
 								</tr>
 								@endforeach
 							</tbody>
 						</table>
 					</div>
-					<p class="hint ms-1">Data pembesaran terbaru. <a href="#" class="text-decoration-none" style="color:#0b74da;">Lihat Semua</a></p>
+					<p class="hint ms-1">Data pembesaran terbaru. <a href="{{ route('admin.pembesaran') }}" class="text-decoration-none" style="color:#0b74da;">Lihat Semua</a></p>
 				</div>
 			</div>
 				</div>
@@ -464,7 +478,7 @@
 	<script src="{{ asset('bolopa/plugin/apexcharts/apexcharts.min.js') }}"></script>
 	<script>
 		// replicate mainChart + filters and radar chart + export menu and animations from lopadashboard.html
-		(function(){
+		document.addEventListener('DOMContentLoaded', function(){
 			const rawDatasets = @json($activityDatasets ?? []);
 			const performanceConfig = @json($performanceChart ?? []);
 			const safeDataset = (key) => {
@@ -580,15 +594,12 @@
 				function formatNumber(n){ return n.toLocaleString('id-ID'); }
 				function animateValue(el, start, end, duration, isCurrency){ const range = end - start; let startTime = null; function step(timestamp){ if(!startTime) startTime = timestamp; const progress = Math.min((timestamp - startTime) / duration, 1); const value = Math.floor(start + range * progress); el.textContent = isCurrency ? ('Rp ' + formatNumber(value)) : formatNumber(value); if(progress < 1) window.requestAnimationFrame(step); else el.textContent = isCurrency ? ('Rp ' + formatNumber(end)) : formatNumber(end); } window.requestAnimationFrame(step); }
 				function animate(el, start, end, dur, isCurrency, currency){ const range = end - start; let s=null; function step(t){ if(!s) s=t; const p=Math.min((t-s)/dur,1); const v=Math.floor(start + range*p); el.textContent = isCurrency ? (currency + v.toLocaleString('en-US')) : v.toLocaleString('en-US'); if(p<1) requestAnimationFrame(step); else el.textContent = isCurrency ? (currency + end.toLocaleString('en-US')) : end.toLocaleString('en-US'); } requestAnimationFrame(step); }
-				document.addEventListener('DOMContentLoaded', function(){
-					const goals = document.querySelectorAll('.goal-text'); goals.forEach((textEl, i) => { const current = parseFloat(textEl.getAttribute('data-current')) || 0; const target = parseFloat(textEl.getAttribute('data-target')) || 0; const pct = target > 0 ? Math.max(0, Math.min(100, (current / target) * 100)) : 0; const currentSpan = textEl.querySelector('.current'); const bar = textEl.closest('.goal-block').querySelector('.progress-bar'); const delay = i * 160; setTimeout(()=>{ animateNumeric(currentSpan, 0, current, 900); bar.style.width = pct + '%'; }, delay); });
-					const items = document.querySelectorAll('.mini-kpi-card .mini-value[data-target]'); items.forEach((el, idx) => { const target = parseInt(el.getAttribute('data-target')) || 0; const isCurrency = el.closest('.mini-kpi-card').querySelector('.mini-label').textContent.trim().toLowerCase() === 'cost'; const delay = idx * 120; setTimeout(()=> animateValue(el, 0, target, 900, isCurrency), delay); });
-					const deltas = document.querySelectorAll('.kpi-delta'); deltas.forEach((d, i)=>{ const target = parseInt(d.getAttribute('data-target')) || 0; setTimeout(()=> animate(d, 0, target, 700, false), i*120); });
-					const values = document.querySelectorAll('.kpi-value'); values.forEach((v, i)=>{ const target = parseInt(v.getAttribute('data-target')) || 0; const currency = v.getAttribute('data-currency') || ''; setTimeout(()=> animate(v, 0, target, 900, currency !== '', currency), i*140); });
-				});
+				const goals = document.querySelectorAll('.goal-text'); goals.forEach((textEl, i) => { const current = parseFloat(textEl.getAttribute('data-current')) || 0; const target = parseFloat(textEl.getAttribute('data-target')) || 0; const pct = target > 0 ? Math.max(0, Math.min(100, (current / target) * 100)) : 0; const currentSpan = textEl.querySelector('.current'); const bar = textEl.closest('.goal-block').querySelector('.progress-bar'); const delay = i * 160; setTimeout(()=>{ animateNumeric(currentSpan, 0, current, 900); bar.style.width = pct + '%'; }, delay); });
+				const items = document.querySelectorAll('.mini-kpi-card .mini-value[data-target]'); items.forEach((el, idx) => { const target = parseInt(el.getAttribute('data-target')) || 0; const isCurrency = el.closest('.mini-kpi-card').querySelector('.mini-label').textContent.trim().toLowerCase() === 'cost'; const delay = idx * 120; setTimeout(()=> animateValue(el, 0, target, 900, isCurrency), delay); });
+				const deltas = document.querySelectorAll('.kpi-delta'); deltas.forEach((d, i)=>{ const target = parseInt(d.getAttribute('data-target')) || 0; setTimeout(()=> animate(d, 0, target, 700, false), i*120); });
+				const values = document.querySelectorAll('.kpi-value'); values.forEach((v, i)=>{ const target = parseInt(v.getAttribute('data-target')) || 0; const currency = v.getAttribute('data-currency') || ''; setTimeout(()=> animate(v, 0, target, 900, currency !== '', currency), i*140); });
 			})();
-
-		})();
+		});
 	</script>
 	<script src="{{ asset('bolopa/js/bootstrap.bundle.min.js') }}"></script>
 @endpush
