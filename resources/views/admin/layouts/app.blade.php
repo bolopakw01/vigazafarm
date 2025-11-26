@@ -28,10 +28,8 @@
             --bolopa-header-height: 72px; /* approximate header height (matches header padding + content) */
             --bolopa-footer-height: 48px; /* approximate footer height */
         }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        html {
+            overflow-x: hidden;
         }
 
         body {
@@ -122,15 +120,15 @@
             text-align: center !important;
         }
 
-        @media (max-width: 420px) {
+        @media (max-width: 1024px) {
             .home-section {
-                left: 78px;
-                width: calc(100% - 78px);
+                left: 0;
+                width: 100%;
             }
 
             .bolopa-sidebar-vigazafarm.open ~ .home-section {
-                left: 250px;
-                width: calc(100% - 250px);
+                left: 0;
+                width: 100%;
             }
         }
     </style>

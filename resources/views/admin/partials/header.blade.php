@@ -169,18 +169,25 @@
 
   <style>
     .bolopa-header-vigazafarm-header {
-      position: sticky;
+      position: fixed;
       top: 0;
-      left: 0;
+      left: 78px;
       right: 0;
       z-index: 1100;
-      width: 100%;
+      width: auto;
       background: rgba(255,255,255,0.98);
       padding: 12px 24px;
       border-radius: 0 0 16px 16px;
       box-shadow: 0 2px 4px rgba(15,23,42,0.08);
       backdrop-filter: blur(6px);
-      transition: box-shadow 0.2s ease, background 0.2s ease;
+      transition: left 0.5s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    /* Adjust header position when sidebar is open on desktop */
+    @media (min-width: 1025px) {
+      .bolopa-sidebar-vigazafarm.open ~ .home-section .bolopa-header-vigazafarm-header {
+        left: 250px;
+      }
     }
 
     .bolopa-header-vigazafarm-header--shadow {
@@ -438,17 +445,38 @@
 
     @media (max-width: 1024px) {
       /* Tablet styles */
-      .bolopa-header-vigazafarm-header { padding: 10px 20px; }
+      .bolopa-header-vigazafarm-header { 
+        left: 0;
+        right: 0;
+        padding: 10px 20px; 
+      }
       .bolopa-header-vigazafarm-breadcrumb { gap: 5px; font-size: 13px; }
       .bolopa-header-vigazafarm-info { gap: 15px; }
       .bolopa-header-vigazafarm-user-info { display: none; }
       .bolopa-header-vigazafarm-user-avatar { width: 32px; height: 32px; }
       .bolopa-header-vigazafarm-mobile-menu { width: 320px; padding: 24px; }
+
+      /* Adjust header position when sidebar is closed on tablet/mobile */
+      .bolopa-sidebar-vigazafarm:not(.open) ~ .home-section .bolopa-header-vigazafarm-header {
+        left: 78px;
+      }
+
+      /* Adjust header position when sidebar is open on tablet/mobile */
+      .bolopa-sidebar-vigazafarm.open ~ .home-section .bolopa-header-vigazafarm-header {
+        left: 250px;
+      }
     }
 
     @media (max-width: 768px) {
       /* Mobile styles */
-      .bolopa-header-vigazafarm-header { padding: 10px 16px; }
+      .bolopa-header-vigazafarm-header { 
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1100;
+        padding: 10px 16px; 
+      }
       .bolopa-header-vigazafarm-info { display: none; }
       .bolopa-header-vigazafarm-hamburger { display: inline-flex; position: absolute; top: 10px; right: 16px; }
       .bolopa-header-vigazafarm-breadcrumb { gap: 4px; font-size: 13px; }
