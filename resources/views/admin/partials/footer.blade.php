@@ -19,11 +19,7 @@
     color: #f1f5f9;
     padding: 20px 5px 12px 5px;
     font-size: 14px;
-    /* keep footer visible at bottom of the home-section */
-    position: sticky;
-    bottom: 0;
-    z-index: 50;
-    width: 100%;
+    text-align: center;
   }
 
   .bolopa-footer-content {

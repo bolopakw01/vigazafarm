@@ -383,22 +383,37 @@ if (btnGenerateCatatan) {
                     return;
                 }
             }
-            // Fetch data pakan dan kematian untuk tanggal tersebut
-            const [pakanResponse, kematianResponse] = await Promise.all([
+            // Fetch data pakan, kematian, kesehatan, monitoring, dan berat untuk tanggal tersebut
+            const [pakanResponse, kematianResponse, kesehatanResponse, monitoringResponse, beratResponse] = await Promise.all([
                 fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/pakan/list`, {
                     credentials: 'same-origin'
                 }),
                 fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/kematian/list`, {
+                    credentials: 'same-origin'
+                }),
+                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/kesehatan/list`, {
+                    credentials: 'same-origin'
+                }),
+                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/monitoring/list`, {
+                    credentials: 'same-origin'
+                }),
+                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/berat/list`, {
                     credentials: 'same-origin'
                 })
             ]);
             
             const pakanResult = await pakanResponse.json();
             const kematianResult = await kematianResponse.json();
+            const kesehatanResult = await kesehatanResponse.json();
+            const monitoringResult = await monitoringResponse.json();
+            const beratResult = await beratResponse.json();
             
             // Filter data by tanggal
                 const pakanHariIni = (pakanResult.data || []).filter(p => toDateKey(p.tanggal) === keyTanggal);
                 const kematianHariIni = (kematianResult.data || []).filter(k => toDateKey(k.tanggal) === keyTanggal);
+                const kesehatanHariIni = (kesehatanResult.data || []).filter(k => toDateKey(k.tanggal) === keyTanggal);
+                const monitoringHariIni = (monitoringResult.data || []).filter(m => toDateKey(m.waktu_pencatatan || m.tanggal) === keyTanggal);
+                const beratHariIni = (beratResult.data || []).filter(b => toDateKey(b.tanggal_sampling) === keyTanggal);
             
             // Generate catatan otomatis
             let catatan = `LAPORAN HARIAN - ${new Date(tanggalLaporan).toLocaleDateString('id-ID', { 
@@ -428,7 +443,70 @@ if (btnGenerateCatatan) {
             
             catatan += '\n';
             
-            // Section Kematian
+            // Section Kesehatan
+            catatan += '🏥 KESEHATAN & VAKSINASI:\n';
+            if (kesehatanHariIni.length > 0) {
+                kesehatanHariIni.forEach(k => {
+                    const tipeKegiatan = {
+                        'vaksinasi': 'Vaksinasi',
+                        'pengobatan': 'Pengobatan', 
+                        'pemeriksaan_rutin': 'Pemeriksaan Rutin',
+                        'karantina': 'Karantina'
+                    }[k.tipe_kegiatan] || k.tipe_kegiatan;
+                    
+                    catatan += `- ${tipeKegiatan}: ${k.nama_vaksin_obat || 'Tidak spesifik'}\n`;
+                    if (k.jumlah_burung) catatan += `  • Jumlah burung: ${k.jumlah_burung}\n`;
+                    if (k.petugas) catatan += `  • Petugas: ${k.petugas}\n`;
+                    if (k.biaya) catatan += `  • Biaya: Rp ${parseInt(k.biaya).toLocaleString('id-ID')}\n`;
+                    if (k.catatan || k.gejala) catatan += `  • Catatan: ${k.catatan || k.gejala}\n`;
+                    catatan += '\n';
+                });
+            } else {
+                catatan += '- Tidak ada kegiatan kesehatan hari ini ✅\n';
+            }
+            
+            catatan += '\n';
+            
+            // Section Monitoring Lingkungan
+            catatan += '🌡️ MONITORING LINGKUNGAN:\n';
+            if (monitoringHariIni.length > 0) {
+                const avgSuhu = monitoringHariIni.reduce((sum, m) => sum + parseFloat(m.suhu), 0) / monitoringHariIni.length;
+                const avgKelembaban = monitoringHariIni.reduce((sum, m) => sum + parseFloat(m.kelembaban), 0) / monitoringHariIni.length;
+                
+                catatan += `- Rata-rata suhu: ${avgSuhu.toFixed(1)}°C\n`;
+                catatan += `- Rata-rata kelembaban: ${avgKelembaban.toFixed(1)}%\n`;
+                
+                // Kondisi ventilasi yang tercatat
+                const ventilasiConditions = monitoringHariIni.map(m => m.kondisi_ventilasi).filter(v => v);
+                if (ventilasiConditions.length > 0) {
+                    catatan += `- Kondisi ventilasi: ${ventilasiConditions[ventilasiConditions.length - 1]}\n`;
+                }
+                
+                // Catatan monitoring
+                const monitoringNotes = monitoringHariIni.map(m => m.catatan).filter(n => n);
+                if (monitoringNotes.length > 0) {
+                    catatan += `- Catatan: ${monitoringNotes.join('; ')}\n`;
+                }
+            } else {
+                catatan += '- Belum ada data monitoring lingkungan hari ini\n';
+            }
+            
+            catatan += '\n';
+            
+            // Section Berat Sampling
+            catatan += '⚖️ SAMPLING BERAT:\n';
+            if (beratHariIni.length > 0) {
+                beratHariIni.forEach(b => {
+                    catatan += `- Umur: ${b.umur_hari} hari\n`;
+                    catatan += `  • Berat rata-rata: ${parseFloat(b.berat_rata_rata).toFixed(1)} gram (${(parseFloat(b.berat_rata_rata)/1000).toFixed(3)} kg)\n`;
+                    if (b.catatan) catatan += `  • Catatan: ${b.catatan}\n`;
+                    catatan += '\n';
+                });
+            } else {
+                catatan += '- Belum ada data sampling berat hari ini\n';
+            }
+            
+            catatan += '\n';
             catatan += '💀 MORTALITAS:\n';
             if (kematianHariIni.length > 0) {
                 const totalMati = kematianHariIni.reduce((sum, k) => sum + parseInt(k.jumlah), 0);
@@ -458,7 +536,9 @@ if (btnGenerateCatatan) {
             
             // Section Kesimpulan
             catatan += '📋 KESIMPULAN:\n';
-            if (pakanHariIni.length === 0 && kematianHariIni.length === 0) {
+            const hasAnyActivity = pakanHariIni.length > 0 || kematianHariIni.length > 0 || kesehatanHariIni.length > 0 || monitoringHariIni.length > 0 || beratHariIni.length > 0;
+            
+            if (!hasAnyActivity) {
                 catatan += '- Belum ada aktivitas tercatat untuk hari ini\n';
             } else {
                 if (kematianHariIni.length === 0) {
@@ -474,6 +554,18 @@ if (btnGenerateCatatan) {
                 
                 if (pakanHariIni.length > 0) {
                     catatan += '- Pemberian pakan berjalan sesuai jadwal\n';
+                }
+                
+                if (kesehatanHariIni.length > 0) {
+                    catatan += '- Ada kegiatan kesehatan/vaksinasi hari ini\n';
+                }
+                
+                if (monitoringHariIni.length > 0) {
+                    catatan += '- Monitoring lingkungan telah dilakukan\n';
+                }
+                
+                if (beratHariIni.length > 0) {
+                    catatan += '- Sampling berat telah dilakukan\n';
                 }
             }
             
@@ -1137,6 +1229,11 @@ function renderKesehatanHistory(data) {
         const biaya = item.biaya ? `Rp ${parseInt(item.biaya).toLocaleString('id-ID')}` : '-';
         
         const catatanText = item.catatan ?? item.gejala;
+        const catatanButton = catatanText ? 
+            `<button type="button" class="btn btn-sm btn-info btn-detail-catatan" onclick="showKesehatanCatatanModal('${tanggal}', '${getRecorderName(item)}', '${catatanText.replace(/'/g, "\\'").replace(/"/g, '\\"')}')" title="Lihat detail catatan">
+                Detail
+            </button>` : '<span class="text-muted">-</span>';
+        
         return `
             <tr>
                 <td class="text-start">${tanggal}</td>
@@ -1146,7 +1243,7 @@ function renderKesehatanHistory(data) {
                 <td class="text-end">${biaya}</td>
                 <td class="text-start">${item.petugas || '-'}</td>
                 <td class="text-start">${getRecorderName(item)}</td>
-                <td class="text-start">${catatanText || '-'}</td>
+                <td class="text-start">${catatanButton}</td>
             </tr>
         `;
     }).join('');
@@ -1172,6 +1269,74 @@ function renderKesehatanHistory(data) {
             </table>
         </div>
     `;
+}
+
+// ========== KESEHATAN CATATAN MODAL ==========
+
+function showKesehatanCatatanModal(tanggal, dibuatOleh, catatan) {
+    // Create modal HTML if it doesn't exist
+    let modal = document.getElementById('kesehatanCatatanModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'kesehatanCatatanModal';
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fa-solid fa-sticky-note text-info me-2"></i>
+                            Detail Catatan Kesehatan
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="border rounded p-3 bg-light">
+                                    <h6 class="text-muted mb-2">
+                                        <i class="fa-solid fa-calendar-days me-1"></i>Tanggal
+                                    </h6>
+                                    <p class="mb-0 fw-bold" id="modalTanggal"></p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="border rounded p-3 bg-light">
+                                    <h6 class="text-muted mb-2">
+                                        <i class="fa-solid fa-user me-1"></i>Dibuat Oleh
+                                    </h6>
+                                    <p class="mb-0 fw-bold" id="modalDibuatOleh"></p>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="border rounded p-3">
+                                    <h6 class="text-muted mb-3">
+                                        <i class="fa-solid fa-file-lines me-1"></i>Isi Catatan
+                                    </h6>
+                                    <div id="modalCatatan" class="catatan-content" style="max-height: 300px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fa-solid fa-times me-1"></i>Tutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    // Fill modal content
+    document.getElementById('modalTanggal').textContent = tanggal;
+    document.getElementById('modalDibuatOleh').textContent = dibuatOleh;
+    document.getElementById('modalCatatan').textContent = catatan;
+    
+    // Show modal
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
 }
 
 function renderBeratHistory(data) {

@@ -45,8 +45,55 @@
             padding: 1rem;
         }
     }
+
+    /* Custom styling for sub-tabs */
+    .lopa-subtabs .nav-link {
+        background-color: #f8f9fa !important;
+        border-color: #dee2e6 #dee2e6 #dee2e6 !important;
+        color: #6c757d !important;
+    }
+    .lopa-subtabs .nav-link.active {
+        background-color: #fff !important;
+        color: #495057 !important;
+        border-color: #dee2e6 #dee2e6 #fff !important;
+        border-bottom: 2px solid #fff !important;
+    }
+
+    /* Custom styling for main tabs */
+    .lopa-nav-tabs .nav-link {
+        border-color: #dee2e6 #dee2e6 #dee2e6 !important;
+    }
+    .lopa-nav-tabs .nav-link.active {
+        background-color: #fff !important;
+        color: #495057 !important;
+        border-color: #dee2e6 #dee2e6 #fff !important;
+        border-bottom: 2px solid #fff !important;
+    }
+
+    /* Modal styling for catatan */
+    .catatan-content {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        border: 1px solid #dee2e6;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+    }
+
+    /* Styling for detail button */
+    .btn-detail-catatan {
+        background-color: #6c757d !important;
+        border-color: #6c757d !important;
+        color: white !important;
+        transition: all 0.2s ease !important;
+    }
+    .btn-detail-catatan:hover {
+        background-color: #5a6268 !important;
+        border-color: #5a6268 !important;
+        color: white !important;
+    }
 </style>
-@endpush
+@endpush>
 
 {{-- Notebook Container with Tabs --}}
 <div class="notebook lopa-notebook">
@@ -366,7 +413,7 @@
                     <span class="text-muted small">Pisahkan pencatatan harian berdasarkan kategori</span>
                 </div>
 
-                <ul class="nav nav-pills lopa-subtabs gap-2 flex-wrap" id="dailySubTabs" role="tablist">
+                <ul class="nav nav-tabs lopa-subtabs gap-2 flex-wrap" id="dailySubTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="daily-subtab-pakan" data-bs-toggle="tab" data-bs-target="#dailyPanePakan" type="button" role="tab" aria-controls="dailyPanePakan" aria-selected="true">
                             <i class="fa-solid fa-bowl-food me-1"></i>Pakan
@@ -379,7 +426,7 @@
                     </li>
                 </ul>
 
-                <div class="tab-content pt-3" id="dailySubTabsContent">
+                <div class="tab-content" id="dailySubTabsContent">
                     <div class="tab-pane fade show active" id="dailyPanePakan" role="tabpanel" aria-labelledby="daily-subtab-pakan">
                         @include('admin.pages.pembesaran.partials.daily.pakan-card')
                     </div>
@@ -410,7 +457,7 @@
                     <span class="text-muted small">Pantau data mingguan per kategori</span>
                 </div>
 
-                <ul class="nav nav-pills lopa-subtabs gap-2 flex-wrap" id="weeklySubTabs" role="tablist">
+                <ul class="nav nav-tabs lopa-subtabs gap-2 flex-wrap" id="weeklySubTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="weekly-subtab-sampling" data-bs-toggle="tab" data-bs-target="#weeklyPaneSampling" type="button" role="tab" aria-controls="weeklyPaneSampling" aria-selected="true">
                             <i class="fa-solid fa-weight-scale me-1"></i>Sampling Berat
@@ -428,7 +475,7 @@
                     </li>
                 </ul>
 
-                <div class="tab-content pt-3" id="weeklySubTabsContent">
+                <div class="tab-content" id="weeklySubTabsContent">
                     <div class="tab-pane fade show active" id="weeklyPaneSampling" role="tabpanel" aria-labelledby="weekly-subtab-sampling">
                         @include('admin.pages.pembesaran.partials.weekly.sampling-card')
                     </div>
@@ -641,5 +688,50 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Sub-tab persistence for daily tabs
+    const dailySubTabStorageKey = `pembesaran_daily_subtab_${pembesaranId}`;
+    const dailySubTabButtons = document.querySelectorAll('#dailySubTabs button[data-bs-toggle="tab"]');
+    dailySubTabButtons.forEach(button => {
+        button.addEventListener('shown.bs.tab', function(event) {
+            const targetId = event.target.getAttribute('data-bs-target');
+            if (targetId) {
+                localStorage.setItem(dailySubTabStorageKey, targetId);
+            }
+        });
+    });
+
+    // Sub-tab persistence for weekly tabs
+    const weeklySubTabStorageKey = `pembesaran_weekly_subtab_${pembesaranId}`;
+    const weeklySubTabButtons = document.querySelectorAll('#weeklySubTabs button[data-bs-toggle="tab"]');
+    weeklySubTabButtons.forEach(button => {
+        button.addEventListener('shown.bs.tab', function(event) {
+            const targetId = event.target.getAttribute('data-bs-target');
+            if (targetId) {
+                localStorage.setItem(weeklySubTabStorageKey, targetId);
+            }
+        });
+    });
+
+    // Restore sub-tab states
+    const savedDailySubTab = localStorage.getItem(dailySubTabStorageKey);
+    if (savedDailySubTab) {
+        setTimeout(() => {
+            const dailyTabElement = document.querySelector(`button[data-bs-target="${savedDailySubTab}"]`);
+            if (dailyTabElement && !dailyTabElement.classList.contains('active')) {
+                dailyTabElement.click();
+            }
+        }, 200);
+    }
+
+    const savedWeeklySubTab = localStorage.getItem(weeklySubTabStorageKey);
+    if (savedWeeklySubTab) {
+        setTimeout(() => {
+            const weeklyTabElement = document.querySelector(`button[data-bs-target="${savedWeeklySubTab}"]`);
+            if (weeklyTabElement && !weeklyTabElement.classList.contains('active')) {
+                weeklyTabElement.click();
+            }
+        }, 200);
+    }
 });
 </script>

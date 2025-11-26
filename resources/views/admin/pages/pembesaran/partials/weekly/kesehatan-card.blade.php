@@ -5,15 +5,6 @@
         Kesehatan & Vaksinasi
     </h5>
 
-    <div class="note-panel mb-3 lopa-note-panel">
-        <h6>⏰ Reminder Vaksinasi:</h6>
-        <ul class="small mb-0">
-            <li>ND (Newcastle Disease) — Umur 7 hari <span class="badge bg-secondary">belum waktunya</span></li>
-            <li>ND + IB (Infectious Bronchitis) — Umur 14 hari <span class="badge bg-secondary">belum waktunya</span></li>
-            <li>Fowl Pox — Umur 28 hari <span class="badge bg-secondary">belum waktunya</span></li>
-        </ul>
-    </div>
-
     <form class="form-card p-3 lopa-form-card" aria-label="Form kesehatan & vaksinasi">
         @csrf
         <div class="row g-3">

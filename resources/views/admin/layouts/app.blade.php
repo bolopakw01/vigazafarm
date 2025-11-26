@@ -40,22 +40,20 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow-x: hidden;
         }
 
         .home-section {
             position: relative;
             background: #E4E9F7;
-            /* make the home-section fill the viewport so header/footer can stay put */
-            flex: 1;
-            height: 100vh;
+            flex: 1 1 auto;
+            min-height: 100vh;
             left: 78px;
             width: calc(100% - 78px);
             transition: all 0.5s ease;
             z-index: 2;
             display: flex;
             flex-direction: column;
-            /* prevent page itself from scrolling so the inner page-content can scroll */
-            overflow: hidden;
         }
 
         .bolopa-sidebar-vigazafarm.open ~ .home-section {
@@ -64,13 +62,9 @@
         }
 
         .page-content {
-            /* this area will handle scrolling so header/footer remain visible */
             flex: 1;
             padding: 12px 16px;
-            overflow: auto;
-            /* allow the flex child to shrink below its content for correct scrolling */
             min-height: 0;
-            /* ensure content is not hidden behind sticky header/footer */
             padding-top: var(--bolopa-header-height);
             padding-bottom: calc(var(--bolopa-footer-height) + 4px);
         }

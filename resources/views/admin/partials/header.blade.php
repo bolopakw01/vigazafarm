@@ -169,13 +169,23 @@
 
   <style>
     .bolopa-header-vigazafarm-header {
-      background: #fff;
-      padding: 12px 24px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-      border-radius: 0 0 16px 16px;
       position: sticky;
       top: 0;
-      z-index: 1000;
+      left: 0;
+      right: 0;
+      z-index: 1100;
+      width: 100%;
+      background: rgba(255,255,255,0.98);
+      padding: 12px 24px;
+      border-radius: 0 0 16px 16px;
+      box-shadow: 0 2px 4px rgba(15,23,42,0.08);
+      backdrop-filter: blur(6px);
+      transition: box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .bolopa-header-vigazafarm-header--shadow {
+      box-shadow: 0 12px 34px rgba(15,23,42,0.12);
+      background: rgba(255,255,255,0.96);
     }
 
     .bolopa-header-vigazafarm-header-top {
@@ -455,6 +465,7 @@
         return;
       }
 
+      const rootStyle = document.documentElement;
       const dateEl = document.getElementById('bolopaHeaderDate');
       const clockEl = document.getElementById('bolopaHeaderClock');
       const mobileDateEl = document.getElementById('bolopaHeaderMobileDate');
@@ -463,6 +474,34 @@
       const hamburger = document.getElementById('bolopaHeaderHamburger');
       const mobileMenu = document.getElementById('bolopaHeaderMobileMenu');
       const mobileClose = document.getElementById('bolopaHeaderMobileClose');
+      const pageContent = document.querySelector('.page-content');
+
+      const syncHeaderOffset = () => {
+        window.requestAnimationFrame(() => {
+          const headerHeight = headerRoot.getBoundingClientRect().height;
+          rootStyle.style.setProperty('--bolopa-header-height', `${headerHeight}px`);
+        });
+      };
+
+      syncHeaderOffset();
+      window.addEventListener('resize', syncHeaderOffset);
+      if (window.ResizeObserver) {
+        const resizeObserver = new ResizeObserver(syncHeaderOffset);
+        resizeObserver.observe(headerRoot);
+      }
+
+      const toggleHeaderShadow = () => {
+        const pageScroll = window.scrollY || window.pageYOffset || 0;
+        const contentScroll = pageContent ? pageContent.scrollTop : 0;
+        const hasScrolled = pageScroll > 4 || contentScroll > 4;
+        headerRoot.classList.toggle('bolopa-header-vigazafarm-header--shadow', hasScrolled);
+      };
+
+      toggleHeaderShadow();
+      window.addEventListener('scroll', toggleHeaderShadow, { passive: true });
+      if (pageContent) {
+        pageContent.addEventListener('scroll', toggleHeaderShadow, { passive: true });
+      }
 
       const runDateTime = () => {
         const now = new Date();
