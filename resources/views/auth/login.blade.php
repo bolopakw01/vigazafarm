@@ -6,8 +6,8 @@
 	<title>{{ config('app.name', 'Laravel') }} - Login</title>
 	<link rel="icon" type="image/png" href="{{ asset('bolopa/img/icon.png') }}">
 
-	<!-- SweetAlert2 CDN -->
-	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+	<!-- SweetAlert2 local bundle -->
+	<script src="{{ asset('bolopa/plugin/sweetalert2/sweetalert2.all.min.js') }}"></script>
 
 	@verbatim
 	<style>

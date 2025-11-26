@@ -31,6 +31,23 @@
     $readonlyAttr = $isStatusSelesai ? 'readonly' : '';
 @endphp
 
+@push('styles')
+<style>
+    .lopa-tab-pane {
+        background-color: #ffffff;
+        padding: 1.5rem;
+        border-radius: 0 0 1rem 1rem;
+        margin-top: -1px;
+    }
+
+    @media (max-width: 576px) {
+        .lopa-tab-pane {
+            padding: 1rem;
+        }
+    }
+</style>
+@endpush
+
 {{-- Notebook Container with Tabs --}}
 <div class="notebook lopa-notebook">
     <ul class="nav nav-tabs lopa-nav-tabs" id="batchTabs" role="tablist" aria-label="Batch tabs">
@@ -50,6 +67,11 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-laporan" data-bs-toggle="tab" data-bs-target="#laporanBatch" type="button" role="tab" aria-controls="laporanBatch" aria-selected="false">
+                <i class="fa-solid fa-file-lines"></i> Laporan
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link" id="tab-chart" data-bs-toggle="tab" data-bs-target="#grafikAnalisis" type="button" role="tab" aria-controls="grafikAnalisis" aria-selected="false">
                 <i class="fa-solid fa-chart-line"></i> Grafik & Analisis
             </button>
@@ -58,7 +80,7 @@
 
     <div class="tab-content">
         {{-- Tab 1: Info Batch --}}
-        <div class="tab-pane fade show active" id="infoBatch" role="tabpanel" aria-labelledby="tab-info">
+        <div class="tab-pane fade show active lopa-tab-pane" id="infoBatch" role="tabpanel" aria-labelledby="tab-info">
             <div class="card mb-4 lopa-card">
                 <div class="header-row lopa-header-row">
                     <div class="title-wrap lopa-title-wrap" style="text-align:left;">
@@ -325,7 +347,7 @@
         </div>
 
         {{-- Tab 2: Recording Harian --}}
-        <div class="tab-pane fade" id="recordHarian" role="tabpanel" aria-labelledby="tab-daily">
+        <div class="tab-pane fade lopa-tab-pane" id="recordHarian" role="tabpanel" aria-labelledby="tab-daily">
             @if($isStatusSelesai)
                 <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
                     <i class="fa-solid fa-lock me-3" style="font-size: 1.5rem; flex-shrink: 0;"></i>
@@ -335,158 +357,102 @@
                 </div>
             @endif
 
-            {{-- Konsumsi Pakan Harian --}}
-            <div class="card mb-4 lopa-card">
-                <h5 class="section-title lopa-section-title">
-                    <i class="fa-solid fa-bowl-food" style="color:var(--accent)"></i> 
-                    Konsumsi Pakan Harian
-                </h5>
-                <form class="form-card p-3 mb-3 lopa-form-card" aria-label="Form pencatatan pakan harian">
-                    @csrf
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Tanggal <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
-                            <small class="form-text text-muted">Catat tanggal konsumsi pakan yang ingin disimpan.</small>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Jenis Pakan <span class="text-danger">*</span></label>
-                            <select class="form-select" name="feed_item_id" {{ $disabledAttr }} required>
-                                <option value="">-- Pilih dari Set Pakan &amp; Vitamin --</option>
-                                @forelse($feedOptions as $item)
-                                    <option value="{{ $item->id }}" data-price="{{ (float) $item->price }}" data-unit="{{ $item->unit }}">
-                                        {{ $item->name }} &mdash; {{ $item->unit }} @ Rp {{ number_format((float) $item->price, 0, ',', '.') }}
-                                    </option>
-                                @empty
-                                    <option value="" disabled>Belum ada data aktif. Tambahkan via menu Set Pakan &amp; Vitamin.</option>
-                                @endforelse
-                            </select>
-                            <div class="form-text text-muted" style="font-size: 0.8rem;">
-                                Daftar ini tersinkron dari menu <strong>Set Pakan &amp; Vitamin</strong>.
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Jumlah (kg) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" class="form-control" name="jumlah_kg" placeholder="0.00" {{ $disabledAttr }} required />
-                            <small class="form-text text-muted">Masukkan total pakan yang diberikan dalam kilogram.</small>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Jumlah Karung</label>
-                            <input type="number" class="form-control" name="jumlah_karung" placeholder="0" {{ $disabledAttr }} />
-                            <small class="form-text text-muted">Opsional, isi jika Anda juga melacak jumlah karung fisik.</small>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Harga per Satuan</label>
-                            <input type="number" class="form-control" name="harga_per_kg" placeholder="Rp 0" {{ $disabledAttr }} />
-                            <div class="form-text text-muted" style="font-size: 0.8rem;">
-                                Satuan mengikuti pilihan pakan: <span id="feed-unit-label" data-default-unit="kg">kg</span>.
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Total Biaya</label>
-                            <input type="text" class="form-control" name="total_biaya" placeholder="Rp 0" readonly />
-                            <small class="form-text text-muted">Nilai ini dihitung otomatis dari jumlah dan harga per satuan.</small>
-                        </div>
-                    </div>
-                    <div class="text-end mt-3">
-                        <button type="submit" class="btn btn-primary" {{ $disabledAttr }}>
-                            <i class="fa-solid fa-save"></i> Simpan Pakan
-                        </button>
-                    </div>
-                </form>
+            <div class="mb-4">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <h5 class="section-title lopa-section-title mb-0">
+                        <i class="fa-solid fa-list-check" style="color:var(--accent)"></i>
+                        Pencatatan Harian
+                    </h5>
+                    <span class="text-muted small">Pisahkan pencatatan harian berdasarkan kategori</span>
+                </div>
 
-                <div class="note-panel alt lopa-note-panel lopa-alt" id="pakan-history-container">
-                    <div class="d-flex justify-content-between align-items-center mb-2" style="cursor: pointer;" onclick="toggleHistory('pakan')">
-                        <h6 class="mb-0">
-                            <i class="fa-solid fa-clock-rotate-left me-1" style="color:#10b981;"></i>
-                            History Pakan (30 hari terakhir)
-                        </h6>
-                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" id="toggle-pakan">
-                            <i class="fa-solid fa-chevron-down"></i>
+                <ul class="nav nav-pills lopa-subtabs gap-2 flex-wrap" id="dailySubTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="daily-subtab-pakan" data-bs-toggle="tab" data-bs-target="#dailyPanePakan" type="button" role="tab" aria-controls="dailyPanePakan" aria-selected="true">
+                            <i class="fa-solid fa-bowl-food me-1"></i>Pakan
                         </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="daily-subtab-kematian" data-bs-toggle="tab" data-bs-target="#dailyPaneKematian" type="button" role="tab" aria-controls="dailyPaneKematian" aria-selected="false">
+                            <i class="fa-solid fa-skull-crossbones me-1"></i>Kematian
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content pt-3" id="dailySubTabsContent">
+                    <div class="tab-pane fade show active" id="dailyPanePakan" role="tabpanel" aria-labelledby="daily-subtab-pakan">
+                        @include('admin.pages.pembesaran.partials.daily.pakan-card')
                     </div>
-                    <div id="pakan-history-content" style="display: block;">
-                        <p class="text-muted small mb-0">Loading...</p>
+                    <div class="tab-pane fade" id="dailyPaneKematian" role="tabpanel" aria-labelledby="daily-subtab-kematian">
+                        @include('admin.pages.pembesaran.partials.daily.kematian-card')
                     </div>
                 </div>
             </div>
+        </div>
 
-            {{-- Pencatatan Kematian --}}
-            <div class="card mb-4 lopa-card">
-                <h5 class="section-title lopa-section-title">
-                    <i class="fa-solid fa-skull-crossbones" style="color:#ef4444"></i> 
-                    Pencatatan Kematian
-                </h5>
-                <form class="form-card p-3 mb-3 lopa-form-card" aria-label="Form pencatatan kematian harian">
-                    @csrf
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Tanggal <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
-                            <small class="form-text text-muted">Tanggal terjadinya kematian dicatat di sini.</small>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Jumlah Ekor <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" name="jumlah_ekor" placeholder="0" {{ $disabledAttr }} required />
-                            <small class="form-text text-muted">Isi jumlah burung yang mati pada tanggal tersebut.</small>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Penyebab <span class="text-danger">*</span></label>
-                            <select class="form-select" name="penyebab" {{ $disabledAttr }} required>
-                                <option value="">-- Pilih Penyebab --</option>
-                                <option value="penyakit">Penyakit</option>
-                                <option value="stress">Stress</option>
-                                <option value="kecelakaan">Kecelakaan</option>
-                                <option value="usia">Usia Tua</option>
-                                <option value="tidak_diketahui">Tidak Diketahui</option>
-                            </select>
-                            <small class="form-text text-muted">Pilih penyebab dominan untuk memudahkan analisis.</small>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label lopa-form-label">Catatan</label>
-                            <textarea class="form-control" name="catatan" rows="2" placeholder="Catatan tambahan..." {{ $disabledAttr }}></textarea>
-                            <small class="form-text text-muted">Opsional, tuliskan kronologi singkat atau tindakan yang diambil.</small>
-                        </div>
-                    </div>
-                    <div class="text-end mt-3">
-                        <button type="submit" class="btn btn-danger" {{ $disabledAttr }}>
-                            <i class="fa-solid fa-save"></i> Simpan Kematian
-                        </button>
-                    </div>
-                </form>
-
-                <div class="d-flex flex-wrap gap-3 mb-3">
-                    <div class="status-compact lopa-status-compact">
-                        <div class="icon lopa-icon" style="background:#fde8e8; color:#991b1b;">
-                            <i class="fa-solid fa-skull"></i>
-                        </div>
-                        <div class="text lopa-text">Total Kematian: <strong>{{ number_format($totalMati) }} ekor</strong></div>
-                    </div>
-                    <div class="status-compact lopa-status-compact">
-                        <div class="icon lopa-icon" style="background:#fff4e6; color:#92400e;">
-                            <i class="fa-solid fa-percent"></i>
-                        </div>
-                        <div class="text lopa-text">Mortalitas Kumulatif: <strong>{{ $mortalitasFormatted }}%</strong></div>
+        {{-- Tab 3: Recording Mingguan --}}
+        <div class="tab-pane fade lopa-tab-pane" id="recordMingguan" role="tabpanel" aria-labelledby="tab-weekly">
+            @if($isStatusSelesai)
+                <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+                    <i class="fa-solid fa-lock me-3" style="font-size: 1.5rem; flex-shrink: 0;"></i>
+                    <div>
+                        <strong>Batch Sudah Selesai</strong> - Pencatatan tidak dapat dilakukan lagi. Anda hanya dapat melihat data historis.
                     </div>
                 </div>
+            @endif
 
-                <div class="note-panel alt lopa-note-panel lopa-alt" id="kematian-history-container">
-                    <div class="d-flex justify-content-between align-items-center mb-2" style="cursor: pointer;" onclick="toggleHistory('kematian')">
-                        <h6 class="mb-0">
-                            <i class="fa-solid fa-clock-rotate-left me-1" style="color:#ef4444;"></i>
-                            History Kematian (30 hari terakhir)
-                        </h6>
-                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" id="toggle-kematian">
-                            <i class="fa-solid fa-chevron-down"></i>
+            <div class="mb-4">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <h5 class="section-title lopa-section-title mb-0">
+                        <i class="fa-solid fa-calendar-week" style="color:var(--accent)"></i>
+                        Pencatatan Mingguan
+                    </h5>
+                    <span class="text-muted small">Pantau data mingguan per kategori</span>
+                </div>
+
+                <ul class="nav nav-pills lopa-subtabs gap-2 flex-wrap" id="weeklySubTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="weekly-subtab-sampling" data-bs-toggle="tab" data-bs-target="#weeklyPaneSampling" type="button" role="tab" aria-controls="weeklyPaneSampling" aria-selected="true">
+                            <i class="fa-solid fa-weight-scale me-1"></i>Sampling Berat
                         </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="weekly-subtab-monitoring" data-bs-toggle="tab" data-bs-target="#weeklyPaneMonitoring" type="button" role="tab" aria-controls="weeklyPaneMonitoring" aria-selected="false">
+                            <i class="fa-solid fa-cloud-sun me-1"></i>Monitoring Lingkungan
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="weekly-subtab-kesehatan" data-bs-toggle="tab" data-bs-target="#weeklyPaneKesehatan" type="button" role="tab" aria-controls="weeklyPaneKesehatan" aria-selected="false">
+                            <i class="fa-solid fa-syringe me-1"></i>Kesehatan &amp; Vaksinasi
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content pt-3" id="weeklySubTabsContent">
+                    <div class="tab-pane fade show active" id="weeklyPaneSampling" role="tabpanel" aria-labelledby="weekly-subtab-sampling">
+                        @include('admin.pages.pembesaran.partials.weekly.sampling-card')
                     </div>
-                    <div id="kematian-history-content" style="display: block;">
-                        <p class="text-muted small mb-0">Loading...</p>
+                    <div class="tab-pane fade" id="weeklyPaneMonitoring" role="tabpanel" aria-labelledby="weekly-subtab-monitoring">
+                        @include('admin.pages.pembesaran.partials.weekly.monitoring-card')
+                    </div>
+                    <div class="tab-pane fade" id="weeklyPaneKesehatan" role="tabpanel" aria-labelledby="weekly-subtab-kesehatan">
+                        @include('admin.pages.pembesaran.partials.weekly.kesehatan-card')
                     </div>
                 </div>
             </div>
+        </div>
 
-            {{-- Generate Laporan Harian --}}
+        {{-- Tab 4: Laporan --}}
+        <div class="tab-pane fade lopa-tab-pane" id="laporanBatch" role="tabpanel" aria-labelledby="tab-laporan">
+            @if($isStatusSelesai)
+                <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+                    <i class="fa-solid fa-lock me-3" style="font-size: 1.5rem; flex-shrink: 0;"></i>
+                    <div>
+                        <strong>Batch Sudah Selesai</strong> - Pencatatan tidak dapat dilakukan lagi. Anda hanya dapat melihat data historis.
+                    </div>
+                </div>
+            @endif
+
             <div class="card mb-4 lopa-card">
                 <h5 class="section-title lopa-section-title">
                     <i class="fa-solid fa-file-lines" style="color:var(--accent)"></i> 
@@ -537,234 +503,8 @@
             </div>
         </div>
 
-        {{-- Tab 3: Recording Mingguan --}}
-        <div class="tab-pane fade" id="recordMingguan" role="tabpanel" aria-labelledby="tab-weekly">
-            @if($isStatusSelesai)
-                <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
-                    <i class="fa-solid fa-lock me-3" style="font-size: 1.5rem; flex-shrink: 0;"></i>
-                    <div>
-                        <strong>Batch Sudah Selesai</strong> - Pencatatan tidak dapat dilakukan lagi. Anda hanya dapat melihat data historis.
-                    </div>
-                </div>
-            @endif
-
-            {{-- Sampling Berat --}}
-            <div class="card mb-4 lopa-card">
-                <h5 class="section-title lopa-section-title">
-                    <i class="fa-solid fa-weight-scale" style="color:var(--accent)"></i> 
-                    Sampling Berat Rata-Rata
-                </h5>
-                <form class="form-card p-3 lopa-form-card" aria-label="Form pencatatan mingguan - sampling berat">
-                    @csrf
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label lopa-form-label">Umur (hari) <span class="text-danger">*</span></label>
-                            @php
-                                $tanggalMasuk = \Carbon\Carbon::parse($pembesaran->tanggal_masuk);
-                                $umurHari = floor($tanggalMasuk->diffInDays(now()));
-                            @endphp
-                            <input type="number" class="form-control" name="umur_hari" value="{{ intval($umurHari) }}" min="0" required readonly />
-                            <small class="text-muted">Otomatis dihitung dari tanggal masuk: {{ $tanggalMasuk->format('d/m/Y') }}</small>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label lopa-form-label">Berat Rata-rata (gram) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" class="form-control" name="berat_rata_rata" placeholder="0.00" min="0" {{ $disabledAttr }} required />
-                            <small class="form-text text-muted">Masukkan hasil sampling berat terbaru dalam gram.</small>
-                        </div>
-                    </div>
-                    <div class="text-end mt-3">
-                        <button type="submit" class="btn btn-primary" {{ $disabledAttr }}>
-                            <i class="fa-solid fa-floppy-disk"></i> Simpan Berat
-                        </button>
-                    </div>
-                </form>
-
-                <div class="note-panel alt mt-3 lopa-note-panel lopa-alt" id="berat-history-container">
-                    <div class="d-flex justify-content-between align-items-center mb-2" style="cursor: pointer;" onclick="toggleHistory('berat')">
-                        <h6 class="mb-0">
-                            <i class="fa-solid fa-clock-rotate-left me-1" style="color:#8b5cf6;"></i>
-                            History Sampling Berat (50 data terakhir)
-                        </h6>
-                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" id="toggle-berat">
-                            <i class="fa-solid fa-chevron-down"></i>
-                        </button>
-                    </div>
-                    <div id="berat-history-content" style="display: block;">
-                        <p class="text-muted small mb-0">Loading...</p>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Monitoring Lingkungan --}}
-            <div class="card mb-4 lopa-card">
-                <h5 class="section-title lopa-section-title">
-                    <i class="fa-solid fa-cloud-sun" style="color:var(--accent)"></i> 
-                    Monitoring Lingkungan
-                </h5>
-                <form class="form-card p-3 lopa-form-card" aria-label="Form monitoring lingkungan">
-                    @csrf
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label lopa-form-label">Tanggal <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
-                            <small class="form-text text-muted">Tanggal pengukuran kondisi lingkungan dilakukan.</small>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label lopa-form-label">Waktu <span class="text-danger">*</span></label>
-                            <input type="time" class="form-control" name="waktu" {{ $disabledAttr }} required />
-                            <small class="form-text text-muted">Catat waktu pengambilan data untuk konsistensi.</small>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label lopa-form-label">Suhu (°C) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.1" class="form-control" name="suhu" placeholder="28.0" {{ $disabledAttr }} required />
-                            <small class="form-text text-muted">Isi suhu kandang saat pengukuran berlangsung.</small>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label lopa-form-label">Kelembaban (%) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.1" class="form-control" name="kelembaban" placeholder="65.0" {{ $disabledAttr }} required />
-                            <small class="form-text text-muted">Masukkan kelembaban udara saat pencatatan.</small>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label lopa-form-label">Intensitas Cahaya (Lux)</label>
-                            <input type="number" step="0.1" class="form-control" name="intensitas_cahaya" placeholder="50" {{ $disabledAttr }} />
-                            <small class="form-text text-muted">Opsional, isi jika menggunakan alat ukur intensitas cahaya.</small>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label lopa-form-label">Kondisi Ventilasi</label>
-                            <select class="form-select" name="kondisi_ventilasi" {{ $disabledAttr }}>
-                                <option value="">-- Pilih --</option>
-                                <option value="Baik">Baik</option>
-                                <option value="Cukup">Cukup</option>
-                                <option value="Kurang">Kurang</option>
-                            </select>
-                            <small class="form-text text-muted">Pilih kondisi ventilasi umum saat inspeksi.</small>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label lopa-form-label">Catatan</label>
-                            <textarea class="form-control" name="catatan" rows="2" placeholder="Catatan kondisi lingkungan..." {{ $disabledAttr }}></textarea>
-                            <small class="form-text text-muted">Opsional, tuliskan temuan penting atau anomali.</small>
-                        </div>
-                    </div>
-                    <div class="text-end mt-3">
-                        <button type="submit" class="btn btn-success" {{ $disabledAttr }}>
-                            <i class="fa-solid fa-save"></i> Simpan Monitoring
-                        </button>
-                    </div>
-                </form>
-
-                <div class="note-panel alt mt-3 lopa-note-panel lopa-alt" id="monitoring-history-container">
-                    <div class="d-flex justify-content-between align-items-center mb-2" style="cursor: pointer;" onclick="toggleHistory('monitoring')">
-                        <h6 class="mb-0">
-                            <i class="fa-solid fa-clock-rotate-left me-1" style="color:#8b5cf6;"></i>
-                            History Monitoring (50 data terakhir)
-                        </h6>
-                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" id="toggle-monitoring">
-                            <i class="fa-solid fa-chevron-down"></i>
-                        </button>
-                    </div>
-                    <div id="monitoring-history-content" style="display: block;">
-                        <p class="text-muted small mb-0">Loading...</p>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Kesehatan & Vaksinasi --}}
-            <div class="card mb-4 lopa-card">
-                <h5 class="section-title lopa-section-title">
-                    <i class="fa-solid fa-syringe" style="color:var(--accent)"></i> 
-                    Kesehatan & Vaksinasi
-                </h5>
-
-                <div class="note-panel mb-3 lopa-note-panel">
-                    <h6>⏰ Reminder Vaksinasi:</h6>
-                    <ul class="small mb-0">
-                        <li>ND (Newcastle Disease) — Umur 7 hari <span class="badge bg-secondary">belum waktunya</span></li>
-                        <li>ND + IB (Infectious Bronchitis) — Umur 14 hari <span class="badge bg-secondary">belum waktunya</span></li>
-                        <li>Fowl Pox — Umur 28 hari <span class="badge bg-secondary">belum waktunya</span></li>
-                    </ul>
-                </div>
-
-                <form class="form-card p-3 lopa-form-card" aria-label="Form kesehatan & vaksinasi">
-                    @csrf
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Tanggal <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
-                            <small class="form-text text-muted">Tanggal tindakan kesehatan dilakukan.</small>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Jenis Tindakan <span class="text-danger">*</span></label>
-                            <select class="form-select" name="tipe_kegiatan" {{ $disabledAttr }} required>
-                                <option value="">-- Pilih --</option>
-                                <option value="vaksinasi">Vaksinasi</option>
-                                <option value="pengobatan">Pengobatan</option>
-                                <option value="pemeriksaan_rutin">Pemeriksaan Rutin</option>
-                                <option value="karantina">Karantina</option>
-                            </select>
-                            <small class="form-text text-muted">Tentukan jenis kegiatan agar laporan seragam.</small>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Nama Vaksin/Obat <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="nama_vaksin_obat" placeholder="Nama vaksin/obat" {{ $disabledAttr }} required />
-                            <small class="form-text text-muted">Isi nama produk yang diberikan ke ternak.</small>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Jumlah Burung <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" name="jumlah_burung" placeholder="0" min="1" {{ $disabledAttr }} required />
-                            <small class="form-text text-muted">Jumlah burung yang menerima tindakan ini.</small>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Biaya</label>
-                            <input type="number" class="form-control" name="biaya" placeholder="0" {{ $disabledAttr }} />
-                            <small class="form-text text-muted">Opsional, isi total biaya untuk tindakan ini.</small>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label lopa-form-label">Petugas</label>
-                            <input type="text" class="form-control" name="petugas" placeholder="Nama petugas" {{ $disabledAttr }} />
-                            <small class="form-text text-muted">Catat siapa yang melakukan tindakan.</small>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label lopa-form-label">Gejala/Kondisi</label>
-                            <textarea class="form-control" name="gejala" rows="2" placeholder="Deskripsi kondisi atau gejala..." {{ $disabledAttr }}></textarea>
-                            <small class="form-text text-muted">Opsional, ringkas gejala yang terpantau.</small>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label lopa-form-label">Diagnosa</label>
-                            <textarea class="form-control" name="diagnosa" rows="2" placeholder="Hasil diagnosa..." {{ $disabledAttr }}></textarea>
-                            <small class="form-text text-muted">Tuliskan diagnosa atau dugaan penyebab.</small>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label lopa-form-label">Tindakan</label>
-                            <textarea class="form-control" name="tindakan" rows="2" placeholder="Tindakan yang dilakukan..." {{ $disabledAttr }}></textarea>
-                            <small class="form-text text-muted">Catat tindakan lanjutan atau instruksi.</small>
-                        </div>
-                    </div>
-                    <div class="text-end mt-3">
-                        <button type="submit" class="btn btn-primary" {{ $disabledAttr }}>
-                            <i class="fa-solid fa-notes-medical"></i> Simpan Kesehatan
-                        </button>
-                    </div>
-                </form>
-
-                <div class="note-panel alt mt-3 lopa-note-panel lopa-alt" id="kesehatan-history-container">
-                    <div class="d-flex justify-content-between align-items-center mb-2" style="cursor: pointer;" onclick="toggleHistory('kesehatan')">
-                        <h6 class="mb-0">
-                            <i class="fa-solid fa-clock-rotate-left me-1" style="color:#8b5cf6;"></i>
-                            Riwayat Kesehatan & Vaksinasi (50 data terakhir)
-                        </h6>
-                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" id="toggle-kesehatan">
-                            <i class="fa-solid fa-chevron-down"></i>
-                        </button>
-                    </div>
-                    <div id="kesehatan-history-content" style="display: block;">
-                        <p class="text-muted small mb-0">Loading...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Tab 4: Grafik & Analisis --}}
-        <div class="tab-pane fade" id="grafikAnalisis" role="tabpanel" aria-labelledby="tab-chart">
+        {{-- Tab 5: Grafik & Analisis --}}
+        <div class="tab-pane fade lopa-tab-pane" id="grafikAnalisis" role="tabpanel" aria-labelledby="tab-chart">
             <div class="card p-3 lopa-card">
                 <h5 class="section-title lopa-section-title">📈 Grafik & Analisis Performa</h5>
 
@@ -866,7 +606,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (urlHash && urlHash.startsWith('#')) {
         const hashTabId = urlHash.substring(1);
-        const validTabs = ['infoBatch', 'recordHarian', 'recordMingguan', 'grafikAnalisis'];
+        const validTabs = ['infoBatch', 'recordHarian', 'recordMingguan', 'laporanBatch', 'grafikAnalisis'];
         if (validTabs.includes(hashTabId)) {
             targetTab = `#${hashTabId}`;
         }

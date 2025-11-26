@@ -379,7 +379,7 @@
 
 @push('scripts')
   <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="{{ asset('bolopa/plugin/sweetalert2/sweetalert2.all.min.js') }}"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       const photoSection = document.querySelector('[data-employee-photo]');

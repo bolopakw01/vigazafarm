@@ -289,9 +289,7 @@ if (kesehatanForm) {
             tipe_kegiatan: formData.get('tipe_kegiatan'),
             nama_vaksin_obat: formData.get('nama_vaksin_obat'),
             jumlah_burung: parseInt(formData.get('jumlah_burung')),
-            gejala: formData.get('gejala') || null,
-            diagnosa: formData.get('diagnosa') || null,
-            tindakan: formData.get('tindakan') || null,
+            catatan: formData.get('catatan') || null,
             biaya: formData.get('biaya') ? parseFloat(formData.get('biaya')) : null,
             petugas: formData.get('petugas') || null
         });
@@ -1138,6 +1136,7 @@ function renderKesehatanHistory(data) {
         
         const biaya = item.biaya ? `Rp ${parseInt(item.biaya).toLocaleString('id-ID')}` : '-';
         
+        const catatanText = item.catatan ?? item.gejala;
         return `
             <tr>
                 <td class="text-start">${tanggal}</td>
@@ -1147,7 +1146,7 @@ function renderKesehatanHistory(data) {
                 <td class="text-end">${biaya}</td>
                 <td class="text-start">${item.petugas || '-'}</td>
                 <td class="text-start">${getRecorderName(item)}</td>
-                <td class="text-start">${item.gejala || '-'}</td>
+                <td class="text-start">${catatanText || '-'}</td>
             </tr>
         `;
     }).join('');
@@ -1164,7 +1163,7 @@ function renderKesehatanHistory(data) {
                         <th class="text-end">Biaya</th>
                         <th class="text-start">Petugas</th>
                         <th class="text-start">Dicatat Oleh</th>
-                        <th class="text-start">Gejala/Keterangan</th>
+                        <th class="text-start">Catatan</th>
                     </tr>
                 </thead>
                 <tbody>

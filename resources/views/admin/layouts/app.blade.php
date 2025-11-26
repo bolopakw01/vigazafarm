@@ -6,12 +6,12 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Vigaza Farm') | Vigaza Farm</title>
     <link rel="icon" type="image/png" href="{{ asset('bolopa/img/icon.png') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('bolopa/plugin/fontawesome/css/all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('bolopa/css/bootstrap.min.css') }}" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    
+    <link rel="stylesheet" href="{{ asset('bolopa/plugin/sweetalert2/sweetalert2.min.css') }}">
+
     <!-- Load SweetAlert2 in head to ensure it's available for inline scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ asset('bolopa/plugin/sweetalert2/sweetalert2.all.min.js') }}"></script>
     
     @stack('styles')
     <style>
@@ -159,7 +159,7 @@
 
     <!-- Bootstrap JS for tabs and components -->
     <script src="{{ asset('bolopa/js/bootstrap.bundle.min.js') }}" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="{{ asset('bolopa/plugin/apexcharts/apexcharts.min.js') }}"></script>
     @stack('scripts')
 </body>
 </html>

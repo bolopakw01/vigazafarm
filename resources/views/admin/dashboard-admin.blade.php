@@ -4,7 +4,7 @@
 
 @push('styles')
 	<link rel="stylesheet" href="{{ asset('bolopa/css/admin-dashboard.css') }}">
-	<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="{{ asset('bolopa/plugin/fontawesome/css/all.min.css') }}">
 	<style>
 		.activity-row { align-items: stretch !important; }
 		.activity-chart-card,
@@ -461,7 +461,7 @@
 @endsection
 
 @push('scripts')
-	<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+	<script src="{{ asset('bolopa/plugin/apexcharts/apexcharts.min.js') }}"></script>
 	<script>
 		// replicate mainChart + filters and radar chart + export menu and animations from lopadashboard.html
 		(function(){

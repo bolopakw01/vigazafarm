@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-pembesaran.css') }}">
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-part-pembesaran.css') }}">
 {{-- ApexCharts for graphs --}}
-<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="{{ asset('bolopa/plugin/apexcharts/apexcharts.min.js') }}"></script>
 @endpush
 
 @section('content')
