@@ -65,6 +65,7 @@
             min-height: 0;
             padding-top: var(--bolopa-header-height);
             padding-bottom: calc(var(--bolopa-footer-height) + 4px);
+            margin-top: 12px;
         }
 
         table {

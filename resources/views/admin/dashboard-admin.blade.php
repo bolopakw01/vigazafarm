@@ -30,9 +30,9 @@
 		.kpi-indicator-danger {
 			filter: hue-rotate(-30deg) saturate(1.3);
 		}
-		.page-content {
+		/* .page-content {
 			padding-top: 0.5rem !important;
-		}
+		} */
 		.table-wrap table td,
 		.table-wrap table th {
 			word-break: break-word;
