@@ -28,7 +28,7 @@ class ProfileUpdateRequest extends FormRequest
 
         $rules = [
             'nama' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('pengguna', 'surel')->ignore($this->user()->id)],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('vf_pengguna', 'surel')->ignore($this->user()->id)],
             'password' => $passwordRules,
             'alamat' => ['nullable', 'string', 'max:500'],
             'profile_picture' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
@@ -36,7 +36,7 @@ class ProfileUpdateRequest extends FormRequest
 
         // Username hanya required untuk owner
         if ($this->user()->peran === 'owner') {
-            $rules['username'] = ['required', 'string', 'max:255', Rule::unique('pengguna', 'nama_pengguna')->ignore($this->user()->id)];
+            $rules['username'] = ['required', 'string', 'max:255', Rule::unique('vf_pengguna', 'nama_pengguna')->ignore($this->user()->id)];
             $rules['profile_picture'] = ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'];
         }
 

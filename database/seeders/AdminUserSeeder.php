@@ -18,10 +18,10 @@ class AdminUserSeeder extends Seeder
         $ownerUsername = 'lopa123';
         $ownerPassword = 'lopa123';
 
-        $existingOwner = DB::table('pengguna')->where('nama_pengguna', $ownerUsername)->first();
+        $existingOwner = DB::table('vf_pengguna')->where('nama_pengguna', $ownerUsername)->first();
 
         if ($existingOwner) {
-            DB::table('pengguna')->where('id', $existingOwner->id)->update([
+            DB::table('vf_pengguna')->where('id', $existingOwner->id)->update([
                 'nama_pengguna' => $ownerUsername,
                 'kata_sandi' => Hash::make($ownerPassword),
                 'nama' => 'Bolopa Kakungnge Walinono',
@@ -29,7 +29,7 @@ class AdminUserSeeder extends Seeder
                 'peran' => 'owner',
             ]);
         } else {
-            DB::table('pengguna')->insert([
+            DB::table('vf_pengguna')->insert([
                 'nama' => 'Bolopa Kakungnge Walinono',
                 'nama_pengguna' => $ownerUsername,
                 'surel' => 'bolopa@gmail.com',
@@ -45,17 +45,17 @@ class AdminUserSeeder extends Seeder
         $operatorUsername = 'op1';
         $operatorPassword = 'op1';
 
-        $existingOperator = DB::table('pengguna')->where('nama_pengguna', $operatorUsername)->first();
+        $existingOperator = DB::table('vf_pengguna')->where('nama_pengguna', $operatorUsername)->first();
 
         if ($existingOperator) {
-            DB::table('pengguna')->where('id', $existingOperator->id)->update([
+            DB::table('vf_pengguna')->where('id', $existingOperator->id)->update([
                 'nama_pengguna' => $operatorUsername,
                 'kata_sandi' => Hash::make($operatorPassword),
                 'nama' => 'Operator',
                 'peran' => 'operator',
             ]);
         } else {
-            DB::table('pengguna')->insert([
+            DB::table('vf_pengguna')->insert([
                 'nama' => 'Operator',
                 'nama_pengguna' => $operatorUsername,
                 'surel' => $operatorUsername . '@local',

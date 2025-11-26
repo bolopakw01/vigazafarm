@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Kematian extends Model
 {
-    protected $table = 'kematian';
+    protected $table = 'vf_kematian';
 
     const CREATED_AT = 'dibuat_pada';
     const UPDATED_AT = 'diperbarui_pada';

@@ -9,6 +9,8 @@ class FeedVitaminItem extends Model
 {
     use HasFactory;
 
+    protected $table = 'vf_feed_vitamin_items';
+
     protected $fillable = [
         'category',
         'name',

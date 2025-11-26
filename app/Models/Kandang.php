@@ -9,7 +9,7 @@ class Kandang extends Model
 {
     use SoftDeletes;
 
-    protected $table = 'kandang';
+    protected $table = 'vf_kandang';
 
     protected $fillable = [
         'kode_kandang',

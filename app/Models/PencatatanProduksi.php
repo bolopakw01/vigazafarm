@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PencatatanProduksi extends Model
 {
-    protected $table = 'pencatatan_produksi';
+    protected $table = 'vf_pencatatan_produksi';
 
     const CREATED_AT = 'dibuat_pada';
     const UPDATED_AT = 'diperbarui_pada';

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Pembesaran extends Model
 {
-    protected $table = 'pembesaran';
+    protected $table = 'vf_pembesaran';
 
     const CREATED_AT = 'dibuat_pada';
     const UPDATED_AT = 'diperbarui_pada';

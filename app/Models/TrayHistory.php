@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TrayHistory extends Model
 {
-    protected $table = 'tray_histories';
+    protected $table = 'vf_tray_histories';
 
     protected $fillable = [
         'produksi_id',

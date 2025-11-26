@@ -18,7 +18,7 @@ class TransferController extends Controller
     public function transferDocToPembesaran(Request $request, $penetasanId)
     {
         $request->validate([
-            'kandang_id' => 'required|exists:kandang,id',
+            'kandang_id' => 'required|exists:vf_kandang,id',
             'jumlah_doc' => 'required|integer|min:1',
             'jenis_kelamin' => 'nullable|in:jantan,betina,campuran',
             'catatan' => 'nullable|string',
@@ -71,7 +71,7 @@ class TransferController extends Controller
     public function transferIndukanToProduksi(Request $request, $pembesaranId)
     {
         $request->validate([
-            'kandang_id' => 'required|exists:kandang,id',
+            'kandang_id' => 'required|exists:vf_kandang,id',
             'jumlah_indukan' => 'required|integer|min:1',
             'tanggal_mulai_produksi' => 'required|date',
             'catatan' => 'nullable|string',

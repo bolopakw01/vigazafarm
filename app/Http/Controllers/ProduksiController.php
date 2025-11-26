@@ -91,13 +91,13 @@ class ProduksiController extends Controller
     {
         try {
             // Reset egg production data if present
-            if ($laporan->produksi_telur > 0 || (Schema::hasColumn('laporan_harian', 'input_telur') && $laporan->input_telur > 0)) {
+            if ($laporan->produksi_telur > 0 || (Schema::hasColumn('vf_laporan_harian', 'input_telur') && $laporan->input_telur > 0)) {
                 $laporan->produksi_telur = 0;
-                if (Schema::hasColumn('laporan_harian', 'input_telur')) {
+                if (Schema::hasColumn('vf_laporan_harian', 'input_telur')) {
                     $laporan->input_telur = 0;
                 }
                 // Optionally clear sisa_telur so it doesn't carry stale value
-                if (Schema::hasColumn('laporan_harian', 'sisa_telur')) {
+                if (Schema::hasColumn('vf_laporan_harian', 'sisa_telur')) {
                     $laporan->sisa_telur = null;
                 }
             }
@@ -106,13 +106,13 @@ class ProduksiController extends Controller
             if ($laporan->konsumsi_pakan_kg !== null) {
                 $laporan->konsumsi_pakan_kg = 0;
                 // Optionally clear sisa_pakan_kg so it doesn't carry stale value
-                if (Schema::hasColumn('laporan_harian', 'sisa_pakan_kg')) {
+                if (Schema::hasColumn('vf_laporan_harian', 'sisa_pakan_kg')) {
                     $laporan->sisa_pakan_kg = null;
                 }
-                if (Schema::hasColumn('laporan_harian', 'harga_pakan_per_kg')) {
+                if (Schema::hasColumn('vf_laporan_harian', 'harga_pakan_per_kg')) {
                     $laporan->harga_pakan_per_kg = null;
                 }
-                if (Schema::hasColumn('laporan_harian', 'biaya_pakan_harian')) {
+                if (Schema::hasColumn('vf_laporan_harian', 'biaya_pakan_harian')) {
                     $laporan->biaya_pakan_harian = null;
                 }
             }
@@ -121,13 +121,13 @@ class ProduksiController extends Controller
             if ($laporan->vitamin_terpakai !== null) {
                 $laporan->vitamin_terpakai = 0;
                 // Optionally clear sisa_vitamin_liter so it doesn't carry stale value
-                if (Schema::hasColumn('laporan_harian', 'sisa_vitamin_liter')) {
+                if (Schema::hasColumn('vf_laporan_harian', 'sisa_vitamin_liter')) {
                     $laporan->sisa_vitamin_liter = null;
                 }
-                if (Schema::hasColumn('laporan_harian', 'harga_vitamin_per_liter')) {
+                if (Schema::hasColumn('vf_laporan_harian', 'harga_vitamin_per_liter')) {
                     $laporan->harga_vitamin_per_liter = null;
                 }
-                if (Schema::hasColumn('laporan_harian', 'biaya_vitamin_harian')) {
+                if (Schema::hasColumn('vf_laporan_harian', 'biaya_vitamin_harian')) {
                     $laporan->biaya_vitamin_harian = null;
                 }
             }
@@ -148,7 +148,7 @@ class ProduksiController extends Controller
                 $laporan->nama_tray_penjualan = null;
                 $laporan->harga_per_butir = null;
 
-                if (Schema::hasColumn('laporan_harian', 'jenis_kelamin_penjualan')) {
+                if (Schema::hasColumn('vf_laporan_harian', 'jenis_kelamin_penjualan')) {
                     $laporan->jenis_kelamin_penjualan = null;
                 }
             }
@@ -232,7 +232,7 @@ class ProduksiController extends Controller
 
         // Dynamic validation based on jenis_input and fokus_manual
         $rules = [
-            'kandang_id' => 'required|exists:kandang,id',
+            'kandang_id' => 'required|exists:vf_kandang,id',
             'jenis_input' => 'required|in:manual,dari_pembesaran,dari_penetasan,dari_produksi',
             'batch_produksi_id' => 'nullable|string|max:50',
             'tanggal_mulai' => 'required|date',
@@ -240,7 +240,7 @@ class ProduksiController extends Controller
             'status' => 'required|in:aktif,tidak_aktif',
             'catatan' => 'nullable|string',
             'harga_per_pcs' => 'nullable|numeric|min:0',
-            'produksi_sumber_id' => 'nullable|exists:produksi,id',
+            'produksi_sumber_id' => 'nullable|exists:vf_produksi,id',
         ];
 
         $jenisInput = $mappedData['jenis_input'] ?? 'manual';
@@ -265,7 +265,7 @@ class ProduksiController extends Controller
             }
         } elseif ($jenisInput === 'dari_pembesaran') {
             $rules = array_merge($rules, [
-                'pembesaran_id' => 'required|exists:pembesaran,id',
+                'pembesaran_id' => 'required|exists:vf_pembesaran,id',
                 'jumlah_indukan' => 'required|integer|min:1',
                 'jenis_kelamin' => 'nullable|in:jantan,betina,campuran',
                 'jumlah_jantan' => 'nullable|integer|min:0',
@@ -273,13 +273,13 @@ class ProduksiController extends Controller
             ]);
         } elseif ($jenisInput === 'dari_penetasan') {
             $rules = array_merge($rules, [
-                'penetasan_id' => 'required|exists:penetasan,id',
+                'penetasan_id' => 'required|exists:vf_penetasan,id',
                 'jumlah_telur' => 'required|integer|min:1',
                 'berat_rata_telur' => 'nullable|numeric|min:0',
             ]);
         } elseif ($jenisInput === 'dari_produksi') {
             $rules = array_merge($rules, [
-                'produksi_sumber_id' => 'required|exists:produksi,id',
+                'produksi_sumber_id' => 'required|exists:vf_produksi,id',
                 'jumlah_telur' => 'nullable|integer|min:0',
                 'berat_rata_telur' => 'nullable|numeric|min:0',
             ]);
@@ -545,7 +545,7 @@ class ProduksiController extends Controller
             ->values();
 
         $trayHistories = collect();
-        if (Schema::hasTable('tray_histories')) {
+        if (Schema::hasTable('vf_tray_histories')) {
             $trayHistories = $produksi->trayHistories()
                 ->with('pengguna')
                 ->orderByDesc('created_at')
@@ -734,7 +734,7 @@ class ProduksiController extends Controller
         $feedOptions = collect();
         $vitaminOptions = collect();
 
-        if (Schema::hasTable('feed_vitamin_items')) {
+        if (Schema::hasTable('vf_feed_vitamin_items')) {
             $feedOptions = FeedVitaminItem::active()
                 ->where('category', 'pakan')
                 ->orderBy('name')
@@ -820,15 +820,15 @@ class ProduksiController extends Controller
             'penjualan_puyuh_ekor' => 'nullable|integer|min:0',
             'jenis_kelamin_penjualan' => 'nullable|in:jantan,betina',
             'pendapatan_harian' => 'nullable|numeric|min:0',
-            'tray_penjualan' => 'nullable|integer|exists:laporan_harian,id',
+            'tray_penjualan' => 'nullable|integer|exists:vf_laporan_harian,id',
             'jumlah_telur_terjual' => 'nullable|integer|min:1',
             'harga_penjualan' => 'nullable|numeric|min:0',
             'catatan_kejadian' => 'nullable|string|max:2500',
         ];
 
-        if (Schema::hasTable('feed_vitamin_items')) {
-            $rules['feed_item_id'] = 'nullable|exists:feed_vitamin_items,id';
-            $rules['vitamin_item_id'] = 'nullable|exists:feed_vitamin_items,id';
+        if (Schema::hasTable('vf_feed_vitamin_items')) {
+            $rules['feed_item_id'] = 'nullable|exists:vf_feed_vitamin_items,id';
+            $rules['vitamin_item_id'] = 'nullable|exists:vf_feed_vitamin_items,id';
         }
 
         // Make the main field required based on active tab
@@ -838,7 +838,7 @@ class ProduksiController extends Controller
                 break;
             case 'penjualan':
                 if ($isTelurBatch) {
-                    $rules['tray_penjualan'] = 'required|integer|exists:laporan_harian,id';
+                    $rules['tray_penjualan'] = 'required|integer|exists:vf_laporan_harian,id';
                     $rules['jumlah_telur_terjual'] = 'required|integer|min:1';
                     $rules['harga_penjualan'] = 'required|numeric|min:0';
                 } else {
@@ -918,14 +918,14 @@ class ProduksiController extends Controller
         $selectedFeedItem = null;
         $selectedVitaminItem = null;
 
-        if ($request->filled('feed_item_id') && Schema::hasTable('feed_vitamin_items')) {
+        if ($request->filled('feed_item_id') && Schema::hasTable('vf_feed_vitamin_items')) {
             $selectedFeedItem = FeedVitaminItem::active()
                 ->where('category', 'pakan')
                 ->whereKey($request->input('feed_item_id'))
                 ->first();
         }
 
-        if ($request->filled('vitamin_item_id') && Schema::hasTable('feed_vitamin_items')) {
+        if ($request->filled('vitamin_item_id') && Schema::hasTable('vf_feed_vitamin_items')) {
             $selectedVitaminItem = FeedVitaminItem::active()
                 ->where('category', 'vitamin')
                 ->whereKey($request->input('vitamin_item_id'))
@@ -1114,7 +1114,7 @@ class ProduksiController extends Controller
         $laporan->nama_tray = $validated['nama_tray'] ?: $laporan->nama_tray;
         $laporan->keterangan_tray = $validated['keterangan_tray'] ?? null;
         $laporan->produksi_telur = $validated['jumlah_telur'];
-        if (Schema::hasColumn('laporan_harian', 'input_telur')) {
+        if (Schema::hasColumn('vf_laporan_harian', 'input_telur')) {
             $laporan->input_telur = $validated['jumlah_telur'];
         }
         $laporan->save();
@@ -1474,7 +1474,7 @@ class ProduksiController extends Controller
     public function update(Request $request, Produksi $produksi)
     {
         $rules = [
-            'kandang_id' => 'required|exists:kandang,id',
+            'kandang_id' => 'required|exists:vf_kandang,id',
             'batch_produksi_id' => 'required|string|max:50',
             'tanggal_mulai' => 'required|date',
             'tanggal_akhir' => 'nullable|date|after_or_equal:tanggal_mulai',
@@ -1700,7 +1700,7 @@ class ProduksiController extends Controller
             return null;
         }
 
-        if (!Schema::hasTable('tray_histories')) {
+        if (!Schema::hasTable('vf_tray_histories')) {
             return null;
         }
 

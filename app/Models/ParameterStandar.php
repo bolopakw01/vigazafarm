@@ -9,7 +9,7 @@ class ParameterStandar extends Model
 {
     use HasFactory;
 
-    protected $table = 'parameter_standar';
+    protected $table = 'vf_parameter_standar';
 
     protected $fillable = [
         'fase',

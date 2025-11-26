@@ -22,7 +22,7 @@ class PenetasanController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'kandang_id' => 'required|exists:kandang,id',
+            'kandang_id' => 'required|exists:vf_kandang,id',
             'tanggal_simpan_telur' => 'required|date',
             'estimasi_tanggal_menetas' => 'nullable|date|after_or_equal:tanggal_simpan_telur',
             'jumlah_telur' => 'required|integer|min:1',
@@ -97,7 +97,7 @@ class PenetasanController extends Controller
     public function update(Request $request, Penetasan $penetasan)
     {
         $data = $request->validate([
-            'kandang_id' => 'required|exists:kandang,id',
+            'kandang_id' => 'required|exists:vf_kandang,id',
             'tanggal_simpan_telur' => 'required|date',
             'estimasi_tanggal_menetas' => 'nullable|date|after_or_equal:tanggal_simpan_telur',
             'jumlah_telur' => 'required|integer|min:1',

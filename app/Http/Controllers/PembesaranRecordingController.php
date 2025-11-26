@@ -34,7 +34,7 @@ class PembesaranRecordingController extends Controller
     public function storePakan(Request $request, $pembesaranId)
     {
         $pembesaran = Pembesaran::findOrFail($pembesaranId);
-        $hasFeedMaster = Schema::hasTable('feed_vitamin_items');
+        $hasFeedMaster = Schema::hasTable('vf_feed_vitamin_items');
 
         $rules = [
             'tanggal' => 'required|date',
@@ -43,10 +43,10 @@ class PembesaranRecordingController extends Controller
         ];
 
         if ($hasFeedMaster) {
-            $rules['feed_item_id'] = ['nullable', 'exists:feed_vitamin_items,id', 'required_without:stok_pakan_id'];
-            $rules['stok_pakan_id'] = ['nullable', 'exists:stok_pakan,id', 'required_without:feed_item_id'];
+            $rules['feed_item_id'] = ['nullable', 'exists:vf_feed_vitamin_items,id', 'required_without:stok_pakan_id'];
+            $rules['stok_pakan_id'] = ['nullable', 'exists:vf_stok_pakan,id', 'required_without:feed_item_id'];
         } else {
-            $rules['stok_pakan_id'] = ['required', 'exists:stok_pakan,id'];
+            $rules['stok_pakan_id'] = ['required', 'exists:vf_stok_pakan,id'];
         }
 
         $validated = $request->validate($rules);
@@ -121,7 +121,7 @@ class PembesaranRecordingController extends Controller
         $oldJumlahKg = $pakan->jumlah_kg;
         $oldJumlahKarung = $pakan->jumlah_karung ?? 0;
 
-        $hasFeedMaster = Schema::hasTable('feed_vitamin_items');
+        $hasFeedMaster = Schema::hasTable('vf_feed_vitamin_items');
 
         $rules = [
             'tanggal' => 'required|date',
@@ -130,10 +130,10 @@ class PembesaranRecordingController extends Controller
         ];
 
         if ($hasFeedMaster) {
-            $rules['feed_item_id'] = ['nullable', 'exists:feed_vitamin_items,id', 'required_without:stok_pakan_id'];
-            $rules['stok_pakan_id'] = ['nullable', 'exists:stok_pakan,id', 'required_without:feed_item_id'];
+            $rules['feed_item_id'] = ['nullable', 'exists:vf_feed_vitamin_items,id', 'required_without:stok_pakan_id'];
+            $rules['stok_pakan_id'] = ['nullable', 'exists:vf_stok_pakan,id', 'required_without:feed_item_id'];
         } else {
-            $rules['stok_pakan_id'] = ['required', 'exists:stok_pakan,id'];
+            $rules['stok_pakan_id'] = ['required', 'exists:vf_stok_pakan,id'];
         }
 
         $validated = $request->validate($rules);

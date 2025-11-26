@@ -10,7 +10,7 @@ class StokPakan extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'stok_pakan';
+    protected $table = 'vf_stok_pakan';
 
     protected $fillable = [
         'kode_pakan',

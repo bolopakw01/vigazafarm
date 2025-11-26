@@ -9,7 +9,7 @@ class BatchProduksi extends Model
 {
     use HasFactory;
 
-    protected $table = 'batch_produksi';
+    protected $table = 'vf_batch_produksi';
 
     protected $guarded = [];
 }

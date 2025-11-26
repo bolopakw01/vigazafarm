@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Penetasan extends Model
 {
-    protected $table = 'penetasan';
+    protected $table = 'vf_penetasan';
 
     // the migrations renamed created_at/updated_at -> dibuat_pada/diperbarui_pada
     const CREATED_AT = 'dibuat_pada';

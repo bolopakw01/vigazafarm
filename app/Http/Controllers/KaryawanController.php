@@ -46,8 +46,8 @@ class KaryawanController extends Controller
     {
         $data = $request->validate([
             'nama' => 'required|string|max:255',
-            'nama_pengguna' => 'required|string|max:255|unique:pengguna,nama_pengguna',
-            'surel' => 'required|email|max:255|unique:pengguna,surel',
+            'nama_pengguna' => 'required|string|max:255|unique:vf_pengguna,nama_pengguna',
+            'surel' => 'required|email|max:255|unique:vf_pengguna,surel',
             'kata_sandi' => 'required|string|min:8',
             'peran' => 'required|string|in:owner,operator',
             'alamat' => 'nullable|string|max:500',
@@ -88,8 +88,8 @@ class KaryawanController extends Controller
     {
         $data = $request->validate([
             'nama' => 'required|string|max:255',
-            'nama_pengguna' => 'required|string|max:255|unique:pengguna,nama_pengguna,' . $karyawan->id,
-            'surel' => 'required|email|max:255|unique:pengguna,surel,' . $karyawan->id,
+            'nama_pengguna' => 'required|string|max:255|unique:vf_pengguna,nama_pengguna,' . $karyawan->id,
+            'surel' => 'required|email|max:255|unique:vf_pengguna,surel,' . $karyawan->id,
             'peran' => 'required|string|in:owner,operator',
             'alamat' => 'nullable|string|max:500',
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',

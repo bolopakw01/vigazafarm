@@ -76,7 +76,7 @@ class FeedVitaminController extends Controller
                 'required',
                 'string',
                 'max:100',
-                Rule::unique('feed_vitamin_items')->where(fn ($query) => $query->where('category', $request->get('category')))->ignore($ignoreId),
+                Rule::unique('vf_feed_vitamin_items')->where(fn ($query) => $query->where('category', $request->get('category')))->ignore($ignoreId),
             ],
             'price' => ['required', 'numeric', 'min:0'],
             'unit' => ['required', 'string', 'max:50'],

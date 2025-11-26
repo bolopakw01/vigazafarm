@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Produksi extends Model
 {
-    protected $table = 'produksi';
+    protected $table = 'vf_produksi';
 
     const CREATED_AT = 'dibuat_pada';
     const UPDATED_AT = 'diperbarui_pada';

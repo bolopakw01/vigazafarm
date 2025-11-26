@@ -55,7 +55,7 @@ class PembesaranController extends Controller
     public function storeFromPenetasan(Request $request, $penetasanId)
     {
         $validated = $request->validate([
-            'kandang_id' => 'required|exists:kandang,id',
+            'kandang_id' => 'required|exists:vf_kandang,id',
             'tanggal_masuk' => 'required|date',
             'jumlah_anak_ayam' => 'required|integer|min:1',
             'jenis_kelamin' => 'nullable|in:betina,jantan,campuran',
@@ -127,9 +127,9 @@ class PembesaranController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'kandang_id' => 'required|exists:kandang,id',
-            'penetasan_id' => 'nullable|exists:penetasan,id',
-            'batch_produksi_id' => 'required|string|unique:pembesaran,batch_produksi_id',
+            'kandang_id' => 'required|exists:vf_kandang,id',
+            'penetasan_id' => 'nullable|exists:vf_penetasan,id',
+            'batch_produksi_id' => 'required|string|unique:vf_pembesaran,batch_produksi_id',
             'tanggal_masuk' => 'required|date',
             'jumlah_anak_ayam' => 'required|integer|min:1',
             'jenis_kelamin' => 'nullable|in:betina,jantan,campuran',
@@ -181,7 +181,7 @@ class PembesaranController extends Controller
 
         // Sync daftar pakan dengan master Set Pakan & Vitamin (jika tersedia)
         $feedOptions = collect();
-        if (Schema::hasTable('feed_vitamin_items')) {
+        if (Schema::hasTable('vf_feed_vitamin_items')) {
             $feedOptions = FeedVitaminItem::active()
                 ->where('category', 'pakan')
                 ->orderBy('name')
@@ -239,7 +239,7 @@ class PembesaranController extends Controller
     public function update(Request $request, Pembesaran $pembesaran)
     {
         $validated = $request->validate([
-            'kandang_id' => 'required|exists:kandang,id',
+            'kandang_id' => 'required|exists:vf_kandang,id',
             'tanggal_masuk' => 'required|date',
             'jumlah_anak_ayam' => 'required|integer|min:1',
             'jenis_kelamin' => 'nullable|in:betina,jantan,campuran',

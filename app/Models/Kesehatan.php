@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Kesehatan extends Model
 {
-    protected $table = 'kesehatan';
+    protected $table = 'vf_kesehatan';
 
     const CREATED_AT = 'dibuat_pada';
     const UPDATED_AT = 'diperbarui_pada';
