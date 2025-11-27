@@ -65,7 +65,7 @@
                 <i class="fa-solid fa-chevron-down"></i>
             </button>
         </div>
-        <div id="monitoring-history-content" style="display: block;">
+        <div id="monitoring-history-content" class="history-scroll-container" style="display: block;">
             <p class="text-muted small mb-0">Loading...</p>
         </div>
     </div>

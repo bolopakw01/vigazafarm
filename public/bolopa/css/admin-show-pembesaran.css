@@ -139,7 +139,7 @@
     justify-content: space-between;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     overflow: hidden;
-    min-height: 160px;
+    min-height: 120px !important; /* Reduced from 160px */
     transition: box-shadow 0.2s ease;
 }
 
@@ -189,24 +189,9 @@
     -o-transform: scale(1.15);
 }
 
-/* KAI More Link */
+/* KAI More Link - Hidden */
 .bolopa-card-kai .bolopa-kai-more {
-    display: block;
-    margin-top: 10px;
-    padding: 10px 12px;
-    border-radius: 6px;
-    text-align: center;
-    text-decoration: none;
-    color: inherit;
-    background: rgba(255, 255, 255, 0.06);
-    transition: background 0.2s ease;
-    font-size: 0.9rem;
-}
-
-.bolopa-card-kai .bolopa-kai-more:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: inherit;
-    text-decoration: none;
+    display: none !important;
 }
 
 /* KAI Color Schemes */
@@ -246,7 +231,7 @@
 /* Responsive adjustments */
 @media (max-width: 576px) {
     .bolopa-card-kai {
-        min-height: 100px;
+        min-height: 80px !important; /* Reduced from 100px */
         padding: 14px 14px 10px 14px;
     }
 

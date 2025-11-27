@@ -39,7 +39,7 @@
                 <i class="fa-solid fa-chevron-down"></i>
             </button>
         </div>
-        <div id="berat-history-content" style="display: block;">
+        <div id="berat-history-content" class="history-scroll-container" style="display: block;">
             <p class="text-muted small mb-0">Loading...</p>
         </div>
     </div>

@@ -67,7 +67,7 @@
                 <i class="fa-solid fa-chevron-down"></i>
             </button>
         </div>
-        <div id="kesehatan-history-content" style="display: block;">
+        <div id="kesehatan-history-content" class="history-scroll-container" style="display: block;">
             <p class="text-muted small mb-0">Loading...</p>
         </div>
     </div>

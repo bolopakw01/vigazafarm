@@ -4,10 +4,130 @@
 
 @push('styles')
 {{-- Custom CSS for this page only (scoped to prevent sidebar conflicts) --}}
-<link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-pembesaran.css') }}">
-<link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-part-pembesaran.css') }}">
+<link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-pembesaran.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-part-pembesaran.css') }}?v={{ time() }}">
 {{-- ApexCharts for graphs --}}
 <script src="{{ asset('bolopa/plugin/apexcharts/apexcharts.min.js') }}"></script>
+
+<style>
+/* Mobile Responsiveness Improvements */
+@media (max-width: 768px) {
+    .pembesaran-detail-wrapper {
+        padding: 1rem 0.5rem;
+    }
+
+    .bolopa-page-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 1rem;
+    }
+
+    .bolopa-header-content {
+        width: 100%;
+        text-align: left;
+    }
+
+    .bolopa-header-action {
+        width: 100%;
+        text-align: center;
+    }
+
+    .bolopa-header-action .btn {
+        width: 100%;
+        max-width: 200px;
+    }
+
+    /* KAI Cards - Stack vertically on mobile */
+    .bolopa-kai-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .bolopa-card-kai {
+        width: 100% !important;
+        min-height: 120px !important; /* Updated to match new compact size */
+        padding: 1.25rem 1rem;
+    }
+
+    .bolopa-kai-content {
+        margin-bottom: 0.75rem;
+    }
+
+    .bolopa-kai-value {
+        font-size: 1.75rem !important;
+        margin-bottom: 0.25rem;
+    }
+
+    .bolopa-kai-more {
+        position: static !important;
+        margin-top: 0.5rem;
+        width: 100%;
+        text-align: center;
+        padding: 0.5rem;
+        border-radius: 0.375rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .pembesaran-detail-wrapper {
+        padding: 0.75rem 0.25rem;
+    }
+
+    .bolopa-page-header {
+        padding: 1rem;
+        margin-bottom: 1rem !important;
+    }
+
+    .bolopa-logo-icon {
+        margin-bottom: 0.5rem;
+    }
+
+    .bolopa-page-title {
+        font-size: 1.25rem !important;
+    }
+
+    .bolopa-page-subtitle {
+        font-size: 0.875rem !important;
+    }
+
+    .bolopa-kai-cards {
+        gap: 0.75rem;
+    }
+
+    .bolopa-card-kai {
+        padding: 1rem 0.75rem;
+    }
+
+    .bolopa-kai-value {
+        font-size: 1.5rem !important;
+    }
+
+    .bolopa-kai-label {
+        font-size: 0.875rem !important;
+    }
+}
+
+/* Hide KAI menu on mobile devices */
+@media (max-width: 768px) {
+    .bolopa-kai-cards {
+        display: none !important;
+    }
+}
+
+/* Force KAI card compact size - highest specificity */
+.pembesaran-detail-wrapper .bolopa-kai-cards .bolopa-card-kai {
+    min-height: 120px !important;
+    height: 120px !important;
+}
+
+@media (max-width: 576px) {
+    .pembesaran-detail-wrapper .bolopa-kai-cards .bolopa-card-kai {
+        min-height: 80px !important;
+        height: 80px !important;
+    }
+}
+</style>
 @endpush
 
 @section('content')
@@ -50,9 +170,6 @@
                 <div class="bolopa-kai-label">Populasi (awal {{ number_format($populasiAwal) }})</div>
             </div>
             <i class="fa-solid fa-egg bolopa-icon-faint"></i>
-            <a href="#infoBatch" class="bolopa-kai-more" data-bs-toggle="tab" data-bs-target="#infoBatch">
-                Detail <i class="fa-solid fa-arrow-right ms-1"></i>
-            </a>
         </div>
 
         {{-- Mortalitas --}}
@@ -62,9 +179,6 @@
                 <div class="bolopa-kai-label">Mortalitas ({{ number_format($totalMati) }} ekor)</div>
             </div>
             <i class="fa-solid fa-skull-crossbones bolopa-icon-faint"></i>
-            <a href="#grafikAnalisis" class="bolopa-kai-more" data-bs-toggle="tab" data-bs-target="#grafikAnalisis">
-                Detail <i class="fa-solid fa-arrow-right ms-1"></i>
-            </a>
         </div>
 
         {{-- Berat Rata-rata --}}
@@ -74,9 +188,6 @@
                 <div class="bolopa-kai-label">Berat rata-rata</div>
             </div>
             <i class="fa-solid fa-scale-balanced bolopa-icon-faint"></i>
-            <a href="#recordMingguan" class="bolopa-kai-more" data-bs-toggle="tab" data-bs-target="#recordMingguan">
-                Update <i class="fa-solid fa-arrow-right ms-1"></i>
-            </a>
         </div>
 
         {{-- Total Biaya --}}
@@ -89,9 +200,6 @@
                 <div class="bolopa-kai-label">Total Biaya Pakan</div>
             </div>
             <i class="fa-solid fa-coins bolopa-icon-faint"></i>
-            <a href="#infoBatch" class="bolopa-kai-more" data-bs-toggle="tab" data-bs-target="#infoBatch">
-                Rincian <i class="fa-solid fa-arrow-right ms-1"></i>
-            </a>
         </div>
     </div>
 

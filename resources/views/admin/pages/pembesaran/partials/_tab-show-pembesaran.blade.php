@@ -45,6 +45,68 @@
             }
         }
 
+        /* Mobile Responsiveness for Tabs */
+        @media (max-width: 768px) {
+            .lopa-nav-tabs {
+                flex-wrap: wrap;
+                gap: 0.25rem;
+            }
+
+            .lopa-nav-tabs .nav-item {
+                flex: 1;
+                min-width: 120px;
+            }
+
+            .lopa-nav-tabs .nav-link {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.875rem;
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .lopa-nav-tabs .nav-link i {
+                display: block;
+                margin-bottom: 0.25rem;
+                font-size: 1.1em;
+            }
+
+            .lopa-nav-tabs .nav-link span {
+                display: block;
+                font-size: 0.75rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .lopa-nav-tabs .nav-item {
+                min-width: 100px;
+            }
+
+            .lopa-nav-tabs .nav-link {
+                padding: 0.5rem 0.25rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Mobile Responsiveness for Sub-tabs */
+        @media (max-width: 768px) {
+            .lopa-subtabs {
+                flex-direction: column;
+                gap: 0.5rem !important;
+            }
+
+            .lopa-subtabs .nav-item {
+                width: 100%;
+            }
+
+            .lopa-subtabs .nav-link {
+                width: 100%;
+                text-align: left;
+                padding: 0.75rem 1rem;
+            }
+        }
+
         /* Custom styling for sub-tabs */
         .lopa-subtabs .nav-link {
             background-color: #f8f9fa !important;
@@ -94,8 +156,274 @@
             border-color: #5a6268 !important;
             color: white !important;
         }
+
+        /* Mobile responsiveness for Info Batch layout */
+        @media (max-width: 992px) {
+            .row.mt-3 .col-lg-4,
+            .row.mt-3 .col-lg-5,
+            .row.mt-3 .col-lg-3 {
+                margin-bottom: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .row.mt-3 {
+                --bs-gutter-x: 1rem;
+            }
+
+            .row.mt-3 .col-lg-4,
+            .row.mt-3 .col-lg-5,
+            .row.mt-3 .col-lg-3 {
+                flex: 0 0 100%;
+                max-width: 100%;
+                margin-bottom: 1rem;
+            }
+
+            .lopa-info-stats {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
+            }
+
+            .lopa-stat-card {
+                padding: 1rem;
+                text-align: center;
+            }
+
+            .lopa-value {
+                font-size: 1.25rem !important;
+                margin-bottom: 0.25rem;
+            }
+
+            .lopa-label {
+                font-size: 0.8rem !important;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .lopa-info-stats {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+
+            .lopa-stat-card {
+                padding: 0.75rem;
+            }
+        }
+
+        /* Mobile responsiveness for charts */
+        @media (max-width: 768px) {
+            .row.g-3.mt-2 .col-lg-6 {
+                flex: 0 0 100%;
+                max-width: 100%;
+                margin-bottom: 1.5rem;
+            }
+
+            #chartFeed, #chartMortality, #chartEnv, #chartWeight {
+                min-height: 200px !important;
+            }
+        }
+
+        /* Mobile responsiveness for forms */
+        @media (max-width: 768px) {
+            .lopa-form-card .row.g-3 .col-md-4 {
+                flex: 0 0 100%;
+                max-width: 100%;
+                margin-bottom: 1rem;
+            }
+
+            .lopa-form-card .row.mt-3 .col-12.text-end {
+                text-align: center !important;
+            }
+
+            .lopa-form-card .btn {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+
+            .lopa-form-card .btn.me-2 {
+                margin-right: 0 !important;
+            }
+        }
+
+        /* Mobile responsiveness for action buttons */
+        @media (max-width: 768px) {
+            .alert .d-flex {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 1rem;
+            }
+
+            .alert .d-flex > div:first-child {
+                width: 100%;
+            }
+
+            .alert .d-flex > div:last-child {
+                width: 100%;
+                text-align: center;
+            }
+
+            .alert .btn {
+                width: 100%;
+            }
+        }
+
+        /* Mobile responsiveness for cost summary */
+        @media (max-width: 576px) {
+            .note-panel.alt .row.g-2.mt-3 .col-12 {
+                margin-bottom: 0.5rem;
+            }
+
+            .note-panel.alt .btn {
+                font-size: 0.875rem;
+                padding: 0.5rem 0.75rem;
+            }
+        }
+
+        /* Horizontal scrolling for history tables on mobile */
+        @media (max-width: 768px) {
+            .history-scroll-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: thin;
+                scrollbar-color: #dee2e6 transparent;
+            }
+
+            .history-scroll-container::-webkit-scrollbar {
+                height: 6px;
+            }
+
+            .history-scroll-container::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 3px;
+            }
+
+            .history-scroll-container::-webkit-scrollbar-thumb {
+                background: #dee2e6;
+                border-radius: 3px;
+            }
+
+            .history-scroll-container::-webkit-scrollbar-thumb:hover {
+                background: #adb5bd;
+            }
+
+            /* Make tables responsive with horizontal scroll */
+            .history-scroll-container table {
+                min-width: 600px;
+                white-space: nowrap;
+            }
+
+            .history-scroll-container .table-responsive {
+                border: none;
+            }
+
+            /* Add scroll indicator */
+            .history-scroll-container::before {
+                content: "← Scroll untuk melihat lebih banyak →";
+                position: absolute;
+                top: -25px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 0.75rem;
+                color: #6c757d;
+                background: rgba(255, 255, 255, 0.9);
+                padding: 2px 8px;
+                border-radius: 10px;
+                white-space: nowrap;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+
+            .history-scroll-container:hover::before {
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .history-scroll-container table {
+                min-width: 700px;
+                font-size: 0.8rem;
+            }
+
+            .history-scroll-container .table th,
+            .history-scroll-container .table td {
+                padding: 0.5rem 0.75rem;
+            }
+        }
+
+        /* Mobile responsiveness for section headers */
+        @media (max-width: 768px) {
+            .d-flex.align-items-center.justify-content-between.flex-wrap {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 0.75rem;
+            }
+
+            .d-flex.align-items-center.justify-content-between.flex-wrap .section-title {
+                margin-bottom: 0.5rem;
+            }
+        }
+
+        /* Mobile responsiveness for status compact */
+        @media (max-width: 576px) {
+            .right-corner.d-flex.align-items-center {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: flex-start !important;
+            }
+
+            .status-compact {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* Mobile Tab Navigation - Convert to Select Dropdown */
+        @media (max-width: 1024px) {
+            .lopa-nav-tabs {
+                display: none !important;
+            }
+
+            .mobile-tab-selector {
+                display: block !important;
+                margin-bottom: 1rem;
+            }
+
+            .mobile-tab-selector select {
+                width: 100%;
+                padding: 0.75rem 1rem;
+                border: 1px solid #dee2e6;
+                border-radius: 0.375rem;
+                background-color: #fff;
+                font-size: 1rem;
+                color: #495057;
+                appearance: none;
+                background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+                background-position: right 0.5rem center;
+                background-repeat: no-repeat;
+                background-size: 1.5em 1.5em;
+                padding-right: 2.5rem;
+            }
+
+            .mobile-tab-selector select:focus {
+                border-color: #0d6efd;
+                outline: 0;
+                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+            }
+
+            .mobile-tab-selector .tab-option-icon {
+                margin-right: 0.5rem;
+            }
+        }
+
+        @media (min-width: 1025px) {
+            .mobile-tab-selector {
+                display: none !important;
+            }
+        }
     </style>
-@endpush>
+@endpush
 
 {{-- Notebook Container with Tabs --}}
 <div class="notebook lopa-notebook">
@@ -131,6 +459,17 @@
             </button>
         </li>
     </ul>
+
+    {{-- Mobile Tab Selector --}}
+    <div class="mobile-tab-selector">
+        <select id="mobileTabSelector" class="form-select">
+            <option value="#infoBatch" data-icon="fa-circle-info">📋 Info Batch</option>
+            <option value="#recordHarian" data-icon="fa-clipboard-list">📝 Recording Harian</option>
+            <option value="#recordMingguan" data-icon="fa-calendar-week">📅 Recording Mingguan</option>
+            <option value="#laporanBatch" data-icon="fa-file-lines">📄 Laporan</option>
+            <option value="#grafikAnalisis" data-icon="fa-chart-line">📈 Grafik & Analisis</option>
+        </select>
+    </div>
 
     <div class="tab-content">
         {{-- Tab 1: Info Batch --}}
@@ -282,7 +621,7 @@
                     </div>
 
                     <div class="col-lg-3 mb-3">
-                        <div class="note-panel alt h-100 lopa-note-panel lopa-alt">
+                        <div class="note-panel alt h-100 lopa-note-panel lopa-alt" id="ringkasan-biaya-panel" data-populasi="{{ $populasiSaatIni }}" data-batch="{{ $pembesaran->batch_produksi_id }}">
                             <h5 class="mb-3 fw-bold">Ringkasan Biaya</h5>
                             <div style="font-size: 0.9rem;">
                                 <!-- Total Konsumsi Pakan -->
@@ -337,15 +676,61 @@
                             </div>
                             <div class="row g-2 mt-3">
                                 <div class="col-12">
-                                    <button type="button" class="btn btn-outline-primary btn-sm w-100">
+                                    <button type="button" id="btn-ringkasan-detail" class="btn btn-outline-primary btn-sm w-100">
                                         <i class="fa-solid fa-file-invoice me-1"></i> Lihat Detail Biaya
                                     </button>
                                 </div>
                                 <div class="col-12">
-                                    <button type="button" class="btn btn-outline-success btn-sm w-100">
+                                    <button type="button" id="btn-ringkasan-export" class="btn btn-outline-success btn-sm w-100">
                                         <i class="fa-solid fa-file-csv me-1"></i> Export CSV
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Detail Ringkasan Biaya -->
+                <div class="modal fade" id="ringkasanBiayaModal" tabindex="-1" aria-labelledby="ringkasanBiayaModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="ringkasanBiayaModalLabel">
+                                    <i class="fa-solid fa-clipboard-list me-2 text-primary"></i>Detail Ringkasan Biaya
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle mb-0">
+                                        <tbody>
+                                            <tr>
+                                                <th class="text-muted" style="width:55%">Total Konsumsi Pakan</th>
+                                                <td class="text-end"><span id="modal-total-pakan-kg">0</span> kg</td>
+                                            </tr>
+                                            <tr>
+                                                <th class="text-muted">Total Biaya Pakan</th>
+                                                <td class="text-end">Rp <span id="modal-total-biaya-pakan">0</span></td>
+                                            </tr>
+                                            <tr>
+                                                <th class="text-muted">Biaya Kesehatan &amp; Vaksinasi</th>
+                                                <td class="text-end">Rp <span id="modal-total-biaya-kesehatan">0</span></td>
+                                            </tr>
+                                            <tr class="table-light fw-bold">
+                                                <th>Total Keseluruhan</th>
+                                                <td class="text-end text-success">Rp <span id="modal-total-keseluruhan">0</span></td>
+                                            </tr>
+                                            <tr>
+                                                <th class="text-muted">Biaya per Ekor (estimasi)</th>
+                                                <td class="text-end">Rp <span id="modal-biaya-per-ekor">0</span></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <small class="text-muted d-block mt-3">Angka dihitung secara real-time dari data pencatatan terakhir.</small>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                             </div>
                         </div>
                     </div>
@@ -355,12 +740,15 @@
                 @php
                     $user = auth()->user();
                     $isOwnerOrSuperAdmin = $user && ($user->peran === 'owner' || $user->peran === 'super_admin');
+                    $isOperator = $user && $user->peran === 'operator';
                     $isAktif = strtolower($pembesaran->status_batch ?? 'aktif') === 'aktif';
                     $targetUmur = 35;
+                    $umurMemenuhiTarget = $umurHari >= $targetUmur;
                     $targetTercapai =
-                        $umurHari >= $targetUmur &&
+                        $umurMemenuhiTarget &&
                         (!$pembesaran->target_berat_akhir ||
                             $pembesaran->berat_rata_rata >= $pembesaran->target_berat_akhir);
+                    $operatorBolehSelesai = $isOperator && $umurMemenuhiTarget;
                 @endphp
 
                 @if ($isAktif)
@@ -396,11 +784,18 @@
                                                             style="margin-right: 0.35rem;"></i>Overdrive Mode: Anda
                                                         dapat menyelesaikan kapan pun
                                                     </span>
+                                                @elseif ($operatorBolehSelesai)
+                                                    <br>
+                                                    <span class="badge mt-2"
+                                                        style="background-color: #d1fae5; color: #047857;">
+                                                        <i class="fa-solid fa-user-gear" style="margin-right: 0.35rem;"></i>
+                                                        Operator dapat menyelesaikan karena umur sudah mencapai {{ $targetUmur }} hari
+                                                    </span>
                                                 @endif
                                             @endif
                                         </div>
                                     </div>
-                                    @if ($isOwnerOrSuperAdmin || $targetTercapai)
+                                    @if ($isOwnerOrSuperAdmin || $targetTercapai || $operatorBolehSelesai)
                                         <div style="flex-shrink: 0;">
                                             <form action="{{ route('admin.pembesaran.selesaikan', $pembesaran) }}"
                                                 method="POST"
@@ -613,7 +1008,7 @@
                             <i class="fa-solid fa-chevron-down"></i>
                         </button>
                     </div>
-                    <div id="laporan-history-content" style="display: block;">
+                    <div id="laporan-history-content" class="history-scroll-container" style="display: block;">
                         <p class="text-muted small mb-0">Loading...</p>
                     </div>
                 </div>
@@ -808,6 +1203,36 @@
                     weeklyTabElement.click();
                 }
             }, 200);
+        }
+
+        // Mobile Tab Selector Functionality
+        const mobileTabSelector = document.getElementById('mobileTabSelector');
+        if (mobileTabSelector) {
+            // Set initial value based on active tab
+            const activeTab = document.querySelector('#batchTabs .nav-link.active');
+            if (activeTab) {
+                const targetId = activeTab.getAttribute('data-bs-target');
+                mobileTabSelector.value = targetId;
+            }
+
+            // Handle select change
+            mobileTabSelector.addEventListener('change', function() {
+                const selectedValue = this.value;
+                const targetTab = document.querySelector(`button[data-bs-target="${selectedValue}"]`);
+                if (targetTab) {
+                    targetTab.click();
+                }
+            });
+
+            // Sync select with tab changes
+            tabButtons.forEach(button => {
+                button.addEventListener('shown.bs.tab', function(event) {
+                    const targetId = event.target.getAttribute('data-bs-target');
+                    if (targetId && mobileTabSelector.value !== targetId) {
+                        mobileTabSelector.value = targetId;
+                    }
+                });
+            });
         }
     });
 </script>

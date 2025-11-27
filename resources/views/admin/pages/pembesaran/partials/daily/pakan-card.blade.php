@@ -1,7 +1,7 @@
 {{-- Konsumsi Pakan Harian --}}
 <div class="card lopa-card mb-0">
     <h5 class="section-title lopa-section-title">
-        <i class="fa-solid fa-bowl-food" style="color:var(--accent)"></i> 
+        <i class="fa-solid fa-bowl-food" style="color:var(--accent)"></i>
         Konsumsi Pakan Harian
     </h5>
     <form class="form-card p-3 mb-3 lopa-form-card" aria-label="Form pencatatan pakan harian">
@@ -68,8 +68,47 @@
                 <i class="fa-solid fa-chevron-down"></i>
             </button>
         </div>
-        <div id="pakan-history-content" style="display: block;">
+        <div id="pakan-history-content" class="history-scroll-container" style="display: block;">
             <p class="text-muted small mb-0">Loading...</p>
         </div>
     </div>
 </div>
+
+<style>
+/* Mobile responsiveness for pakan form */
+@media (max-width: 768px) {
+    .lopa-form-card .row.g-3 .col-md-4 {
+        flex: 0 0 100%;
+        max-width: 100%;
+        margin-bottom: 1rem;
+    }
+
+    .lopa-form-card .text-end.mt-3 {
+        text-align: center !important;
+    }
+
+    .lopa-form-card .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .lopa-form-card {
+        padding: 1rem !important;
+    }
+
+    .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control, .form-select {
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .form-text {
+        font-size: 0.8rem;
+    }
+}
+</style>

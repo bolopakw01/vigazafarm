@@ -77,6 +77,58 @@ function recalcTotalBiayaKeseluruhan() {
     updateTextValue('#info-total-biaya-keseluruhan', formatCurrency(grandTotal), grandTotal);
 }
 
+function getNumericFromElement(selector) {
+    const el = document.querySelector(selector);
+    if (!el) return 0;
+    const datasetValue = el.dataset?.value;
+    if (datasetValue !== undefined) {
+        const parsed = parseFloat(datasetValue);
+        if (!Number.isNaN(parsed)) return parsed;
+    }
+    const rawText = (el.textContent || '').replace(/[^0-9,.-]/g, '');
+    if (!rawText) return 0;
+    const normalized = rawText.replace(/\./g, '').replace(',', '.');
+    const numeric = parseFloat(normalized);
+    return Number.isNaN(numeric) ? 0 : numeric;
+}
+
+function getRingkasanBiayaData() {
+    const panel = document.getElementById('ringkasan-biaya-panel');
+    const populasi = parseFloat(panel?.dataset?.populasi || 0) || 0;
+    const batch = panel?.dataset?.batch || '-';
+    const totalPakanKg = getNumericFromElement('#info-total-pakan-kg');
+    const totalBiayaPakan = getNumericFromElement('#info-total-biaya-pakan');
+    const totalBiayaKesehatan = getNumericFromElement('#info-total-biaya-kesehatan');
+    const totalKeseluruhan = getNumericFromElement('#info-total-biaya-keseluruhan');
+    const biayaPerEkor = populasi > 0 ? totalKeseluruhan / populasi : 0;
+
+    return {
+        batch,
+        populasi,
+        totalPakanKg,
+        totalBiayaPakan,
+        totalBiayaKesehatan,
+        totalKeseluruhan,
+        biayaPerEkor
+    };
+}
+
+function downloadCsv(filename, rows) {
+    const csvContent = rows
+        .map((row) => row.map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
 function updatePakanSummaries(summary) {
     if (!summary) return;
     const totalKg = parseFloat(summary.total_konsumsi_kg ?? 0) || 0;
@@ -658,6 +710,52 @@ if (laporanForm) {
             console.error('Error checking existing laporan:', err);
             showToast('Gagal memeriksa laporan tersedia. Silakan coba lagi.', 'error');
         }
+    });
+}
+
+// ========== RINGKASAN BIAYA ACTIONS ==========
+
+const ringkasanDetailBtn = document.getElementById('btn-ringkasan-detail');
+if (ringkasanDetailBtn) {
+    ringkasanDetailBtn.addEventListener('click', () => {
+        const data = getRingkasanBiayaData();
+        updateTextValue('#modal-total-pakan-kg', formatKg(data.totalPakanKg), data.totalPakanKg);
+        updateTextValue('#modal-total-biaya-pakan', formatCurrency(data.totalBiayaPakan), data.totalBiayaPakan);
+        updateTextValue('#modal-total-biaya-kesehatan', formatCurrency(data.totalBiayaKesehatan), data.totalBiayaKesehatan);
+        updateTextValue('#modal-total-keseluruhan', formatCurrency(data.totalKeseluruhan), data.totalKeseluruhan);
+        updateTextValue('#modal-biaya-per-ekor', formatCurrency(Math.round(data.biayaPerEkor)), data.biayaPerEkor);
+
+        const modalEl = document.getElementById('ringkasanBiayaModal');
+        if (modalEl && window.bootstrap?.Modal) {
+            const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modalInstance.show();
+        }
+    });
+}
+
+const ringkasanExportBtn = document.getElementById('btn-ringkasan-export');
+if (ringkasanExportBtn) {
+    ringkasanExportBtn.addEventListener('click', () => {
+        const data = getRingkasanBiayaData();
+        const now = new Date();
+        const timestamp = now.toLocaleString('id-ID');
+        const filenameDate = now.toISOString().slice(0, 10);
+        const filename = `ringkasan-biaya-${data.batch || 'batch'}-${filenameDate}.csv`;
+
+        const rows = [
+            ['Item', 'Nilai', 'Satuan'],
+            ['Batch', data.batch, ''],
+            ['Tanggal Export', timestamp, ''],
+            ['Populasi Saat Ini', data.populasi.toLocaleString('id-ID'), 'ekor'],
+            ['Total Konsumsi Pakan', data.totalPakanKg.toFixed(2), 'kg'],
+            ['Total Biaya Pakan', `Rp ${formatCurrency(data.totalBiayaPakan)}`, '-'],
+            ['Biaya Kesehatan & Vaksinasi', `Rp ${formatCurrency(data.totalBiayaKesehatan)}`, '-'],
+            ['Total Keseluruhan', `Rp ${formatCurrency(data.totalKeseluruhan)}`, '-'],
+            ['Biaya per Ekor', `Rp ${formatCurrency(Math.round(data.biayaPerEkor))}`, '-']
+        ];
+
+        downloadCsv(filename, rows);
+        showToast('Ringkasan biaya berhasil diekspor ke CSV');
     });
 }
 
