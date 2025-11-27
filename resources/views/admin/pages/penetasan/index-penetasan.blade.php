@@ -180,7 +180,9 @@
                                         'formatted_dibuat_pada' => optional($item->dibuat_pada)->format('d/m/Y H:i'),
                                         'formatted_diperbarui_pada' => optional($item->diperbarui_pada)->format('d/m/Y H:i'),
                                         'iot_mode' => $iotMode ?? 'simple',
-                                        'iot_snapshot' => $kandangSnapshot
+                                        'iot_snapshot' => $kandangSnapshot,
+                                        'creator_name' => optional($item->creator)->nama_pengguna ?? 'Sistem',
+                                        'updater_name' => optional($item->updater)->nama_pengguna ?? (optional($item->creator)->nama_pengguna ?? 'Sistem')
                                     ]))">
                                     <img src="{{ asset('bolopa/img/icon/line-md--watch.svg') }}" alt="View" width="14" height="14">
                                 </button>
@@ -668,9 +670,18 @@
                 .bolopa-popup-content .stats-grid .stat-item .stat-body .desc{white-space:normal;word-wrap:break-word;width:100%;color:var(--muted);font-size:0.72rem;line-height:1.3}
                 .source-pill{margin-top:4px;font-size:.72rem;color:#64748b;font-weight:600}
                 .source-pill[data-mode="iot"]{color:#0d6efd}
+                /* Notes section scrollable - improved layout */
+                .note-card{display:flex;gap:12px;align-items:flex-start}
+                .note-inner{flex:1;min-height:0}
+                .note-desc{max-height:35px;overflow-y:auto;padding-right:8px;line-height:1.1;word-wrap:break-word}
+                .note-desc::-webkit-scrollbar{width:4px}
+                .note-desc::-webkit-scrollbar-track{background:#f1f5f9;border-radius:2px}
+                .note-desc::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+                .note-desc::-webkit-scrollbar-thumb:hover{background:#94a3b8}
                 @media (max-width:520px){
                     .bolopa-popup-content .stats-grid .stat-item .stat-body .label{font-size:.88rem}
                     .bolopa-popup-content .stats-grid .stat-item .stat-body .desc{font-size:.68rem}
+                    .note-desc{max-height:28px;font-size:0.85rem}
                 }
             </style>
             <div class="bolopa-popup-content" style="display:flex;flex-direction:column;gap:12px">
@@ -681,7 +692,7 @@
                         <div class="card-header">
                             <div>
                                 <h5>Ringkasan Hasil</h5>
-                                <div class="subtle-date">${escapeHtml(data.formatted_tanggal_menetas || '-')} • ${escapeHtml(data.kandang || 'Kandang')}</div>
+                                <div class="subtle-date">Dibuat oleh ${escapeHtml(data.creator_name || 'Sistem')} • ${escapeHtml(data.kandang || 'Kandang')}</div>
                             </div>
                             <div class="text-end"><small class="text-muted">Batch: <span class="id-val">${escapeHtml(data.batch || '-')}</span></small></div>
                         </div>
@@ -727,7 +738,7 @@
         </div>
 
         <div class="footer-row" style="margin:0;border-top-left-radius:0;border-top-right-radius:0;border-bottom-left-radius:12px;border-bottom-right-radius:12px;padding:.9rem 1.2rem;">
-            <div class="muted" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;"><div style="font-size:.92rem">Terakhir diperbarui: <strong>${escapeHtml(data.formatted_diperbarui_pada || '-')}</strong></div></div>
+            <div class="muted" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;"><div style="font-size:.92rem">Terakhir diperbarui: <strong>${escapeHtml(data.formatted_diperbarui_pada || '-')}</strong> oleh <strong>${escapeHtml(data.updater_name || data.creator_name || 'Sistem')}</strong></div></div>
             <div><button id="sw-copy" class="btn btn-sm btn-ghost me-2" title="Salin ringkasan" aria-label="Salin"><i class="fa-regular fa-copy me-1"></i> Salin</button><button id="sw-close" class="btn btn-sm btn-primary" aria-label="Tutup">Tutup</button></div>
         </div>
     </div>
@@ -788,10 +799,8 @@
                         const now = new Date();
                         let elapsedDays = 0;
                         if (startDate) {
-                            const endPoint = targetDate ? new Date(Math.min(now.getTime(), targetDate.getTime())) : now;
-                            elapsedDays = Math.max(0, Math.floor((endPoint - startDate) / DAY_MS));
+                            elapsedDays = Math.max(0, Math.floor((now - startDate) / DAY_MS));
                         }
-                        elapsedDays = Math.min(elapsedDays, totalDays);
                         const pct = totalDays > 0 ? Math.max(0, Math.min(100, (elapsedDays / totalDays) * 100)) : 0;
                         
                         // Format target date for display

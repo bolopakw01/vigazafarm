@@ -29,6 +29,8 @@ class Penetasan extends Model
         'status',
         'doc_ditransfer',
         'telur_infertil_ditransfer',
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
@@ -61,6 +63,22 @@ class Penetasan extends Model
     public function produksi()
     {
         return $this->hasMany(Produksi::class, 'penetasan_id');
+    }
+
+    /**
+     * Relasi ke user yang membuat record
+     */
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Relasi ke user yang terakhir mengupdate record
+     */
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     /**

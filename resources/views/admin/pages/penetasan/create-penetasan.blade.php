@@ -770,7 +770,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 estimasiInfo.style.display = 'flex';
             }
             if (estimasiText) {
-                estimasiText.textContent = formatTanggalIndonesia(dateValue) + ' (± 1 hari)';
+                const tanggalSimpan = tanggalSimpanInput?.value;
+                let displayText = '';
+                
+                // Check estimated duration
+                if (tanggalSimpan && dateValue) {
+                    const startDate = new Date(tanggalSimpan);
+                    const endDate = new Date(dateValue);
+                    const diffTime = Math.abs(endDate - startDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays < 17) {
+                        // Calculate expected date if exactly 17 days
+                        const expectedDate = new Date(startDate);
+                        expectedDate.setDate(expectedDate.getDate() + 17);
+                        const expectedDateFormatted = formatTanggalIndonesia(expectedDate.toISOString().split('T')[0]);
+                        
+                        displayText = `<span class="text-warning" style="font-weight: 500;"><i class="fa-solid fa-exclamation-triangle me-1"></i>Estimasi terlalu pendek (${diffDays} hari) - ${expectedDateFormatted}</span>`;
+                    } else if (diffDays > 18) {
+                        // Calculate expected date if exactly 18 days
+                        const expectedDate = new Date(startDate);
+                        expectedDate.setDate(expectedDate.getDate() + 18);
+                        const expectedDateFormatted = formatTanggalIndonesia(expectedDate.toISOString().split('T')[0]);
+                        
+                        displayText = `<span class="text-warning" style="font-weight: 500;"><i class="fa-solid fa-exclamation-triangle me-1"></i>Estimasi melebihi durasi normal (${diffDays} hari) - ${expectedDateFormatted}</span>`;
+                    } else {
+                        displayText = formatTanggalIndonesia(dateValue) + ' (± 1 hari)';
+                    }
+                } else {
+                    displayText = formatTanggalIndonesia(dateValue) + ' (± 1 hari)';
+                }
+                
+                estimasiText.innerHTML = displayText;
             }
         } else {
             if (estimasiInfo) {

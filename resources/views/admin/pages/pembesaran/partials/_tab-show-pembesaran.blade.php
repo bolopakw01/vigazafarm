@@ -676,9 +676,9 @@
                             </div>
                             <div class="row g-2 mt-3">
                                 <div class="col-12">
-                                    <button type="button" id="btn-ringkasan-detail" class="btn btn-outline-primary btn-sm w-100">
+                                    <a href="{{ route('admin.pembesaran.detail-biaya', $pembesaran) }}" class="btn btn-outline-primary btn-sm w-100">
                                         <i class="fa-solid fa-file-invoice me-1"></i> Lihat Detail Biaya
-                                    </button>
+                                    </a>
                                 </div>
                                 <div class="col-12">
                                     <button type="button" id="btn-ringkasan-export" class="btn btn-outline-success btn-sm w-100">
@@ -690,51 +690,7 @@
                     </div>
                 </div>
 
-                <!-- Modal Detail Ringkasan Biaya -->
-                <div class="modal fade" id="ringkasanBiayaModal" tabindex="-1" aria-labelledby="ringkasanBiayaModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="ringkasanBiayaModalLabel">
-                                    <i class="fa-solid fa-clipboard-list me-2 text-primary"></i>Detail Ringkasan Biaya
-                                </h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="table-responsive">
-                                    <table class="table table-sm align-middle mb-0">
-                                        <tbody>
-                                            <tr>
-                                                <th class="text-muted" style="width:55%">Total Konsumsi Pakan</th>
-                                                <td class="text-end"><span id="modal-total-pakan-kg">0</span> kg</td>
-                                            </tr>
-                                            <tr>
-                                                <th class="text-muted">Total Biaya Pakan</th>
-                                                <td class="text-end">Rp <span id="modal-total-biaya-pakan">0</span></td>
-                                            </tr>
-                                            <tr>
-                                                <th class="text-muted">Biaya Kesehatan &amp; Vaksinasi</th>
-                                                <td class="text-end">Rp <span id="modal-total-biaya-kesehatan">0</span></td>
-                                            </tr>
-                                            <tr class="table-light fw-bold">
-                                                <th>Total Keseluruhan</th>
-                                                <td class="text-end text-success">Rp <span id="modal-total-keseluruhan">0</span></td>
-                                            </tr>
-                                            <tr>
-                                                <th class="text-muted">Biaya per Ekor (estimasi)</th>
-                                                <td class="text-end">Rp <span id="modal-biaya-per-ekor">0</span></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <small class="text-muted d-block mt-3">Angka dihitung secara real-time dari data pencatatan terakhir.</small>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
 
                 {{-- Action Buttons --}}
                 @php

@@ -87,6 +87,7 @@ class PenetasanController extends Controller
 
         // Set status default to 'proses'
         $data['status'] = 'proses';
+        $data['created_by'] = Auth::id();
 
         $penetasan = Penetasan::create($data);
 
@@ -158,19 +159,31 @@ class PenetasanController extends Controller
             'status' => 'nullable|in:proses,selesai,gagal',
         ]);
 
+        $user = Auth::user();
+        $canOwnerOverride = $user && in_array($user->peran, ['owner', 'super_admin']);
+        $ownerOverrideActive = $canOwnerOverride && $request->boolean('owner_override_active');
+
         if (empty($data['estimasi_tanggal_menetas'])) {
             $data['estimasi_tanggal_menetas'] = Carbon::parse($data['tanggal_simpan_telur'])->addDays(17);
         }
 
         // Calculate persentase_tetas if data is complete
-        if (isset($data['jumlah_telur']) && isset($data['jumlah_menetas']) && $data['jumlah_telur'] > 0) {
+        if ($ownerOverrideActive && isset($data['jumlah_telur'], $data['jumlah_menetas']) && $data['jumlah_telur'] > 0) {
             $data['persentase_tetas'] = ($data['jumlah_menetas'] / $data['jumlah_telur']) * 100;
+        } else {
+            unset($data['persentase_tetas']);
         }
 
         // Auto-set status to selesai if tanggal_menetas is filled and status not manually set
-        if (!empty($data['tanggal_menetas']) && !isset($data['status'])) {
+        if ($ownerOverrideActive && !empty($data['tanggal_menetas']) && !isset($data['status'])) {
             $data['status'] = 'selesai';
         }
+
+        if (!$ownerOverrideActive) {
+            unset($data['status'], $data['tanggal_menetas'], $data['jumlah_menetas'], $data['jumlah_doc']);
+        }
+
+        $data['updated_by'] = Auth::id();
 
         $penetasan->update($data);
 

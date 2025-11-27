@@ -54,6 +54,36 @@
 .custom-switch input:focus + .slider {
     box-shadow: 0 0 1px #f59e0b;
 }
+
+.ready-date-wrapper {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.ready-date-wrapper .ready-offset-select {
+    max-width: 190px;
+}
+
+.ready-helper-actions {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: #475569;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.ready-helper-actions button {
+    border: none;
+    background: none;
+    color: #2563eb;
+    font-weight: 600;
+    padding: 0;
+    cursor: pointer;
+}
 </style>
 @endpush
 
@@ -233,10 +263,20 @@
                             <label for="tanggal_siap" class="form-label">
                                 Perkiraan Tanggal Siap
                             </label>
-                            <input type="date" name="tanggal_siap" id="tanggal_siap" class="form-control" 
-                                value="{{ old('tanggal_siap', $pembesaran->tanggal_siap ? $pembesaran->tanggal_siap->format('Y-m-d') : '') }}" 
-                                min="{{ date('Y-m-d') }}">
-                            <small class="form-text">Estimasi tanggal siap dipindah ke produksi/penjualan</small>
+                            <div class="ready-date-wrapper">
+                                <input type="date" name="tanggal_siap" id="tanggal_siap" class="form-control" 
+                                    value="{{ old('tanggal_siap', $pembesaran->tanggal_siap ? $pembesaran->tanggal_siap->format('Y-m-d') : '') }}">
+                                <select id="tanggal_siap_offset" class="form-control ready-offset-select" data-default-days="38">
+                                    <option value="35">+35 hari (cepat)</option>
+                                    <option value="38" selected>+38 hari (standar)</option>
+                                    <option value="40">+40 hari (maksimal)</option>
+                                </select>
+                            </div>
+                            <div class="ready-helper-actions">
+                                <span>Gunakan estimasi otomatis 35-40 hari dari tanggal masuk.</span>
+                                <button type="button" id="btnApplyReadyEstimate">Hitung ulang estimasi</button>
+                            </div>
+                            <small class="form-text">Nilai ini tetap bisa Anda sesuaikan secara manual.</small>
                         </div>
 
                         <div class="form-group">
@@ -268,6 +308,7 @@
                                     <input type="checkbox" id="ownerOverrideToggle">
                                     <span class="slider"></span>
                                 </label>
+                                <input type="hidden" name="owner_override_active" id="ownerOverrideFlag" value="0">
                                 <span id="ownerOverrideLabel" style="font-size: 14px; color: #64748b;">
                                     Aktifkan untuk override status pembesaran
                                 </span>
@@ -492,16 +533,73 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnSubmit = document.getElementById('btnSubmit');
     const tanggalMasuk = document.getElementById('tanggal_masuk');
     const tanggalSiap = document.getElementById('tanggal_siap');
+    const tanggalSiapOffset = document.getElementById('tanggal_siap_offset');
+    const btnApplyReadyEstimate = document.getElementById('btnApplyReadyEstimate');
     const jumlahInput = document.getElementById('jumlah_anak_ayam');
+    const READY_MIN_DAYS = 35;
+    const READY_MAX_DAYS = 40;
 
-    // Auto-calculate tanggal siap (35-42 hari untuk puyuh, default: 40 hari)
-    tanggalMasuk.addEventListener('change', function() {
-        if (this.value && !tanggalSiap.value) {
-            const masuk = new Date(this.value);
-            masuk.setDate(masuk.getDate() + 40); // 40 hari standar pembesaran
-            tanggalSiap.value = masuk.toISOString().split('T')[0];
+    function getSelectedReadyDays() {
+        const fallback = parseInt(tanggalSiapOffset?.dataset?.defaultDays ?? '38', 10) || 38;
+        const raw = parseInt(tanggalSiapOffset?.value ?? fallback, 10);
+        return Math.min(READY_MAX_DAYS, Math.max(READY_MIN_DAYS, raw || fallback));
+    }
+
+    function applyReadyEstimate({ force = false, showToast = false } = {}) {
+        if (!tanggalMasuk?.value || !tanggalSiap) {
+            return;
+        }
+
+        const isManual = tanggalSiap.dataset?.manual === 'true';
+        if (!force && isManual) {
+            return;
+        }
+
+        const masukDate = new Date(tanggalMasuk.value);
+        if (Number.isNaN(masukDate.getTime())) {
+            return;
+        }
+
+        const offsetDays = getSelectedReadyDays();
+        masukDate.setDate(masukDate.getDate() + offsetDays);
+        tanggalSiap.value = masukDate.toISOString().split('T')[0];
+        tanggalSiap.dataset.manual = 'false';
+
+        if (showToast) {
+            triggerFlashToast('info', 'Estimasi diterapkan', `Tanggal siap diperkirakan +${offsetDays} hari.`);
+        }
+    }
+
+    tanggalMasuk?.addEventListener('change', () => applyReadyEstimate());
+    tanggalSiapOffset?.addEventListener('change', () => {
+        if (tanggalSiap) {
+            tanggalSiap.dataset.manual = 'false';
+        }
+        applyReadyEstimate({ force: true });
+    });
+
+    btnApplyReadyEstimate?.addEventListener('click', () => {
+        if (tanggalSiap) {
+            tanggalSiap.dataset.manual = 'false';
+        }
+        applyReadyEstimate({ force: true, showToast: true });
+    });
+
+    tanggalSiap?.addEventListener('input', () => {
+        if (tanggalSiap) {
+            tanggalSiap.dataset.manual = 'true';
         }
     });
+
+    tanggalSiap?.addEventListener('change', () => {
+        if (tanggalSiap) {
+            tanggalSiap.dataset.manual = 'true';
+        }
+    });
+
+    if (!tanggalSiap?.value) {
+        applyReadyEstimate({ force: true });
+    }
 
     // Form submission dengan SweetAlert2 confirmation
     form.addEventListener('submit', function(e) {
@@ -556,6 +654,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 form.reset();
+                if (tanggalSiap) {
+                    tanggalSiap.dataset.manual = 'false';
+                }
+                setTimeout(() => applyReadyEstimate({ force: true }), 50);
                 triggerFlashToast('success', 'Berhasil!', 'Form pembesaran berhasil direset.', 2200);
             }
         });
@@ -585,44 +687,66 @@ document.addEventListener('DOMContentLoaded', function() {
     const ownerOverrideToggle = document.getElementById('ownerOverrideToggle');
     const ownerOverrideSection = document.getElementById('ownerOverrideSection');
     const ownerOverrideLabel = document.getElementById('ownerOverrideLabel');
+    const ownerOverrideFlag = document.getElementById('ownerOverrideFlag');
     const statusBatchInput = document.getElementById('status_batch');
     const tanggalSelesaiInput = document.getElementById('tanggal_selesai');
+    const ownerOverrideDefaultActive = @json(
+        (auth()->user()->peran === 'owner' || auth()->user()->peran === 'super_admin') && (
+            (isset($pembesaran->status_batch) && strtolower($pembesaran->status_batch) !== 'aktif') ||
+            !empty($pembesaran->tanggal_selesai)
+        )
+    );
+
+    function setPembesaranOverrideState(isActive, { skipScroll = false } = {}) {
+        if (!ownerOverrideSection || !ownerOverrideLabel) {
+            return;
+        }
+
+        ownerOverrideSection.style.display = isActive ? 'block' : 'none';
+        ownerOverrideLabel.innerHTML = isActive
+            ? '<i class="fa-solid fa-check-circle"></i> Override aktif - Status pembesaran tersedia'
+            : 'Aktifkan untuk override status pembesaran';
+        ownerOverrideLabel.style.color = isActive ? '#dc3545' : '#64748b';
+        ownerOverrideLabel.style.fontWeight = isActive ? '600' : '400';
+
+        if (ownerOverrideFlag) {
+            ownerOverrideFlag.value = isActive ? '1' : '0';
+        }
+
+        if (statusBatchInput) {
+            statusBatchInput.disabled = !isActive;
+        }
+
+        if (tanggalSelesaiInput) {
+            tanggalSelesaiInput.disabled = !isActive;
+        }
+
+        if (isActive && !skipScroll) {
+            setTimeout(() => {
+                ownerOverrideSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+    }
 
     if (ownerOverrideToggle && ownerOverrideSection) {
         ownerOverrideToggle.addEventListener('change', function() {
-            if (this.checked) {
-                ownerOverrideSection.style.display = 'block';
-                ownerOverrideLabel.innerHTML = '<i class="fa-solid fa-check-circle"></i> Override aktif - Status pembesaran tersedia';
-                ownerOverrideLabel.style.color = '#dc3545';
-                ownerOverrideLabel.style.fontWeight = '600';
-                
-                // Enable fields ketika toggle aktif
-                if (statusBatchInput) statusBatchInput.disabled = false;
-                if (tanggalSelesaiInput) tanggalSelesaiInput.disabled = false;
-                
-                // Scroll ke section
-                setTimeout(() => {
-                    ownerOverrideSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }, 100);
-            } else {
-                ownerOverrideSection.style.display = 'none';
-                ownerOverrideLabel.textContent = 'Aktifkan untuk override status pembesaran';
-                ownerOverrideLabel.style.color = '#64748b';
-                ownerOverrideLabel.style.fontWeight = '400';
-                
-                // Disable fields ketika toggle non-aktif (opsional, atau bisa tetap enable)
-                // Komentar bagian ini agar field tetap terkirim meskipun section hidden
-                // if (statusBatchInput) statusBatchInput.disabled = true;
-                // if (tanggalSelesaiInput) tanggalSelesaiInput.disabled = true;
-            }
+            setPembesaranOverrideState(this.checked);
         });
+
+        if (ownerOverrideDefaultActive) {
+            ownerOverrideToggle.checked = true;
+            setPembesaranOverrideState(true, { skipScroll: true });
+        } else {
+            setPembesaranOverrideState(false, { skipScroll: true });
+        }
     }
     
-    // Pastikan field tidak disabled saat form disubmit
-    form.addEventListener('submit', function(e) {
-        // Enable semua field yang mungkin disabled agar data terkirim
-        if (statusBatchInput) statusBatchInput.disabled = false;
-        if (tanggalSelesaiInput) tanggalSelesaiInput.disabled = false;
+    // Pastikan field aktif sesuai toggle saat submit
+    form.addEventListener('submit', function() {
+        if (ownerOverrideToggle && ownerOverrideToggle.checked) {
+            if (statusBatchInput) statusBatchInput.disabled = false;
+            if (tanggalSelesaiInput) tanggalSelesaiInput.disabled = false;
+        }
     });
 });
 </script>

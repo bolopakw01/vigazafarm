@@ -61,8 +61,8 @@
     <div class="note-panel alt lopa-note-panel lopa-alt" id="pakan-history-container">
         <div class="d-flex justify-content-between align-items-center mb-2" style="cursor: pointer;" onclick="toggleHistory('pakan')">
             <h6 class="mb-0">
-                <i class="fa-solid fa-clock-rotate-left me-1" style="color:#10b981;"></i>
-                History Pakan (30 hari terakhir)
+                <i class="fa-solid fa-clipboard-list me-1" style="color:#10b981;"></i>
+                History Pencatatan Pakan (30 hari terakhir)
             </h6>
             <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" id="toggle-pakan">
                 <i class="fa-solid fa-chevron-down"></i>

@@ -9,6 +9,7 @@ use App\Models\Produksi;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * ==========================================
@@ -76,19 +77,19 @@ class AdminController extends Controller
         $perPage = $request->get('per_page', 5);
         $search = $request->get('search', '');
 
-        $query = Penetasan::with('kandang');
+        $query = Penetasan::with('kandang', 'creator', 'updater');
 
         // Fungsionalitas pencarian
         if ($search) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('jumlah_telur', 'like', "%{$search}%")
-                  ->orWhere('jumlah_menetas', 'like', "%{$search}%")
-                  ->orWhere('jumlah_doc', 'like', "%{$search}%")
-                  ->orWhere('tanggal_simpan_telur', 'like', "%{$search}%")
-                  ->orWhere('tanggal_menetas', 'like', "%{$search}%")
-                  ->orWhereHas('kandang', function($q) use ($search) {
-                      $q->where('nama_kandang', 'like', "%{$search}%");
-                  });
+                    ->orWhere('jumlah_menetas', 'like', "%{$search}%")
+                    ->orWhere('jumlah_doc', 'like', "%{$search}%")
+                    ->orWhere('tanggal_simpan_telur', 'like', "%{$search}%")
+                    ->orWhere('tanggal_menetas', 'like', "%{$search}%")
+                    ->orWhereHas('kandang', function ($q) use ($search) {
+                        $q->where('nama_kandang', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -116,7 +117,7 @@ class AdminController extends Controller
             $penetasanItems = collect($penetasan->items());
             $kandangIds = $penetasanItems
                 ->pluck('kandang_id')
-                ->filter(fn ($id) => $id !== null)
+                ->filter(fn($id) => $id !== null)
                 ->unique();
 
             if ($kandangIds->isNotEmpty()) {
@@ -140,8 +141,9 @@ class AdminController extends Controller
                     ->toArray();
             }
         }
-        
-        return view('admin.pages.penetasan.index-penetasan', compact('penetasan', 'iotMode', 'iotSnapshots'));
+        $currentUser = auth()->user();
+
+        return view('admin.pages.penetasan.index-penetasan', compact('penetasan', 'iotMode', 'iotSnapshots', 'currentUser'));
     }
 
     public function produksi(Request $request)
@@ -157,13 +159,13 @@ class AdminController extends Controller
         $query = \App\Models\Produksi::with('kandang');
 
         if ($search) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('batch_produksi_id', 'like', "%{$search}%")
-                  ->orWhere('catatan', 'like', "%{$search}%")
-                  ->orWhere('tipe_produksi', 'like', "%{$search}%")
-                  ->orWhereHas('kandang', function($q) use ($search) {
-                      $q->where('nama_kandang', 'like', "%{$search}%");
-                  });
+                    ->orWhere('catatan', 'like', "%{$search}%")
+                    ->orWhere('tipe_produksi', 'like', "%{$search}%")
+                    ->orWhereHas('kandang', function ($q) use ($search) {
+                        $q->where('nama_kandang', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -173,45 +175,45 @@ class AdminController extends Controller
 
         // Agregat KPI
         $totalTelur = \App\Models\LaporanHarian::selectRaw('COALESCE(SUM(produksi_telur),0) as total')->value('total') ?? 0;
-        
+
         // Rata-rata telur per hari dari laporan harian yang memiliki produksi
         $laporanCount = \App\Models\LaporanHarian::where('produksi_telur', '>', 0)->count();
         $rataTelurPerHari = $laporanCount > 0 ? round($totalTelur / $laporanCount, 2) : 0;
-        
+
         // Pendapatan estimasi
-        $pendapatan = $produksi->sum(function($p) { 
-            return ($p->jumlah_telur ?? 0) * ($p->harga_per_pcs ?? 0); 
+        $pendapatan = $produksi->sum(function ($p) {
+            return ($p->jumlah_telur ?? 0) * ($p->harga_per_pcs ?? 0);
         });
-        
+
         // Tingkat kehilangan: hitung dari mortalitas kumulatif rata-rata
         // Atau bisa dari jumlah kematian dibanding populasi
         $totalKematian = \App\Models\LaporanHarian::selectRaw('COALESCE(SUM(jumlah_kematian),0) as total')->value('total') ?? 0;
         $totalPopulasi = \App\Models\LaporanHarian::selectRaw('COALESCE(AVG(jumlah_burung),0) as total')->value('total') ?? 0;
         $lostRate = $totalPopulasi > 0 ? round(($totalKematian / $totalPopulasi) * 100, 2) : 0;
-        
+
         // Batch aktif (status aktif)
         $batchAktif = \App\Models\Produksi::where('status', 'aktif')->distinct('batch_produksi_id')->count('batch_produksi_id');
-        
+
         // Kandang aktif yang sedang produksi
         $kandangAktif = \App\Models\Produksi::where('status', 'aktif')->distinct('kandang_id')->count('kandang_id');
-        
+
         // Usia rata-rata produksi (dalam hari dari tanggal_mulai)
         $usiaRataRata = \App\Models\Produksi::where('status', 'aktif')
             ->selectRaw('AVG(DATEDIFF(NOW(), tanggal_mulai)) as avg_usia')
             ->value('avg_usia') ?? 0;
         $usiaRataRata = round($usiaRataRata);
-        
+
         // Total indukan dari semua batch aktif
         $totalIndukan = \App\Models\Produksi::where('status', 'aktif')->sum('jumlah_indukan') ?? 0;
 
         $kandangList = \App\Models\Kandang::orderBy('nama_kandang')->get();
 
         return view('admin.pages.produksi.index-produksi', compact(
-            'produksi', 
-            'kandangList', 
-            'totalTelur', 
-            'rataTelurPerHari', 
-            'pendapatan', 
+            'produksi',
+            'kandangList',
+            'totalTelur',
+            'rataTelurPerHari',
+            'pendapatan',
             'lostRate',
             'batchAktif',
             'kandangAktif',
@@ -252,7 +254,7 @@ class AdminController extends Controller
     {
         $year = now()->year;
         $labels = collect(range(1, 12))
-            ->map(fn ($month) => Carbon::create($year, $month, 1)->translatedFormat('M'))
+            ->map(fn($month) => Carbon::create($year, $month, 1)->translatedFormat('M'))
             ->toArray();
 
         return [
@@ -281,7 +283,7 @@ class AdminController extends Controller
     {
         $endYear = now()->year;
         $years = range($endYear - 4, $endYear);
-        $labels = array_map(fn ($year) => (string) $year, $years);
+        $labels = array_map(fn($year) => (string) $year, $years);
 
         return [
             'labels' => $labels,
@@ -352,7 +354,7 @@ class AdminController extends Controller
             ->all();
 
         return collect(range(1, 12))
-            ->map(fn ($month) => (int) ($raw[$month] ?? 0))
+            ->map(fn($month) => (int) ($raw[$month] ?? 0))
             ->toArray();
     }
 
@@ -375,7 +377,7 @@ class AdminController extends Controller
             ->all();
 
         return collect($years)
-            ->map(fn ($year) => (int) ($raw[$year] ?? 0))
+            ->map(fn($year) => (int) ($raw[$year] ?? 0))
             ->toArray();
     }
 
@@ -392,7 +394,7 @@ class AdminController extends Controller
             ->all();
 
         return collect($dateKeys)
-            ->map(fn ($date) => (int) ($raw[$date] ?? 0))
+            ->map(fn($date) => (int) ($raw[$date] ?? 0))
             ->toArray();
     }
 
@@ -433,6 +435,6 @@ class AdminController extends Controller
             return $columns;
         }
 
-        return array_values(array_filter($columns, fn ($column) => Schema::hasColumn($table, $column)));
+        return array_values(array_filter($columns, fn($column) => Schema::hasColumn($table, $column)));
     }
 }

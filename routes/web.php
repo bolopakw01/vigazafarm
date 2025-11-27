@@ -105,6 +105,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/pembesaran/from-penetasan/{penetasan}', [App\Http\Controllers\PembesaranController::class, 'createFromPenetasan'])->name('admin.pembesaran.createFromPenetasan');
     Route::post('/admin/pembesaran/from-penetasan/{penetasan}', [App\Http\Controllers\PembesaranController::class, 'storeFromPenetasan'])->name('admin.pembesaran.storeFromPenetasan');
     Route::get('/admin/pembesaran/{pembesaran}', [App\Http\Controllers\PembesaranController::class, 'show'])->name('admin.pembesaran.show');
+    Route::get('/admin/pembesaran/{pembesaran}/biaya', [App\Http\Controllers\PembesaranController::class, 'detailBiaya'])->name('admin.pembesaran.detail-biaya');
     Route::get('/admin/pembesaran/{pembesaran}/edit', [App\Http\Controllers\PembesaranController::class, 'edit'])->name('admin.pembesaran.edit');
     Route::patch('/admin/pembesaran/{pembesaran}', [App\Http\Controllers\PembesaranController::class, 'update'])->name('admin.pembesaran.update');
     Route::post('/admin/pembesaran/{pembesaran}/selesaikan', [App\Http\Controllers\PembesaranController::class, 'selesaikanBatch'])->name('admin.pembesaran.selesaikan');

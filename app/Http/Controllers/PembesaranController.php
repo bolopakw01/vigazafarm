@@ -6,9 +6,18 @@ use App\Models\Pembesaran;
 use App\Models\Penetasan;
 use App\Models\Kandang;
 use App\Models\FeedVitaminItem;
+use App\Models\Pakan;
+use App\Models\Kematian;
+use App\Models\MonitoringLingkungan;
+use App\Models\Kesehatan;
+use App\Models\LaporanHarian;
+use App\Models\FeedHistory;
+use App\Models\BeratSampling;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 /**
  * ==========================================
@@ -20,6 +29,10 @@ use Illuminate\Support\Facades\Schema;
  */
 class PembesaranController extends Controller
 {
+    private const READY_MIN_DAYS = 35;
+    private const READY_MAX_DAYS = 40;
+    private const READY_DEFAULT_DAYS = 38;
+
     /**
      * Display a listing of the resource.
      */
@@ -28,7 +41,7 @@ class PembesaranController extends Controller
         /**
          * Menampilkan daftar pembesaran (batch) dengan relasi dan paginasi.
          */
-        $pembesaran = Pembesaran::with(['kandang', 'penetasan'])
+        $pembesaran = Pembesaran::with(['kandang', 'penetasan', 'creator', 'updater'])
             ->orderBy('dibuat_pada', 'desc')
             ->paginate(10);
 
@@ -88,6 +101,11 @@ class PembesaranController extends Controller
                 ->withErrors(['jumlah_anak_ayam' => 'Jumlah anak ayam tidak boleh melebihi jumlah DOC yang tersedia (' . $penetasan->jumlah_doc . ')']);
         }
 
+        $readyDate = $request->input('tanggal_siap');
+        if (!$readyDate && !empty($validated['tanggal_masuk'])) {
+            $readyDate = $this->getEstimatedReadyDate($validated['tanggal_masuk']);
+        }
+
         $pembesaran = Pembesaran::create([
             'penetasan_id' => $penetasan->id,
             'kandang_id' => $validated['kandang_id'],
@@ -96,6 +114,9 @@ class PembesaranController extends Controller
             'jenis_kelamin' => $validated['jenis_kelamin'] ?? 'campuran',
             'status_batch' => 'Aktif',
             'catatan' => $validated['catatan'] ?? null,
+            'created_by' => Auth::id(),
+            'batch_produksi_id' => $penetasan->batch ?? $this->generateBatchCode(),
+            'tanggal_siap' => $readyDate,
         ]);
 
         return redirect()->route('admin.pembesaran')
@@ -123,21 +144,7 @@ class PembesaranController extends Controller
             ->orderBy('tanggal_menetas', 'desc')
             ->get();
 
-        // Generate batch code otomatis
-        $today = date('Ymd');
-        $lastBatch = Pembesaran::whereDate('dibuat_pada', today())
-            ->latest('dibuat_pada')
-            ->first();
-        
-        if ($lastBatch && $lastBatch->batch_produksi_id) {
-            // Extract nomor urut dari batch terakhir
-            $lastNumber = intval(substr($lastBatch->batch_produksi_id, -3));
-            $nextNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
-        } else {
-            $nextNumber = '001';
-        }
-        
-        $generatedBatch = 'PB-' . $today . '-' . $nextNumber;
+        $generatedBatch = $this->generateBatchCode();
 
         return view('admin.pages.pembesaran.create-pembesaran', compact('kandangList', 'penetasanList', 'generatedBatch'));
     }
@@ -192,6 +199,11 @@ class PembesaranController extends Controller
         // Tetapkan nilai default
         $validated['status_batch'] = 'Aktif';
         $validated['jenis_kelamin'] = $validated['jenis_kelamin'] ?? 'campuran';
+        $validated['created_by'] = Auth::id();
+
+        if (empty($validated['tanggal_siap']) && !empty($validated['tanggal_masuk'])) {
+            $validated['tanggal_siap'] = $this->getEstimatedReadyDate($validated['tanggal_masuk']);
+        }
 
         $pembesaran = Pembesaran::create($validated);
 
@@ -275,6 +287,41 @@ class PembesaranController extends Controller
     }
 
     /**
+     * Display the detail biaya page for the specified resource.
+     */
+    public function detailBiaya(Pembesaran $pembesaran)
+    {
+        /**
+         * Menampilkan halaman detail biaya pembesaran dengan breakdown lengkap.
+         */
+        $pembesaran->load(['kandang', 'penetasan']);
+
+        // Hitung metrics yang diperlukan untuk halaman detail biaya
+        $populasiAwal = $pembesaran->jumlah_anak_ayam;
+        $totalMati = \App\Models\Kematian::totalKematianByBatch($pembesaran->batch_produksi_id);
+        $populasiSaatIni = $populasiAwal - $totalMati;
+
+        // Hitung total konsumsi pakan & biaya
+        $totalPakan = \App\Models\Pakan::totalKonsumsiByBatch($pembesaran->batch_produksi_id);
+        $totalBiayaPakan = \App\Models\Pakan::totalBiayaByBatch($pembesaran->batch_produksi_id);
+
+        // Hitung total biaya kesehatan & vaksinasi
+        $totalBiayaKesehatan = \App\Models\Kesehatan::getTotalBiayaKesehatan($pembesaran->batch_produksi_id);
+
+        // Hitung umur hari
+        $umurHari = \Carbon\Carbon::parse($pembesaran->tanggal_masuk)->startOfDay()->diffInDays(\Carbon\Carbon::now()->startOfDay());
+
+        return view('admin.pages.pembesaran.detail-biaya', compact(
+            'pembesaran',
+            'populasiSaatIni',
+            'totalPakan',
+            'totalBiayaPakan',
+            'totalBiayaKesehatan',
+            'umurHari'
+        ));
+    }
+
+    /**
      * Show the form for editing the specified resource.
      */
     public function edit(Pembesaran $pembesaran)
@@ -307,14 +354,18 @@ class PembesaranController extends Controller
             'catatan' => 'nullable|string',
         ]);
 
-        // Owner atau Super Admin bisa update status
-    $user = Auth::user();
-        if ($user && ($user->peran === 'owner' || $user->peran === 'super_admin')) {
+        // Owner atau Super Admin bisa update status dengan menyalakan override
+        $user = Auth::user();
+        $canOwnerOverride = $user && in_array($user->peran, ['owner', 'super_admin']);
+
+        if ($canOwnerOverride && $request->boolean('owner_override_active')) {
             $validated = array_merge($validated, $request->validate([
                 'status_batch' => 'nullable|in:Aktif,Selesai',
                 'tanggal_selesai' => 'nullable|date',
             ]));
         }
+
+        $validated['updated_by'] = Auth::id();
 
         $pembesaran->update($validated);
 
@@ -368,13 +419,76 @@ class PembesaranController extends Controller
          */
         $batchLabel = $pembesaran->batch_produksi_id ?? null;
         $identifier = 'ID: ' . $pembesaran->id;
+        $batchId = $pembesaran->batch_produksi_id;
 
-        $pembesaran->delete();
+        DB::transaction(function () use ($pembesaran, $batchId) {
+            if ($batchId) {
+                $this->deleteBatchRelatedData($batchId);
+            }
+
+            $pembesaran->delete();
+        });
 
         return redirect()->route('admin.pembesaran')
             ->with(
                 'success',
                 'Data pembesaran ' . $identifier . ($batchLabel ? ' (Batch: ' . $batchLabel . ')' : '') . ' berhasil dihapus.'
             );
+    }
+    /**
+     * Hapus seluruh data operasional yang terikat dengan batch tertentu.
+     */
+    private function deleteBatchRelatedData(?string $batchId): void
+    {
+        if (!$batchId) {
+            return;
+        }
+
+        Pakan::where('batch_produksi_id', $batchId)->delete();
+        Kematian::where('batch_produksi_id', $batchId)->delete();
+        MonitoringLingkungan::where('batch_produksi_id', $batchId)->delete();
+        Kesehatan::where('batch_produksi_id', $batchId)->delete();
+        LaporanHarian::where('batch_produksi_id', $batchId)->delete();
+        FeedHistory::where('batch_produksi_id', $batchId)->delete();
+        BeratSampling::where('batch_produksi_id', $batchId)->delete();
+    }
+
+    /**
+     * Hitung tanggal siap estimasi dari tanggal masuk.
+     */
+    private function getEstimatedReadyDate(?string $tanggalMasuk, ?int $offsetDays = null): ?string
+    {
+        if (!$tanggalMasuk) {
+            return null;
+        }
+
+        $days = $offsetDays ?? self::READY_DEFAULT_DAYS;
+        $days = max(self::READY_MIN_DAYS, min(self::READY_MAX_DAYS, $days));
+
+        return Carbon::parse($tanggalMasuk)
+            ->addDays($days)
+            ->format('Y-m-d');
+    }
+
+    /**
+     * Generate kode batch pembesaran unik berbasis tanggal.
+     */
+    private function generateBatchCode(): string
+    {
+        $today = date('Ymd');
+        $prefix = 'PB-' . $today . '-';
+
+        $lastBatch = Pembesaran::where('batch_produksi_id', 'like', $prefix . '%')
+            ->orderByDesc('batch_produksi_id')
+            ->first();
+
+        if ($lastBatch && $lastBatch->batch_produksi_id) {
+            $lastNumber = (int) substr($lastBatch->batch_produksi_id, -3);
+            $nextNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+        } else {
+            $nextNumber = '001';
+        }
+
+        return $prefix . $nextNumber;
     }
 }

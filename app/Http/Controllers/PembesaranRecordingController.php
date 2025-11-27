@@ -9,8 +9,9 @@ use App\Models\LaporanHarian;
 use App\Models\MonitoringLingkungan;
 use App\Models\Kesehatan;
 use App\Models\StokPakan;
-use App\Models\ParameterStandar;
 use App\Models\FeedVitaminItem;
+use App\Models\FeedHistory;
+use App\Models\ParameterStandar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -112,6 +113,19 @@ class PembesaranRecordingController extends Controller
         }
 
         $pakan->load(['stokPakan', 'feedItem', 'pengguna']);
+
+        // Jika ada jumlah karung, simpan sebagai sisa pakan ke histori
+        if ($validated['jumlah_karung'] > 0) {
+            FeedHistory::create([
+                'batch_produksi_id' => $pembesaran->batch_produksi_id,
+                'stok_pakan_id' => $stokPakan?->id,
+                'feed_item_id' => $feedItem?->id,
+                'tanggal' => $validated['tanggal'],
+                'jumlah_karung_sisa' => $validated['jumlah_karung'],
+                'keterangan' => 'Sisa pakan dari pencatatan konsumsi harian',
+                'pengguna_id' => Auth::id(),
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -242,37 +256,59 @@ class PembesaranRecordingController extends Controller
     }
 
     /**
-     * Get list pakan untuk pembesaran
+     * Get list feed history untuk pembesaran
      */
-    public function getPakanList(Pembesaran $pembesaran)
+    public function getFeedHistoryList(Pembesaran $pembesaran)
     {
         /**
-         * Mengambil daftar entri pakan terbaru untuk batch tertentu beserta ringkasan konsumsi.
+         * Mengambil daftar histori sisa pakan untuk batch tertentu.
          */
-        $batchId = $pembesaran->batch_produksi_id;
-
-        $pakanQuery = Pakan::query();
-        if ($batchId) {
-            $pakanQuery->where('batch_produksi_id', $batchId);
-        } else {
-            $pakanQuery->whereNull('batch_produksi_id');
-        }
-
-        $pakanList = (clone $pakanQuery)
+        $feedHistoryList = FeedHistory::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->with(['stokPakan', 'feedItem', 'pengguna'])
             ->orderByDesc('tanggal')
             ->limit(30)
             ->get();
 
-        $totalKonsumsi = (float) $pakanQuery->sum('jumlah_kg');
-        $totalBiaya = (float) $pakanQuery->sum('total_biaya');
+        $totalSisaKarung = FeedHistory::where('batch_produksi_id', $pembesaran->batch_produksi_id)
+            ->sum('jumlah_karung_sisa');
+
+        return response()->json([
+            'success' => true,
+            'data' => $feedHistoryList,
+            'summary' => [
+                'total_sisa_karung' => $totalSisaKarung,
+            ],
+        ]);
+    }
+
+    /**
+     * Get list konsumsi pakan harian untuk pembesaran
+     */
+    public function getPakanList(Pembesaran $pembesaran)
+    {
+        /**
+         * Mengambil daftar konsumsi pakan, sekaligus ringkasan total dan rata-rata harian.
+         */
+        $baseQuery = Pakan::where('batch_produksi_id', $pembesaran->batch_produksi_id);
+
+        $pakanList = (clone $baseQuery)
+            ->with(['stokPakan', 'feedItem', 'pengguna'])
+            ->orderByDesc('tanggal')
+            ->limit(60)
+            ->get();
+
+        $totalKonsumsiKg = (clone $baseQuery)->sum('jumlah_kg');
+        $totalBiaya = (clone $baseQuery)->sum('total_biaya');
+        $hariAktif = (clone $baseQuery)->select('tanggal')->distinct()->count();
+        $rataHarian = $hariAktif > 0 ? $totalKonsumsiKg / $hariAktif : 0;
 
         return response()->json([
             'success' => true,
             'data' => $pakanList,
             'summary' => [
-                'total_konsumsi_kg' => $totalKonsumsi,
+                'total_konsumsi_kg' => $totalKonsumsiKg,
                 'total_biaya' => $totalBiaya,
+                'rata_rata_harian' => $rataHarian,
             ],
         ]);
     }

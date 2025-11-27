@@ -214,6 +214,7 @@
                                     <input type="checkbox" id="ownerOverrideToggle">
                                     <span class="slider"></span>
                                 </label>
+                                <input type="hidden" name="owner_override_active" id="ownerOverrideFlag" value="0">
                                 <span id="ownerOverrideLabel" style="font-size: 14px; color: #64748b;">
                                     Aktifkan untuk override hasil penetasan & status
                                 </span>
@@ -759,7 +760,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const tanggalMenetasInput = document.getElementById('tanggal_menetas');
     const hasilPenetasanSection = document.getElementById('hasilPenetasanSection');
     const alertPenetasanSelesai = document.getElementById('alertPenetasanSelesai');
-    const alertOwnerOverride = document.getElementById('alertOwnerOverride');
     let estimasiManualEdit = !!(estimasiMenetasInput && estimasiMenetasInput.value);
     
     const isOwner = {{ auth()->user()->peran === 'owner' ? 'true' : 'false' }};
@@ -781,7 +781,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 estimasiInfo.style.display = 'flex';
             }
             if (estimasiText) {
-                estimasiText.textContent = formatTanggalIndonesia(dateValue) + ' (± 1 hari)';
+                const tanggalSimpan = tanggalSimpanInput.value;
+                let displayText = '';
+                
+                // Check estimated duration
+                if (tanggalSimpan) {
+                    const startDate = new Date(tanggalSimpan);
+                    const estimatedDate = new Date(dateValue);
+                    const daysDifference = Math.ceil((estimatedDate - startDate) / (1000 * 60 * 60 * 24));
+                    
+                    if (daysDifference < 17) {
+                        // Calculate expected date if exactly 17 days
+                        const expectedDate = new Date(startDate);
+                        expectedDate.setDate(expectedDate.getDate() + 17);
+                        const expectedDateFormatted = formatTanggalIndonesia(expectedDate.toISOString().split('T')[0]);
+                        
+                        displayText = `<span class="text-warning fw-semibold"><i class="fa-solid fa-exclamation-triangle"></i> Estimasi terlalu pendek (${daysDifference} hari) - ${expectedDateFormatted}</span>`;
+                    } else if (daysDifference > 18) {
+                        // Calculate expected date if exactly 18 days
+                        const expectedDate = new Date(startDate);
+                        expectedDate.setDate(expectedDate.getDate() + 18);
+                        const expectedDateFormatted = formatTanggalIndonesia(expectedDate.toISOString().split('T')[0]);
+                        
+                        displayText = `<span class="text-warning fw-semibold"><i class="fa-solid fa-exclamation-triangle"></i> Estimasi melebihi durasi normal (${daysDifference} hari) - ${expectedDateFormatted}</span>`;
+                    } else {
+                        displayText = formatTanggalIndonesia(dateValue) + ' (± 1 hari)';
+                    }
+                } else {
+                    displayText = formatTanggalIndonesia(dateValue) + ' (± 1 hari)';
+                }
+                
+                estimasiText.innerHTML = displayText;
             }
         } else {
             if (estimasiInfo) {
@@ -915,37 +945,66 @@ document.addEventListener('DOMContentLoaded', function() {
     const ownerOverrideToggle = document.getElementById('ownerOverrideToggle');
     const ownerOverrideSection = document.getElementById('ownerOverrideSection');
     const ownerOverrideLabel = document.getElementById('ownerOverrideLabel');
+    const ownerOverrideFlag = document.getElementById('ownerOverrideFlag');
+    const ownerOverrideDefaultActive = @json(
+        auth()->user()->peran === 'owner' && (
+            ($penetasan->status && $penetasan->status !== 'proses') ||
+            $penetasan->tanggal_menetas ||
+            $penetasan->jumlah_menetas ||
+            $penetasan->jumlah_doc
+        )
+    );
+
+    function resetOwnerOverrideFields() {
+        const statusSelect = document.getElementById('status');
+        const tanggalMenetas = document.getElementById('tanggal_menetas');
+        const jumlahMenetas = document.getElementById('jumlah_menetas');
+        const jumlahDoc = document.getElementById('jumlah_doc');
+
+        if (statusSelect) statusSelect.value = '';
+        if (tanggalMenetas) tanggalMenetas.value = '';
+        if (jumlahMenetas) jumlahMenetas.value = '';
+        if (jumlahDoc) jumlahDoc.value = '';
+    }
+
+    function setOwnerOverrideState(isActive, options = {}) {
+        if (!ownerOverrideSection || !ownerOverrideLabel) {
+            return;
+        }
+
+        ownerOverrideSection.style.display = isActive ? 'block' : 'none';
+        ownerOverrideLabel.innerHTML = isActive
+            ? '<i class="fa-solid fa-check-circle"></i> Override aktif - Hasil penetasan & status tersedia'
+            : 'Aktifkan untuk override hasil penetasan & status';
+        ownerOverrideLabel.style.color = isActive ? '#dc3545' : '#64748b';
+        ownerOverrideLabel.style.fontWeight = isActive ? '600' : '400';
+
+        if (ownerOverrideFlag) {
+            ownerOverrideFlag.value = isActive ? '1' : '0';
+        }
+
+        if (!isActive && !options.skipReset) {
+            resetOwnerOverrideFields();
+        }
+    }
 
     if (ownerOverrideToggle && ownerOverrideSection) {
         ownerOverrideToggle.addEventListener('change', function() {
+            setOwnerOverrideState(this.checked);
+
             if (this.checked) {
-                ownerOverrideSection.style.display = 'block';
-                ownerOverrideLabel.innerHTML = '<i class="fa-solid fa-check-circle"></i> Override aktif - Hasil penetasan & status tersedia';
-                ownerOverrideLabel.style.color = '#dc3545';
-                ownerOverrideLabel.style.fontWeight = '600';
-                
-                // Scroll ke section
                 setTimeout(() => {
                     ownerOverrideSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }, 100);
-            } else {
-                ownerOverrideSection.style.display = 'none';
-                ownerOverrideLabel.textContent = 'Aktifkan untuk override hasil penetasan & status';
-                ownerOverrideLabel.style.color = '#64748b';
-                ownerOverrideLabel.style.fontWeight = '400';
-                
-                // Reset semua input
-                const statusSelect = document.getElementById('status');
-                const tanggalMenetas = document.getElementById('tanggal_menetas');
-                const jumlahMenetas = document.getElementById('jumlah_menetas');
-                const jumlahDoc = document.getElementById('jumlah_doc');
-                
-                if (statusSelect) statusSelect.value = '';
-                if (tanggalMenetas) tanggalMenetas.value = '';
-                if (jumlahMenetas) jumlahMenetas.value = '';
-                if (jumlahDoc) jumlahDoc.value = '';
             }
         });
+
+        if (ownerOverrideDefaultActive) {
+            ownerOverrideToggle.checked = true;
+            setOwnerOverrideState(true, { skipReset: true });
+        } else {
+            setOwnerOverrideState(false, { skipReset: true });
+        }
     }
 });
 </script>

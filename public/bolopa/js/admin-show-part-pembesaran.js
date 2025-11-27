@@ -715,24 +715,6 @@ if (laporanForm) {
 
 // ========== RINGKASAN BIAYA ACTIONS ==========
 
-const ringkasanDetailBtn = document.getElementById('btn-ringkasan-detail');
-if (ringkasanDetailBtn) {
-    ringkasanDetailBtn.addEventListener('click', () => {
-        const data = getRingkasanBiayaData();
-        updateTextValue('#modal-total-pakan-kg', formatKg(data.totalPakanKg), data.totalPakanKg);
-        updateTextValue('#modal-total-biaya-pakan', formatCurrency(data.totalBiayaPakan), data.totalBiayaPakan);
-        updateTextValue('#modal-total-biaya-kesehatan', formatCurrency(data.totalBiayaKesehatan), data.totalBiayaKesehatan);
-        updateTextValue('#modal-total-keseluruhan', formatCurrency(data.totalKeseluruhan), data.totalKeseluruhan);
-        updateTextValue('#modal-biaya-per-ekor', formatCurrency(Math.round(data.biayaPerEkor)), data.biayaPerEkor);
-
-        const modalEl = document.getElementById('ringkasanBiayaModal');
-        if (modalEl && window.bootstrap?.Modal) {
-            const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-            modalInstance.show();
-        }
-    });
-}
-
 const ringkasanExportBtn = document.getElementById('btn-ringkasan-export');
 if (ringkasanExportBtn) {
     ringkasanExportBtn.addEventListener('click', () => {
@@ -1113,22 +1095,29 @@ function renderPakanHistory(data) {
         <table class="table table-sm table-hover mb-0">
             <thead>
                 <tr>
-                    <th style="width:20%" class="text-start">Tanggal</th>
-                    <th style="width:28%" class="text-start">Jenis Pakan</th>
-                    <th style="width:15%" class="text-end">Jumlah</th>
-                    <th style="width:17%" class="text-end">Biaya</th>
-                    <th style="width:20%" class="text-start">Dicatat Oleh</th>
+                    <th style="width:18%" class="text-start">Tanggal</th>
+                    <th style="width:24%" class="text-start">Jenis Pakan</th>
+                    <th style="width:14%" class="text-end">Jumlah</th>
+                    <th style="width:12%" class="text-end">Sisa Pakan</th>
+                    <th style="width:14%" class="text-end">Biaya</th>
+                    <th style="width:18%" class="text-start">Dicatat Oleh</th>
                 </tr>
             </thead>
             <tbody>
                 ${data.slice(0, 10).map(d => {
                     const feedLabel = d.feed_item?.name || d.stok_pakan?.nama_pakan || '-';
+                    const rawKarung = d.jumlah_karung ?? d.jumlah_karung_sisa;
+                    const karungValue = rawKarung === null || rawKarung === undefined || rawKarung === ''
+                        ? '-'
+                        : `${parseInt(rawKarung, 10) || 0} karung`;
+                    const totalBiaya = parseFloat(d.total_biaya);
                     return `
                         <tr>
                             <td class="text-start">${new Date(d.tanggal).toLocaleDateString('id-ID', {day:'2-digit', month:'short'})}</td>
                             <td class="text-start"><small>${feedLabel}</small></td>
                             <td class="text-end">${parseFloat(d.jumlah_kg).toFixed(2)} kg</td>
-                            <td class="text-end"><small>Rp ${(parseFloat(d.total_biaya) || 0).toLocaleString('id-ID')}</small></td>
+                            <td class="text-end">${karungValue}</td>
+                            <td class="text-end"><small>Rp ${(Number.isNaN(totalBiaya) ? 0 : totalBiaya).toLocaleString('id-ID')}</small></td>
                             <td class="text-start"><small>${getRecorderName(d)}</small></td>
                         </tr>
                     `;

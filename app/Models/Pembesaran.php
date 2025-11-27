@@ -28,6 +28,8 @@ class Pembesaran extends Model
         'kondisi_doc',
         'catatan',
         'indukan_ditransfer',
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
@@ -68,5 +70,21 @@ class Pembesaran extends Model
     public function getIndukanTersediaAttribute()
     {
         return ($this->jumlah_siap ?? 0) - ($this->indukan_ditransfer ?? 0);
+    }
+
+    /**
+     * Relasi ke user yang membuat record
+     */
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Relasi ke user yang terakhir mengupdate record
+     */
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 }

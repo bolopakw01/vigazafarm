@@ -45,6 +45,36 @@
         color: #475569;
         line-height: 1.4;
     }
+
+    .ready-date-wrapper {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .ready-date-wrapper .ready-offset-select {
+        max-width: 190px;
+    }
+
+    .ready-helper-actions {
+        margin-top: 6px;
+        font-size: 0.85rem;
+        color: #475569;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .ready-helper-actions button {
+        border: none;
+        background: none;
+        color: #2563eb;
+        font-weight: 600;
+        padding: 0;
+        cursor: pointer;
+    }
 </style>
 @endpush
 
@@ -251,9 +281,20 @@
                             <label for="tanggal_siap" class="form-label">
                                 Perkiraan Tanggal Siap
                             </label>
-                            <input type="date" name="tanggal_siap" id="tanggal_siap" class="form-control" 
-                                value="{{ old('tanggal_siap') }}" min="{{ date('Y-m-d') }}">
-                            <small class="form-text">Estimasi tanggal siap dipindah ke produksi/penjualan</small>
+                            <div class="ready-date-wrapper">
+                                <input type="date" name="tanggal_siap" id="tanggal_siap" class="form-control" 
+                                    value="{{ old('tanggal_siap') }}">
+                                <select id="tanggal_siap_offset" class="form-control ready-offset-select" data-default-days="38">
+                                    <option value="35">+35 hari (cepat)</option>
+                                    <option value="38" selected>+38 hari (standar)</option>
+                                    <option value="40">+40 hari (maksimal)</option>
+                                </select>
+                            </div>
+                            <div class="ready-helper-actions">
+                                <span>Estimasi otomatis mengikuti tanggal masuk (range 35-40 hari).</span>
+                                <button type="button" id="btnApplyReadyEstimate">Gunakan estimasi</button>
+                            </div>
+                            <small class="form-text">Anda tetap bisa menyesuaikan tanggal siap sesuai kebutuhan lapangan.</small>
                         </div>
 
                         <div class="form-group">
@@ -356,11 +397,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnSubmit = document.getElementById('btnSubmit');
     const tanggalMasuk = document.getElementById('tanggal_masuk');
     const tanggalSiap = document.getElementById('tanggal_siap');
+    const tanggalSiapOffset = document.getElementById('tanggal_siap_offset');
+    const btnApplyReadyEstimate = document.getElementById('btnApplyReadyEstimate');
     const penetasanSelect = document.getElementById('penetasan_id');
     const jumlahInput = document.getElementById('jumlah_anak_ayam');
     const kandangSelect = document.getElementById('kandang_id');
     const capacityInfo = document.getElementById('kandangCapacityInfo');
     const capacityInfoText = document.getElementById('kandangCapacityInfoText');
+    const READY_MIN_DAYS = 35;
+    const READY_MAX_DAYS = 40;
     let kapasitasSisaSaatIni = 0;
     let lastCapacityAlertValue = null;
 
@@ -462,12 +507,61 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     }
 
-    // Auto-calculate tanggal siap (35-42 hari untuk puyuh, default: 40 hari)
-    tanggalMasuk.addEventListener('change', function() {
-        if (this.value && !tanggalSiap.value) {
-            const masuk = new Date(this.value);
-            masuk.setDate(masuk.getDate() + 40); // 40 hari standar pembesaran
-            tanggalSiap.value = masuk.toISOString().split('T')[0];
+    function getSelectedReadyDays() {
+        const fallback = parseInt(tanggalSiapOffset?.dataset?.defaultDays ?? '38', 10) || 38;
+        const value = parseInt(tanggalSiapOffset?.value ?? fallback, 10);
+        return Math.min(READY_MAX_DAYS, Math.max(READY_MIN_DAYS, value || fallback));
+    }
+
+    function applyReadyEstimate({ force = false, showToast = false } = {}) {
+        if (!tanggalMasuk?.value || !tanggalSiap) {
+            return;
+        }
+
+        const isManual = tanggalSiap.dataset?.manual === 'true';
+        if (!force && isManual) {
+            return;
+        }
+
+        const baseDate = new Date(tanggalMasuk.value);
+        if (Number.isNaN(baseDate.getTime())) {
+            return;
+        }
+
+        const offsetDays = getSelectedReadyDays();
+        baseDate.setDate(baseDate.getDate() + offsetDays);
+        tanggalSiap.value = baseDate.toISOString().split('T')[0];
+        tanggalSiap.dataset.manual = 'false';
+
+        if (showToast) {
+            triggerFlashToast('info', 'Estimasi diterapkan', `Tanggal siap di-set +${offsetDays} hari dari tanggal masuk.`);
+        }
+    }
+
+    tanggalMasuk?.addEventListener('change', () => applyReadyEstimate());
+    tanggalSiapOffset?.addEventListener('change', () => {
+        if (tanggalSiap) {
+            tanggalSiap.dataset.manual = 'false';
+        }
+        applyReadyEstimate({ force: true });
+    });
+
+    btnApplyReadyEstimate?.addEventListener('click', () => {
+        if (tanggalSiap) {
+            tanggalSiap.dataset.manual = 'false';
+        }
+        applyReadyEstimate({ force: true, showToast: true });
+    });
+
+    tanggalSiap?.addEventListener('input', () => {
+        if (tanggalSiap) {
+            tanggalSiap.dataset.manual = 'true';
+        }
+    });
+
+    tanggalSiap?.addEventListener('change', () => {
+        if (tanggalSiap) {
+            tanggalSiap.dataset.manual = 'true';
         }
     });
 
@@ -495,11 +589,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Trigger auto-calculate on page load if tanggal_masuk has value
-    if (tanggalMasuk.value && !tanggalSiap.value) {
-        const masuk = new Date(tanggalMasuk.value);
-        masuk.setDate(masuk.getDate() + 40);
-        tanggalSiap.value = masuk.toISOString().split('T')[0];
+    if (!tanggalSiap?.value) {
+        applyReadyEstimate({ force: true });
     }
 
     // Form submission dengan SweetAlert2 confirmation
@@ -561,6 +652,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 form.reset();
+                if (tanggalSiap) {
+                    tanggalSiap.dataset.manual = 'false';
+                }
+                setTimeout(() => {
+                    updateCapacityInfo();
+                    applyReadyEstimate({ force: true });
+                }, 50);
                 triggerFlashToast('success', 'Berhasil!', 'Form pembesaran berhasil direset.', 2200);
             }
         });
