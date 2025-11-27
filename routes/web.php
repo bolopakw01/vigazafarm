@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\FeedVitaminController;
 use App\Http\Controllers\DatabaseMaintenanceController;
+use App\Http\Controllers\LookerExportController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -87,6 +88,10 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/admin/sistem/iot', [App\Http\Controllers\SistemController::class, 'iot'])->name('admin.sistem.iot');
         Route::put('/admin/sistem/iot', [App\Http\Controllers\SistemController::class, 'updateIot'])->name('admin.sistem.iot.update');
+
+        Route::get('/admin/sistem/export/looker', [LookerExportController::class, 'index'])->name('admin.sistem.looker.export');
+        Route::get('/admin/sistem/export/looker/download', [LookerExportController::class, 'download'])->name('admin.sistem.looker.export.download');
+        Route::get('/admin/sistem/export/looker/download/csv', [LookerExportController::class, 'downloadSingleCsv'])->name('admin.sistem.looker.export.download.csv');
     });
 
     Route::get('/admin/sistem/pakan-vitamin/options', [FeedVitaminController::class, 'options'])->name('admin.sistem.pakanvitamin.options');

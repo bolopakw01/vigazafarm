@@ -256,6 +256,23 @@
                     </a>
                 </div>
             </div>
+
+            <!-- Looker Export Card -->
+            <div class="goals-card">
+                <div class="goals-card-icon production">
+                    <i class="fas fa-file-export"></i>
+                </div>
+                <h3 class="goals-card-title">Export Looker Studio</h3>
+                <div class="goals-description">
+                    Unduh paket CSV siap pakai untuk disambungkan menuju master dashboard Looker Studio.
+                </div>
+                <div class="goals-card-actions">
+                    <a href="{{ route('admin.sistem.looker.export') }}" class="goals-btn goals-btn-primary">
+                        <i class="fas fa-arrow-up-right-from-square"></i>
+                        Buka Export
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
