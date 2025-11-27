@@ -4,10 +4,24 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 class Kandang extends Model
 {
     use SoftDeletes;
+
+    protected const TYPE_KEYWORDS = [
+        'penetasan' => ['penetasan', 'tetasan', 'hatch', 'inkubasi', 'doc'],
+        'pembesaran' => ['pembesaran', 'grow', 'grower', 'brooder', 'pullet', 'growout'],
+        'produksi' => ['produksi', 'layer', 'petelur', 'breeding', 'indukan']
+    ];
+
+    protected const ACTIVE_STATUS_VALUES = ['aktif', 'active', 'berjalan', 'proses', 'ongoing', 'sedang berjalan'];
+
+    protected ?string $usageTypeCache = null;
+    protected ?int $penetasanUsageCache = null;
+    protected ?int $pembesaranUsageCache = null;
+    protected ?int $produksiUsageCache = null;
 
     protected $table = 'vf_kandang';
 
@@ -92,20 +106,139 @@ class Kandang extends Model
     /**
      * Hitung kapasitas terpakai berdasarkan tipe kandang
      */
-    public function getKapasitasTerpakaiAttribute()
+    public function getKapasitasTerpakaiAttribute(): int
     {
-        switch (strtolower($this->tipe_kandang)) {
-            case 'penetasan':
-                // Jumlah telur yang disimpan atau menetas
-                return $this->penetasan()->where('status', 'aktif')->sum('jumlah_telur');
-            case 'pembesaran':
-                // Jumlah anak ayam di pembesaran aktif
-                return $this->pembesaran()->where('status_batch', 'aktif')->sum('jumlah_anak_ayam');
-            case 'produksi':
-                // Jumlah indukan di produksi aktif
-                return $this->produksi()->where('status', 'aktif')->sum('jumlah_indukan');
-            default:
-                return 0;
+        $usageType = $this->resolveUsageType();
+
+        return match ($usageType) {
+            'penetasan' => $this->sumPenetasanUsage(),
+            'pembesaran' => $this->sumPembesaranUsage(),
+            'produksi' => $this->sumProduksiUsage(),
+            default => max(
+                $this->sumPenetasanUsage(),
+                $this->sumPembesaranUsage(),
+                $this->sumProduksiUsage()
+            ),
+        };
+    }
+
+    protected function resolveUsageType(): ?string
+    {
+        if ($this->usageTypeCache !== null) {
+            return $this->usageTypeCache;
         }
+
+        $rawType = strtolower(trim((string) ($this->tipe_kandang ?? $this->tipe ?? '')));
+
+        if ($rawType !== '') {
+            foreach (self::TYPE_KEYWORDS as $type => $keywords) {
+                foreach ($keywords as $keyword) {
+                    if ($keyword !== '' && str_contains($rawType, $keyword)) {
+                        return $this->usageTypeCache = $type;
+                    }
+                }
+            }
+        }
+
+        if ($this->relationItems('penetasan')->isNotEmpty()) {
+            return $this->usageTypeCache = 'penetasan';
+        }
+
+        if ($this->relationItems('pembesaran')->isNotEmpty()) {
+            return $this->usageTypeCache = 'pembesaran';
+        }
+
+        if ($this->relationItems('produksi')->isNotEmpty()) {
+            return $this->usageTypeCache = 'produksi';
+        }
+
+        return $this->usageTypeCache = null;
+    }
+
+    protected function sumPenetasanUsage(): int
+    {
+        if ($this->penetasanUsageCache !== null) {
+            return $this->penetasanUsageCache;
+        }
+
+        $total = $this->relationItems('penetasan')
+            ->filter(fn ($penetasan) => $this->isActiveStatus($penetasan->status))
+            ->sum(fn ($penetasan) => (int) ($penetasan->jumlah_telur ?? 0));
+
+        return $this->penetasanUsageCache = (int) $total;
+    }
+
+    protected function sumPembesaranUsage(): int
+    {
+        if ($this->pembesaranUsageCache !== null) {
+            return $this->pembesaranUsageCache;
+        }
+
+        $total = $this->relationItems('pembesaran')
+            ->filter(fn ($batch) => $this->isActiveStatus($batch->status_batch))
+            ->sum(function ($batch) {
+                $jumlah = $batch->jumlah_anak_ayam ?? $batch->jumlah_siap ?? 0;
+                return (int) $jumlah;
+            });
+
+        return $this->pembesaranUsageCache = (int) $total;
+    }
+
+    protected function sumProduksiUsage(): int
+    {
+        if ($this->produksiUsageCache !== null) {
+            return $this->produksiUsageCache;
+        }
+
+        $total = $this->relationItems('produksi')
+            ->filter(fn ($produksi) => $this->isActiveStatus($produksi->status))
+            ->sum(function ($produksi) {
+                $indukan = $produksi->jumlah_indukan;
+                if ($indukan === null) {
+                    $indukan = ($produksi->jumlah_betina ?? 0) + ($produksi->jumlah_jantan ?? 0);
+                }
+
+                return (int) $indukan;
+            });
+
+        return $this->produksiUsageCache = (int) $total;
+    }
+
+    /**
+     * Kapasitas kandang yang teregistrasi (maksimal) dalam satuan ekor.
+     */
+    public function getKapasitasTotalAttribute(): int
+    {
+        $raw = $this->kapasitas_maksimal ?? $this->kapasitas ?? 0;
+
+        return max((int) $raw, 0);
+    }
+
+    /**
+     * Kapasitas tersisa (maksimal - terpakai) tanpa nilai negatif.
+     */
+    public function getKapasitasTersisaAttribute(): int
+    {
+        return max($this->kapasitas_total - $this->kapasitas_terpakai, 0);
+    }
+
+    protected function relationItems(string $relation): Collection
+    {
+        $this->loadMissing($relation);
+
+        $value = $this->getRelationValue($relation);
+
+        return $value instanceof Collection ? $value : collect();
+    }
+
+    protected function isActiveStatus(?string $status): bool
+    {
+        if ($status === null) {
+            return false;
+        }
+
+        $normalized = strtolower(trim($status));
+
+        return in_array($normalized, self::ACTIVE_STATUS_VALUES, true);
     }
 }

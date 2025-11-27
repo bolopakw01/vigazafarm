@@ -165,6 +165,30 @@ class PembesaranController extends Controller
             'catatan' => 'nullable|string',
         ]);
 
+        $kandang = Kandang::findOrFail($validated['kandang_id']);
+        $kapasitasTersisa = $kandang->kapasitas_tersisa;
+        $jumlahMasuk = (int) $validated['jumlah_anak_ayam'];
+
+        if ($kapasitasTersisa <= 0) {
+            return back()->withInput()->withErrors([
+                'kandang_id' => sprintf(
+                    'Kandang %s sudah penuh. Silakan pilih kandang lain atau kosongkan terlebih dahulu.',
+                    $kandang->nama_kandang ?? ('#' . $kandang->id)
+                ),
+            ]);
+        }
+
+        if ($jumlahMasuk > $kapasitasTersisa) {
+            return back()->withInput()->withErrors([
+                'jumlah_anak_ayam' => sprintf(
+                    'Jumlah anak puyuh (%s) melebihi sisa kapasitas %s pada kandang %s.',
+                    number_format($jumlahMasuk),
+                    number_format($kapasitasTersisa),
+                    $kandang->nama_kandang ?? ('#' . $kandang->id)
+                ),
+            ]);
+        }
+
         // Tetapkan nilai default
         $validated['status_batch'] = 'Aktif';
         $validated['jenis_kelamin'] = $validated['jenis_kelamin'] ?? 'campuran';

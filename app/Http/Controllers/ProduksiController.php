@@ -303,6 +303,35 @@ class ProduksiController extends Controller
             'tanggal_akhir.after_or_equal' => 'Tanggal akhir harus setelah atau sama dengan tanggal mulai',
         ]);
 
+        $jumlahIndukan = array_key_exists('jumlah_indukan', $validated)
+            ? (int) $validated['jumlah_indukan']
+            : null;
+
+        if ($jumlahIndukan !== null && $jumlahIndukan > 0) {
+            $kandang = Kandang::findOrFail($validated['kandang_id']);
+            $kapasitasTersisa = $kandang->kapasitas_tersisa;
+
+            if ($kapasitasTersisa <= 0) {
+                return back()->withInput()->withErrors([
+                    'kandang_id' => sprintf(
+                        'Kandang %s sudah penuh. Pilih kandang lain atau selesaikan batch aktif terlebih dahulu.',
+                        $kandang->nama_kandang ?? ('#' . $kandang->id)
+                    ),
+                ]);
+            }
+
+            if ($jumlahIndukan > $kapasitasTersisa) {
+                return back()->withInput()->withErrors([
+                    'jumlah_indukan' => sprintf(
+                        'Jumlah indukan (%s) melebihi sisa kapasitas %s pada kandang %s.',
+                        number_format($jumlahIndukan),
+                        number_format($kapasitasTersisa),
+                        $kandang->nama_kandang ?? ('#' . $kandang->id)
+                    ),
+                ]);
+            }
+        }
+
         // Custom validation for campuran gender (only for burung production)
         if (($jenisInput === 'manual' && $fokusManual === 'burung') || ($jenisInput === 'dari_pembesaran' && !empty($mappedData['jenis_kelamin']))) {
             $jenisKelamin = $mappedData['jenis_kelamin'] ?? '';

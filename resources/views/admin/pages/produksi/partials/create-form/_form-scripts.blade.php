@@ -20,6 +20,159 @@
     });
   }
 
+    const kandangSelectEl = document.getElementById('kandang_id');
+    if (kandangSelectEl) {
+      kandangSelectEl.addEventListener('change', () => {
+        updateCapacityInfo();
+        enforceCapacityLimit(false);
+        saveFormState();
+      });
+      updateCapacityInfo();
+    }
+  let kapasitasSisaSaatIni = 0;
+  let lastCapacityAlertValue = null;
+
+  function formatCapacityNumber(value) {
+    const numeric = Number.isFinite(value) ? value : parseInt(value ?? 0, 10) || 0;
+    return new Intl.NumberFormat('id-ID').format(Math.max(numeric, 0));
+  }
+
+  function getKandangSelect() {
+    return document.getElementById('kandang_id');
+  }
+
+  function getCapacityInfoElements() {
+    return {
+      card: document.getElementById('kandangCapacityInfo'),
+      text: document.getElementById('kandangCapacityInfoText')
+    };
+  }
+
+  function isBurungModeActive() {
+    const jenisInput = document.querySelector('input[name="jenis_input"]:checked')?.value || 'manual';
+    if (jenisInput === 'dari_pembesaran') {
+      return true;
+    }
+    if (jenisInput === 'manual') {
+      const fokusManual = document.querySelector('input[name="fokus_manual"]:checked')?.value || 'burung';
+      return fokusManual === 'burung';
+    }
+    return false;
+  }
+
+  function updateCapacityInfo() {
+    const { card, text } = getCapacityInfoElements();
+    const select = getKandangSelect();
+
+    if (!card || !text) {
+      return;
+    }
+
+    if (!select || !select.value) {
+      kapasitasSisaSaatIni = 0;
+      card.classList.remove('capacity-warning');
+      text.textContent = 'Pilih kandang untuk melihat stok tersisa.';
+      return;
+    }
+
+    const option = select.options[select.selectedIndex];
+    const total = parseInt(option?.dataset?.kapasitas ?? '0', 10) || 0;
+    const used = parseInt(option?.dataset?.terpakai ?? '0', 10) || 0;
+    const remaining = parseInt(option?.dataset?.sisa ?? '0', 10);
+    kapasitasSisaSaatIni = Math.max(remaining, 0);
+
+    text.innerHTML = `Sisa <strong>${formatCapacityNumber(remaining)}</strong> dari ${formatCapacityNumber(total)} slot (terpakai ${formatCapacityNumber(used)})`;
+    card.classList.toggle('capacity-warning', remaining <= 0);
+  }
+
+  function enforceCapacityLimit(showAlert = false) {
+    if (!isBurungModeActive()) {
+      lastCapacityAlertValue = null;
+      return true;
+    }
+
+    const jumlahField = document.getElementById('jumlah_burung');
+    const select = getKandangSelect();
+
+    if (!jumlahField || !select || !select.value) {
+      lastCapacityAlertValue = null;
+      return true;
+    }
+
+    const value = parseInt(jumlahField.value || '0', 10);
+    if (!Number.isFinite(value) || value <= 0) {
+      lastCapacityAlertValue = null;
+      return true;
+    }
+
+    if (kapasitasSisaSaatIni <= 0) {
+      if (showAlert && lastCapacityAlertValue !== 'full') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Kapasitas penuh',
+          text: 'Kandang yang dipilih sudah penuh. Pilih kandang lain atau selesaikan batch aktif.',
+        });
+        lastCapacityAlertValue = 'full';
+      }
+      jumlahField.value = '';
+      validateCampuranCountsRealtime();
+      return false;
+    }
+
+    if (value > kapasitasSisaSaatIni) {
+      if (showAlert && lastCapacityAlertValue !== value) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Melebihi kapasitas',
+          text: `Jumlah puyuh melebihi sisa kapasitas (${formatCapacityNumber(kapasitasSisaSaatIni)}). Nilai akan disesuaikan otomatis.`,
+        });
+        lastCapacityAlertValue = value;
+      }
+      jumlahField.value = kapasitasSisaSaatIni;
+      validateCampuranCountsRealtime();
+      return false;
+    }
+
+    lastCapacityAlertValue = null;
+    return true;
+  }
+
+  function validateCapacityBeforeSubmit() {
+    if (!isBurungModeActive()) {
+      return true;
+    }
+
+    const jumlahField = document.getElementById('jumlah_burung');
+    const select = getKandangSelect();
+
+    if (!jumlahField || !select || !select.value) {
+      return true;
+    }
+
+    const value = parseInt(jumlahField.value || '0', 10);
+    const selectedLabel = select.options[select.selectedIndex]?.text?.trim() || 'kandang terpilih';
+
+    if (kapasitasSisaSaatIni <= 0) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Kandang penuh',
+        text: `${selectedLabel} sudah tidak memiliki slot tersisa.`,
+      });
+      return false;
+    }
+
+    if (value > kapasitasSisaSaatIni) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Melebihi kapasitas',
+        text: `Jumlah indukan melewati sisa kapasitas (${formatCapacityNumber(kapasitasSisaSaatIni)}).`,
+      });
+      return false;
+    }
+
+    return true;
+  }
+
   // GLOBAL helpers so resetForm can call toggleSections()
   const FORM_STATE_KEY = 'produksi_form_state';
   const hasValidationErrors = @json($errors->any());
@@ -188,8 +341,10 @@
   }
 
   function validateForm() {
-    // All validation is now handled on the server side
-    // Client-side validation for campuran has been moved to controller
+    if (!validateCapacityBeforeSubmit()) {
+      return false;
+    }
+
     return true;
   }
 
@@ -519,6 +674,7 @@
 
     // regenerate batch id when jenis_input changes
     generateBatchId(true);
+    enforceCapacityLimit(false);
   }
 
   function updateRequiredLabels() {
@@ -722,7 +878,10 @@
     const jumlahBetinaField = document.getElementById('jumlah_betina');
 
     if (jumlahBurungField) {
-      jumlahBurungField.addEventListener('input', validateCampuranCountsRealtime);
+      jumlahBurungField.addEventListener('input', () => {
+        validateCampuranCountsRealtime();
+        enforceCapacityLimit(true);
+      });
     }
     if (jumlahJantanField) {
       jumlahJantanField.addEventListener('input', validateCampuranCountsRealtime);
@@ -816,6 +975,7 @@
 
       // Call the new auto-fill function for production fields
       autoFillFromPembesaran();
+      enforceCapacityLimit(true);
       // Save form state
       saveFormState();
     });
@@ -924,6 +1084,8 @@
     generateBatchId(true);
     validateTanggalAkhir();
     saveFormState();
+    updateCapacityInfo();
+    enforceCapacityLimit(false);
 
     triggerFlashToast('success', 'Berhasil!', 'Form produksi berhasil direset.', 2200);
   }

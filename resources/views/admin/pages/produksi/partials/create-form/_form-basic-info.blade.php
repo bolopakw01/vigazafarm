@@ -11,8 +11,18 @@
       <select id="kandang_id" name="kandang_id" class="form-select @error('kandang_id') is-invalid @enderror" required>
         <option value="">Pilih Kandang</option>
         @foreach($kandangList as $kandang)
-    <option value="{{ $kandang->id }}" {{ old('kandang_id') == $kandang->id ? 'selected' : '' }}>
-      {{ $kandang->nama_dengan_detail }}
+    @php
+      $typeLabel = ucwords(strtolower($kandang->tipe_kandang ?? $kandang->tipe ?? '-'));
+      $remainingLabel = number_format((int) $kandang->kapasitas_tersisa);
+    @endphp
+    <option
+      value="{{ $kandang->id }}"
+      data-kapasitas="{{ $kandang->kapasitas_total }}"
+      data-terpakai="{{ $kandang->kapasitas_terpakai }}"
+      data-sisa="{{ $kandang->kapasitas_tersisa }}"
+      {{ old('kandang_id') == $kandang->id ? 'selected' : '' }}
+    >
+      {{ $kandang->nama_kandang }} ({{ $typeLabel }}, {{ $remainingLabel }})
     </option>
         @endforeach
       </select>
@@ -21,6 +31,17 @@
       @enderror
       <div class="form-text">
         <small class="text-muted">Pilih kandang produksi yang akan digunakan untuk batch ini</small>
+      </div>
+      <div id="kandangCapacityInfo" class="capacity-info-card mt-2">
+        <div class="capacity-info-icon">
+          <i class="fa-solid fa-battery-half"></i>
+        </div>
+        <div>
+          <div class="capacity-info-title">Sisa Kapasitas</div>
+          <div id="kandangCapacityInfoText" class="capacity-info-text">
+            Pilih kandang untuk melihat stok tersisa.
+          </div>
+        </div>
       </div>
     </div>
 

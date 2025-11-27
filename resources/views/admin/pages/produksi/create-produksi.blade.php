@@ -44,6 +44,47 @@
       color: #333;
     }
 
+    .capacity-info-card {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .capacity-info-card.capacity-warning {
+      border-color: #f97316;
+      background: #fff7ed;
+      color: #9a3412;
+    }
+
+    .capacity-info-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: #475569;
+    }
+
+    .capacity-info-title {
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+
+    .capacity-info-text {
+      color: #475569;
+      line-height: 1.4;
+    }
+
     .form-control, .form-select {
       border-radius: 0.5rem;
       border: 1px solid #ced4da;

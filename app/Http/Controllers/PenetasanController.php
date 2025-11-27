@@ -49,6 +49,30 @@ class PenetasanController extends Controller
             'catatan' => 'nullable|string',
         ]);
 
+        $kandang = Kandang::findOrFail($data['kandang_id']);
+        $kapasitasTersisa = $kandang->kapasitas_tersisa;
+        $jumlahTelur = (int) $data['jumlah_telur'];
+
+        if ($kapasitasTersisa <= 0) {
+            return back()->withInput()->withErrors([
+                'kandang_id' => sprintf(
+                    'Kandang %s sudah penuh. Kosongkan terlebih dahulu sebelum menambah batch baru.',
+                    $kandang->nama_kandang ?? ('#' . $kandang->id)
+                ),
+            ]);
+        }
+
+        if ($jumlahTelur > $kapasitasTersisa) {
+            return back()->withInput()->withErrors([
+                'jumlah_telur' => sprintf(
+                    'Jumlah telur (%s) melebihi sisa kapasitas %s pada kandang %s.',
+                    number_format($jumlahTelur),
+                    number_format($kapasitasTersisa),
+                    $kandang->nama_kandang ?? ('#' . $kandang->id)
+                ),
+            ]);
+        }
+
         if (empty($data['estimasi_tanggal_menetas'])) {
             $data['estimasi_tanggal_menetas'] = Carbon::parse($data['tanggal_simpan_telur'])->addDays(17);
         }

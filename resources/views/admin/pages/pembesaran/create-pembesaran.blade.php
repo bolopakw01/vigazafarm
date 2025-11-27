@@ -4,6 +4,48 @@
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-pembesaran.css') }}">
+<style>
+    .capacity-info-card {
+        margin-top: 10px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        font-size: 13px;
+    }
+
+    .capacity-info-card.capacity-warning {
+        border-color: #f97316;
+        background: #fff7ed;
+        color: #9a3412;
+    }
+
+    .capacity-info-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: #475569;
+    }
+
+    .capacity-info-title {
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 2px;
+    }
+
+    .capacity-info-text {
+        color: #475569;
+        line-height: 1.4;
+    }
+</style>
 @endpush
 
 @section('content')
@@ -81,12 +123,33 @@
                                     }
                                 @endphp
                                 @foreach($availableKandangs as $k)
-                                <option value="{{ $k->id }}" {{ old('kandang_id') == $k->id ? 'selected' : '' }}>
-                                    {{ $k->nama_dengan_detail }}
+                                @php
+                                    $typeLabel = ucwords(strtolower($k->tipe_kandang ?? $k->tipe ?? '-'));
+                                    $remainingLabel = number_format((int) $k->kapasitas_tersisa);
+                                @endphp
+                                <option
+                                    value="{{ $k->id }}"
+                                    data-kapasitas="{{ $k->kapasitas_total }}"
+                                    data-terpakai="{{ $k->kapasitas_terpakai }}"
+                                    data-sisa="{{ $k->kapasitas_tersisa }}"
+                                    {{ old('kandang_id') == $k->id ? 'selected' : '' }}
+                                >
+                                    {{ $k->nama_kandang }} ({{ $typeLabel }}, {{ $remainingLabel }})
                                 </option>
                                 @endforeach
                             </select>
                             <small class="form-text">Pilih kandang pembesaran yang akan digunakan</small>
+                            <div id="kandangCapacityInfo" class="capacity-info-card">
+                                <div class="capacity-info-icon">
+                                    <i class="fa-solid fa-battery-half"></i>
+                                </div>
+                                <div>
+                                    <div class="capacity-info-title">Sisa Kapasitas</div>
+                                    <div id="kandangCapacityInfoText" class="capacity-info-text">
+                                        Pilih kandang untuk melihat stok tersisa.
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -295,6 +358,109 @@ document.addEventListener('DOMContentLoaded', function() {
     const tanggalSiap = document.getElementById('tanggal_siap');
     const penetasanSelect = document.getElementById('penetasan_id');
     const jumlahInput = document.getElementById('jumlah_anak_ayam');
+    const kandangSelect = document.getElementById('kandang_id');
+    const capacityInfo = document.getElementById('kandangCapacityInfo');
+    const capacityInfoText = document.getElementById('kandangCapacityInfoText');
+    let kapasitasSisaSaatIni = 0;
+    let lastCapacityAlertValue = null;
+
+    const formatCapacityNumber = (value) => {
+        const numeric = Number.isFinite(value) ? value : parseInt(value ?? 0, 10) || 0;
+        return new Intl.NumberFormat('id-ID').format(Math.max(numeric, 0));
+    };
+
+    function updateCapacityInfo() {
+        if (!capacityInfo || !capacityInfoText) {
+            return;
+        }
+
+        if (!kandangSelect || !kandangSelect.value) {
+            kapasitasSisaSaatIni = 0;
+            capacityInfo.classList.remove('capacity-warning');
+            capacityInfoText.textContent = 'Pilih kandang untuk melihat stok tersisa.';
+            return;
+        }
+
+        const option = kandangSelect.options[kandangSelect.selectedIndex];
+        const total = parseInt(option?.dataset?.kapasitas ?? '0', 10) || 0;
+        const used = parseInt(option?.dataset?.terpakai ?? '0', 10) || 0;
+        const remaining = parseInt(option?.dataset?.sisa ?? '0', 10);
+        kapasitasSisaSaatIni = Math.max(remaining, 0);
+
+        capacityInfoText.innerHTML = `Sisa <strong>${formatCapacityNumber(remaining)}</strong> dari ${formatCapacityNumber(total)} slot (terpakai ${formatCapacityNumber(used)})`;
+        capacityInfo.classList.toggle('capacity-warning', remaining <= 0);
+    }
+
+    function enforceCapacityLimit(showAlert = false) {
+        if (!jumlahInput || !kandangSelect || !kandangSelect.value) {
+            lastCapacityAlertValue = null;
+            return true;
+        }
+
+        const value = parseInt(jumlahInput.value || '0', 10);
+        if (!Number.isFinite(value) || value <= 0) {
+            lastCapacityAlertValue = null;
+            return true;
+        }
+
+        if (kapasitasSisaSaatIni <= 0) {
+            if (showAlert && lastCapacityAlertValue !== 'full') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Kapasitas penuh',
+                    text: 'Kandang yang dipilih sudah penuh. Pilih kandang lain atau akhiri batch yang berjalan.',
+                });
+                lastCapacityAlertValue = 'full';
+            }
+            jumlahInput.value = '';
+            return false;
+        }
+
+        if (value > kapasitasSisaSaatIni) {
+            if (showAlert && lastCapacityAlertValue !== value) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Melebihi kapasitas',
+                    text: `Jumlah anak puyuh melebihi sisa kapasitas (${formatCapacityNumber(kapasitasSisaSaatIni)}). Nilai akan disesuaikan otomatis.`,
+                });
+                lastCapacityAlertValue = value;
+            }
+            jumlahInput.value = kapasitasSisaSaatIni;
+            return false;
+        }
+
+        lastCapacityAlertValue = null;
+        return true;
+    }
+
+    function validateCapacityBeforeSubmit() {
+        if (!kandangSelect || !kandangSelect.value) {
+            return true;
+        }
+
+        const value = parseInt(jumlahInput?.value || '0', 10);
+        const selectedLabel = kandangSelect.options[kandangSelect.selectedIndex]?.text?.trim() || 'kandang terpilih';
+
+        if (kapasitasSisaSaatIni <= 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Kandang penuh',
+                text: `${selectedLabel} sudah tidak memiliki slot tersisa.`,
+            });
+            return false;
+        }
+
+        if (value > kapasitasSisaSaatIni) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Melebihi kapasitas',
+                text: `Sisa kapasitas hanya ${formatCapacityNumber(kapasitasSisaSaatIni)} ekor di ${selectedLabel}.`,
+            });
+            return false;
+        }
+
+        return true;
+    }
 
     // Auto-calculate tanggal siap (35-42 hari untuk puyuh, default: 40 hari)
     tanggalMasuk.addEventListener('change', function() {
@@ -325,6 +491,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     showConfirmButton: false
                 });
             }
+            enforceCapacityLimit(true);
         }
     });
 
@@ -338,7 +505,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form submission dengan SweetAlert2 confirmation
     form.addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
+        if (!validateCapacityBeforeSubmit()) {
+            return;
+        }
+
         const batchCode = document.getElementById('batch_produksi_id').value;
         const kandang = document.getElementById('kandang_id').selectedOptions[0].text;
         const jumlah = parseInt(jumlahInput.value);
@@ -414,6 +585,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    if (kandangSelect) {
+        kandangSelect.addEventListener('change', () => {
+            updateCapacityInfo();
+            enforceCapacityLimit(false);
+        });
+        updateCapacityInfo();
+    }
+
+    if (jumlahInput) {
+        jumlahInput.addEventListener('input', () => enforceCapacityLimit(true));
+    }
 });
 </script>
 

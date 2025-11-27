@@ -88,6 +88,13 @@
 								<img class="bolopa-tabel-sort-icon bolopa-tabel-sort-down" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down" width="10" height="9">
 							</span>
 						</th>
+						<th data-sort="terpakai" style="width: 15%; min-width: 100px;" class="bolopa-tabel-text-right">
+							Terpakai
+							<span class="bolopa-tabel-sort-wrap">
+								<img class="bolopa-tabel-sort-icon bolopa-tabel-sort-up" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up" width="10" height="9">
+								<img class="bolopa-tabel-sort-icon bolopa-tabel-sort-down" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down" width="10" height="9">
+							</span>
+						</th>
 						<th data-sort="status" style="width: 15%; min-width: 100px;" class="bolopa-tabel-text-center">
 							Status
 							<span class="bolopa-tabel-sort-wrap">
@@ -105,6 +112,7 @@
 						<td class="bolopa-tabel-text-left" style="text-align: left;">{{ $row->nama_kandang ?? '-' }}</td>
 						<td class="bolopa-tabel-text-left" style="text-align: left;">{{ $row->tipe_kandang ?? $row->tipe ?? '-' }}</td>
 						<td class="bolopa-tabel-text-right" style="text-align: right;">{{ number_format($row->kapasitas_maksimal ?? $row->kapasitas ?? 0) }}</td>
+						<td class="bolopa-tabel-text-right" style="text-align: right;">{{ number_format($row->kapasitas_terpakai ?? 0) }}</td>
 						<td class="bolopa-tabel-text-center" style="text-align: center;">
 							@php $statusVal = $row->status ?? ($row->aktif ? 'aktif' : 'kosong'); @endphp
 							@if(strtolower(trim($statusVal)) === 'aktif')
@@ -137,7 +145,7 @@
 					</tr>
 					@empty
 					<tr>
-						<td colspan="6" style="text-align: center; padding: 40px;">
+						<td colspan="7" style="text-align: center; padding: 40px;">
 							<img src="{{ asset('bolopa/img/icon/streamline-sharp--archive-box-solid.svg') }}" alt="No Data" width="64" height="64" style="opacity: 0.3;">
 							<p style="margin-top: 16px; color: #6c757d;">Tidak ada data kandang</p>
 						</td>
