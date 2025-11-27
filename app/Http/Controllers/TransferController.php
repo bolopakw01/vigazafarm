@@ -10,6 +10,14 @@ use App\Models\Kandang;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
+/**
+ * ==========================================
+ * Controller : TransferController
+ * Deskripsi  : Mengatur perpindahan DOC, indukan, dan telur antar modul penetasan, pembesaran, serta produksi.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class TransferController extends Controller
 {
     /**
@@ -17,6 +25,9 @@ class TransferController extends Controller
      */
     public function transferDocToPembesaran(Request $request, $penetasanId)
     {
+        /**
+         * Melakukan transfer DOC dari entri penetasan ke modul pembesaran, membuat batch pembesaran baru.
+         */
         $request->validate([
             'kandang_id' => 'required|exists:vf_kandang,id',
             'jumlah_doc' => 'required|integer|min:1',
@@ -70,6 +81,9 @@ class TransferController extends Controller
      */
     public function transferIndukanToProduksi(Request $request, $pembesaranId)
     {
+        /**
+         * Memindahkan indukan dari pembesaran ke modul produksi, membuat record produksi baru.
+         */
         $request->validate([
             'kandang_id' => 'required|exists:vf_kandang,id',
             'jumlah_indukan' => 'required|integer|min:1',
@@ -129,6 +143,9 @@ class TransferController extends Controller
      */
     public function transferTelurInfertilToProduksi(Request $request, $penetasanId)
     {
+        /**
+         * Mencatat telur infertil dari penetasan sebagai produksi (untuk penjualan telur konsumsi).
+         */
         $request->validate([
             'jumlah_telur' => 'required|integer|min:1',
             'harga_per_pcs' => 'nullable|numeric|min:0',
@@ -179,6 +196,9 @@ class TransferController extends Controller
      */
     public function showTransferPenetasan($penetasanId)
     {
+        /**
+         * Menampilkan halaman transfer untuk penetasan, menampilkan daftar kandang tujuan.
+         */
         $penetasan = Penetasan::with('kandang')->findOrFail($penetasanId);
         $kandangList = Kandang::where('status', 'aktif')->get();
         
@@ -190,6 +210,9 @@ class TransferController extends Controller
      */
     public function showTransferPembesaran($pembesaranId)
     {
+        /**
+         * Menampilkan halaman transfer untuk pembesaran, menampilkan daftar kandang produksi.
+         */
         $pembesaran = Pembesaran::with('kandang', 'penetasan')->findOrFail($pembesaranId);
         $kandangList = Kandang::where('status', 'aktif')->where('tipe_kandang', 'produksi')->get();
         

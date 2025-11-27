@@ -12,6 +12,14 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
+/**
+ * ==========================================
+ * Controller : DatabaseMaintenanceController
+ * Deskripsi  : Mengelola backup, restore, optimasi, dan konfigurasi koneksi database aplikasi.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class DatabaseMaintenanceController extends Controller
 {
     protected string $disk = 'local';
@@ -19,6 +27,9 @@ class DatabaseMaintenanceController extends Controller
 
     public function showBackup()
     {
+        /**
+         * Menampilkan daftar file backup database yang tersedia.
+         */
         return view('admin.pages.sistem.database.dbbackup', [
             'backups' => $this->getBackupFiles(),
         ]);
@@ -26,6 +37,9 @@ class DatabaseMaintenanceController extends Controller
 
     public function runBackup()
     {
+        /**
+         * Menjalankan proses export seluruh database ke file JSON dan menyimpannya pada storage.
+         */
         $payload = $this->exportDatabase();
         $filename = 'vigaza-backup-' . now()->format('Ymd_His') . '.json';
 
@@ -40,6 +54,9 @@ class DatabaseMaintenanceController extends Controller
 
     public function downloadBackup(string $filename): BinaryFileResponse
     {
+        /**
+         * Mengunduh file backup yang disimpan pada penyimpanan lokal.
+         */
         $sanitized = $this->sanitizeFilename($filename);
         $path = $this->pathFor($sanitized);
 
@@ -54,6 +71,9 @@ class DatabaseMaintenanceController extends Controller
 
     public function deleteBackup(string $filename)
     {
+        /**
+         * Menghapus file backup tertentu dari penyimpanan.
+         */
         $sanitized = $this->sanitizeFilename($filename);
         $path = $this->pathFor($sanitized);
 
@@ -70,6 +90,9 @@ class DatabaseMaintenanceController extends Controller
 
     public function showRestore()
     {
+        /**
+         * Menampilkan halaman restore dan daftar backup yang tersedia.
+         */
         return view('admin.pages.sistem.database.dbrestore', [
             'backups' => $this->getBackupFiles(),
         ]);
@@ -77,6 +100,10 @@ class DatabaseMaintenanceController extends Controller
 
     public function runRestore(Request $request)
     {
+        /**
+         * Melakukan proses restore database dari file backup yang dipilih atau diunggah.
+         * Melakukan validasi input dan memanggil helper restoreFromPayload.
+         */
         $validated = $request->validate([
             'source' => 'required|in:existing,upload',
             'filename' => 'required_if:source,existing|string',
@@ -103,15 +130,18 @@ class DatabaseMaintenanceController extends Controller
 
     public function showInfo()
     {
+        /**
+         * Menampilkan informasi koneksi database dan versi MySQL jika tersedia.
+         */
         $connection = config('database.default');
         $config = config("database.connections.{$connection}");
 
-        // Get MySQL version
+        // Dapatkan versi MySQL
         $mysql_version = null;
         try {
             $mysql_version = DB::select('SELECT VERSION() as version')[0]->version ?? null;
         } catch (\Exception $e) {
-            // Ignore if can't get version
+            // Abaikan jika tidak dapat mendapatkan versi
         }
 
         return view('admin.pages.sistem.database.dbinfo', [
@@ -129,6 +159,9 @@ class DatabaseMaintenanceController extends Controller
 
     public function updateConnection(Request $request)
     {
+        /**
+         * Memperbarui nilai koneksi database pada file .env dan membersihkan cache konfigurasi.
+         */
         $validated = $request->validate([
             'host' => 'required|string|max:255',
             'port' => 'required|numeric|min:1',
@@ -153,6 +186,9 @@ class DatabaseMaintenanceController extends Controller
 
     public function showOptimization()
     {
+        /**
+         * Menampilkan halaman optimasi database beserta statistik tabel.
+         */
         return view('admin.pages.sistem.database.dboptimasi', [
             'tables' => $this->getTableStatistics(),
             'last_optimization' => Cache::get('db_last_optimization'),
@@ -161,6 +197,9 @@ class DatabaseMaintenanceController extends Controller
 
     public function runOptimization()
     {
+        /**
+         * Menjalankan perintah OPTIMIZE dan ANALYZE untuk setiap tabel di database.
+         */
         $tables = $this->listTables();
 
         foreach ($tables as $table) {

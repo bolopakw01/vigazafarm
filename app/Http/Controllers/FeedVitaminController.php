@@ -6,10 +6,21 @@ use App\Models\FeedVitaminItem;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
+/**
+ * ==========================================
+ * Controller : FeedVitaminController
+ * Deskripsi  : Mengelola master data pakan dan vitamin termasuk opsi API untuk form operasional.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class FeedVitaminController extends Controller
 {
     public function index()
     {
+        /**
+         * Menampilkan daftar item pakan dan vitamin yang tersimpan (grup berdasarkan kategori).
+         */
         $items = FeedVitaminItem::orderBy('category')
             ->orderBy('name')
             ->get()
@@ -23,6 +34,9 @@ class FeedVitaminController extends Controller
 
     public function store(Request $request)
     {
+        /**
+         * Menyimpan item pakan/vitamin baru setelah validasi.
+         */
         $data = $this->validateData($request);
 
         FeedVitaminItem::create($data);
@@ -32,6 +46,9 @@ class FeedVitaminController extends Controller
 
     public function update(Request $request, FeedVitaminItem $item)
     {
+        /**
+         * Memperbarui item pakan/vitamin yang ada.
+         */
         $data = $this->validateData($request, $item->id);
 
         $item->update($data);
@@ -41,6 +58,9 @@ class FeedVitaminController extends Controller
 
     public function destroy(FeedVitaminItem $item)
     {
+        /**
+         * Menghapus item pakan/vitamin.
+         */
         $item->delete();
 
         return $this->redirectWithMessage('Data berhasil dihapus.');
@@ -48,6 +68,9 @@ class FeedVitaminController extends Controller
 
     public function options(Request $request)
     {
+        /**
+         * Mengembalikan daftar opsi item (pakan/vitamin) dalam format JSON untuk form atau API.
+         */
         $category = $request->get('category');
 
         $query = FeedVitaminItem::query()->active()->orderBy('name');

@@ -479,15 +479,33 @@
 	<script>
 		// replicate mainChart + filters and radar chart + export menu and animations from lopadashboard.html
 		document.addEventListener('DOMContentLoaded', function(){
+			// Check if chart containers exist
+			const mainChartContainer = document.querySelector('#mainChart');
+			const radarChartContainer = document.querySelector('#radarChart');
+			
+			if (!mainChartContainer || !radarChartContainer) {
+				console.warn('Chart containers not found, skipping chart initialization');
+				return;
+			}
+
 			const rawDatasets = @json($activityDatasets ?? []);
 			const performanceConfig = @json($performanceChart ?? []);
+			
+			// Default fallback data for main chart
+			const defaultMainSeries = [
+				{ name: 'Penetasan', data: [12, 19, 15, 25, 22, 30, 28] },
+				{ name: 'Pembesaran', data: [8, 12, 18, 20, 25, 22, 28] },
+				{ name: 'Produksi', data: [5, 10, 8, 15, 12, 18, 20] }
+			];
+			const defaultMainLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+			
 			const safeDataset = (key) => {
 				const source = rawDatasets && rawDatasets[key] ? rawDatasets[key] : {};
-				return {
-					labels: Array.isArray(source.labels) ? source.labels : [],
-					series: Array.isArray(source.series) ? source.series : [],
-				};
+				const labels = Array.isArray(source.labels) && source.labels.length ? source.labels : defaultMainLabels;
+				const series = Array.isArray(source.series) && source.series.length ? source.series : defaultMainSeries;
+				return { labels, series };
 			};
+			
 			const datasets = {
 				bulan: safeDataset('bulan'),
 				tahun: safeDataset('tahun'),
@@ -497,47 +515,158 @@
 
 			const mainOpts = {
 				series: mainData.series,
-				chart: { type: 'line', height: 340, stacked: false, toolbar: { show:false }, foreColor: '#6c757d' },
-				colors: ['#0d6efd','#20c997','#ffc107'],
+				chart: {
+					type: 'line',
+					height: 340,
+					stacked: false,
+					toolbar: { show: false },
+					foreColor: '#6c757d'
+				},
+				colors: ['#0d6efd', '#20c997', '#ffc107'],
 				labels: mainData.labels,
-				stroke: { width: [0,2,4], curve: 'smooth' },
-				fill: { opacity: [1,0.25,1], gradient: { shadeIntensity: 1, opacityFrom: .7, opacityTo: .2, stops: [0,90,100] } },
-				plotOptions: { bar: { columnWidth: '48%' } },
-				dataLabels: { enabled: false },
-				markers: { size: 0 },
-				grid: { borderColor: '#dee2e6' },
-				xaxis: { labels: { style: { colors: '#495057' } }, axisBorder: { color: '#dee2e6' }, axisTicks: { color: '#dee2e6' } },
-				yaxis: { title: { text: 'Jumlah' }, labels: { style: { colors: '#495057' } } },
-				tooltip: { shared: true, intersect: false },
-				legend: { position: 'bottom', horizontalAlign: 'center', offsetY: 8, markers: { radius: 12 }, itemMargin: { horizontal: 14, vertical: 6 } },
-				responsive: [ { breakpoint: 992, options: { chart: { height: 320 }, legend: { itemMargin: { vertical: 4 } } } }, { breakpoint: 576, options: { chart: { height: 300 }, plotOptions: { bar: { columnWidth: '55%' } } } } ]
+				stroke: {
+					width: [0, 2, 4],
+					curve: 'smooth'
+				},
+				fill: {
+					opacity: [1, 0.25, 1],
+					gradient: {
+						shadeIntensity: 1,
+						opacityFrom: 0.7,
+						opacityTo: 0.2,
+						stops: [0, 90, 100]
+					}
+				},
+				plotOptions: {
+					bar: {
+						columnWidth: '48%'
+					}
+				},
+				dataLabels: {
+					enabled: false
+				},
+				markers: {
+					size: 0
+				},
+				grid: {
+					borderColor: '#dee2e6'
+				},
+				xaxis: {
+					labels: {
+						style: {
+							colors: '#495057'
+						}
+					},
+					axisBorder: {
+						color: '#dee2e6'
+					},
+					axisTicks: {
+						color: '#dee2e6'
+					}
+				},
+				yaxis: {
+					title: {
+						text: 'Jumlah'
+					},
+					labels: {
+						style: {
+							colors: '#495057'
+						}
+					}
+				},
+				tooltip: {
+					shared: true,
+					intersect: false
+				},
+				legend: {
+					position: 'bottom',
+					horizontalAlign: 'center',
+					offsetY: 8,
+					markers: {
+						radius: 12
+					},
+					itemMargin: {
+						horizontal: 14,
+						vertical: 6
+					}
+				},
+				responsive: [{
+					breakpoint: 992,
+					options: {
+						chart: {
+							height: 320
+						},
+						legend: {
+							itemMargin: {
+								vertical: 4
+							}
+						}
+					}
+				}, {
+					breakpoint: 576,
+					options: {
+						chart: {
+							height: 300
+						},
+						plotOptions: {
+							bar: {
+								columnWidth: '55%'
+							}
+						}
+					}
+				}]
 			};
 
-			const mainChart = new ApexCharts(document.querySelector('#mainChart'), mainOpts);
-			mainChart.render();
+			// Initialize main chart with error handling
+			let mainChart;
+			try {
+				mainChart = new ApexCharts(mainChartContainer, mainOpts);
+				mainChart.render();
+
+				// Ensure chart is visible after rendering
+				setTimeout(() => {
+					if (mainChartContainer.querySelector('svg')) {
+						console.log('Main chart rendered successfully');
+					} else {
+						console.warn('Main chart SVG not found after render');
+					}
+				}, 100);
+			} catch (error) {
+				console.error('Error initializing main chart:', error);
+				// Fallback: show a message in the container
+				mainChartContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; font-size: 14px;">Chart sedang dimuat...</div>';
+			}
 
 			const chartFilter = document.getElementById('chartFilter');
-			chartFilter?.addEventListener('click', (e)=>{
-				if(e.target.classList.contains('seg-btn')){
-					chartFilter.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('is-active'));
+			chartFilter?.addEventListener('click', (e) => {
+				if (e.target.classList.contains('seg-btn')) {
+					chartFilter.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('is-active'));
 					e.target.classList.add('is-active');
 					const f = e.target.getAttribute('data-filter');
 					const dataset = datasets[f] ?? { labels: [], series: [] };
-					mainChart.updateOptions({
-						labels: dataset.labels,
-						series: dataset.series,
-					});
+
+					try {
+						if (mainChart) {
+							// Update both series and options
+							mainChart.updateOptions({
+								series: dataset.series,
+								labels: dataset.labels
+							});
+						}
+					} catch (error) {
+						console.error('Error updating chart:', error);
+					}
 				}
 			});
 
 			// radar chart
 			const defaultRadarSeries = [
-				{ name: 'Sales', data: [80,50,30,40,100,20] },
-				{ name: 'Income', data: [20,30,40,80,20,80] },
-				{ name: 'Expense', data: [44,76,78,13,43,10] }
+				{ name: 'Produktivitas', data: [80, 65, 75, 85, 70, 90] },
+				{ name: 'Kesehatan', data: [70, 80, 85, 75, 80, 85] },
+				{ name: 'Efisiensi', data: [60, 75, 80, 70, 85, 75] }
 			];
-			const defaultRadarLabels = ['Jan','Feb','Mar','Apr','May','Jun'];
-			const defaultRadarColors = ['#198754','#0d6efd','#ffc107'];
+			const defaultRadarLabels = ['Penetasan', 'Pembesaran', 'Produksi', 'Kualitas', 'Distribusi', 'Keuntungan'];
+			const defaultRadarColors = ['#0d6efd', '#20c997', '#ffc107'];
 			const resolvedRadarSeries = Array.isArray(performanceConfig.series) && performanceConfig.series.length
 				? performanceConfig.series
 				: defaultRadarSeries;
@@ -558,8 +687,17 @@
 				plotOptions: { radar: { size: 180, polygons: { strokeColors: '#e9ecef', connectorColors: '#e9ecef', strokeWidth: 1 } } },
 				responsive: [ { breakpoint: 992, options: { plotOptions: { radar: { size: 150 } } } }, { breakpoint: 576, options: { plotOptions: { radar: { size: 120 } }, legend: { itemMargin: { horizontal: 12, vertical: 6 } } } } ]
 			};
-			const radarChart = new ApexCharts(document.querySelector('#radarChart'), radarOptions);
-			radarChart.render();
+
+			// Initialize radar chart with error handling
+			let radarChart;
+			try {
+				radarChart = new ApexCharts(radarChartContainer, radarOptions);
+				radarChart.render();
+			} catch (error) {
+				console.error('Error initializing radar chart:', error);
+				// Fallback: show a message in the container
+				radarChartContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; font-size: 14px;">Chart sedang dimuat...</div>';
+			}
 
 			// chart export menu
 			(function(){

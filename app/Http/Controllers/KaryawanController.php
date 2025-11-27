@@ -9,16 +9,27 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
+/**
+ * ==========================================
+ * Controller : KaryawanController
+ * Deskripsi  : Mengatur manajemen data karyawan termasuk unggah foto profil dan pengaturan peran.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class KaryawanController extends Controller
 {
     public function index(Request $request)
     {
+        /**
+         * Menampilkan daftar karyawan dengan filter pencarian dan paginasi.
+         */
         $perPage = $request->get('per_page', 5);
         $search = $request->get('search', '');
 
         $query = User::query();
 
-        // Exclude current logged in user
+        // Kecualikan pengguna yang sedang login
         $query->where('id', '!=', Auth::id());
 
         if ($search) {
@@ -39,11 +50,17 @@ class KaryawanController extends Controller
 
     public function create()
     {
+        /**
+         * Menampilkan form pembuatan karyawan baru.
+         */
         return view('admin.pages.karyawan.create-karyawan');
     }
 
     public function store(Request $request)
     {
+        /**
+         * Memvalidasi input dan menyimpan karyawan baru (termasuk unggah foto profil).
+         */
         $data = $request->validate([
             'nama' => 'required|string|max:255',
             'nama_pengguna' => 'required|string|max:255|unique:vf_pengguna,nama_pengguna',
@@ -54,7 +71,7 @@ class KaryawanController extends Controller
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // Handle file upload
+        // Tangani unggah file
         if ($request->hasFile('foto_profil')) {
             $destination = public_path('foto_profil');
             if (!File::exists($destination)) {
@@ -76,16 +93,25 @@ class KaryawanController extends Controller
 
     public function show(User $karyawan)
     {
+        /**
+         * Menampilkan detail data karyawan.
+         */
         return view('admin.pages.karyawan.show-karyawan', compact('karyawan'));
     }
 
     public function edit(User $karyawan)
     {
+        /**
+         * Menampilkan form edit untuk data karyawan.
+         */
         return view('admin.pages.karyawan.edit-karyawan', compact('karyawan'));
     }
 
     public function update(Request $request, User $karyawan)
     {
+        /**
+         * Memvalidasi dan memperbarui data karyawan termasuk pengelolaan foto profil.
+         */
         $data = $request->validate([
             'nama' => 'required|string|max:255',
             'nama_pengguna' => 'required|string|max:255|unique:vf_pengguna,nama_pengguna,' . $karyawan->id,
@@ -98,9 +124,9 @@ class KaryawanController extends Controller
         $removePhoto = $request->boolean('remove_profile_picture');
         $destination = public_path('foto_profil');
 
-        // Handle file upload
+        // Tangani unggah file
         if ($request->hasFile('foto_profil')) {
-            // Delete old file if exists
+            // Hapus file lama jika ada
             if (!File::exists($destination)) {
                 File::makeDirectory($destination, 0755, true);
             }
@@ -124,7 +150,7 @@ class KaryawanController extends Controller
             $data['foto_profil'] = null;
         }
 
-        // Only update password if provided
+        // Hanya perbarui kata sandi jika disediakan
         if ($request->filled('kata_sandi')) {
             $request->validate([
                 'kata_sandi' => 'string|min:8',
@@ -139,7 +165,10 @@ class KaryawanController extends Controller
 
     public function destroy(User $karyawan)
     {
-        // Delete profile picture if exists
+        /**
+         * Menghapus karyawan beserta foto profil dari penyimpanan jika ada.
+         */
+        // Hapus foto profil jika ada
         if ($karyawan->foto_profil) {
             $photoPath = public_path('foto_profil/' . $karyawan->foto_profil);
             if (File::exists($photoPath)) {

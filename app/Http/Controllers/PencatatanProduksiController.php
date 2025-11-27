@@ -9,6 +9,14 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 
+/**
+ * ==========================================
+ * Controller : PencatatanProduksiController
+ * Deskripsi  : Mengelola pencatatan produksi harian termasuk CRUD data dan statistik ringkasan.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class PencatatanProduksiController extends Controller
 {
     /**
@@ -16,6 +24,9 @@ class PencatatanProduksiController extends Controller
      */
     public function getData(Request $request, Produksi $produksi)
     {
+        /**
+         * Mengambil data pencatatan produksi untuk sebuah produksi (AJAX) dan mengembalikan JSON.
+         */
         $pencatatan = $produksi->pencatatanProduksi()
             ->with('dibuatOleh')
             ->orderBy('tanggal', 'desc')
@@ -45,6 +56,9 @@ class PencatatanProduksiController extends Controller
      */
     public function store(Request $request, Produksi $produksi)
     {
+        /**
+         * Menyimpan pencatatan produksi baru untuk produksi tertentu setelah validasi.
+         */
         $validator = Validator::make($request->all(), [
             'tanggal' => 'required|date|before_or_equal:today',
             'jumlah_produksi' => 'required|integer|min:1',
@@ -62,7 +76,7 @@ class PencatatanProduksiController extends Controller
             ], 422);
         }
 
-        // Check if pencatatan for this date already exists
+        // Periksa apakah pencatatan untuk tanggal ini sudah ada
         $existing = $produksi->pencatatanProduksi()
             ->where('tanggal', $request->tanggal)
             ->first();
@@ -96,7 +110,10 @@ class PencatatanProduksiController extends Controller
      */
     public function update(Request $request, PencatatanProduksi $pencatatan)
     {
-        // Check ownership
+        /**
+         * Memperbarui pencatatan produksi yang sudah ada (cek kepemilikan terlebih dahulu).
+         */
+        // Periksa kepemilikan
         if ($pencatatan->dibuat_oleh !== Auth::id()) {
             return response()->json([
                 'success' => false,
@@ -121,7 +138,7 @@ class PencatatanProduksiController extends Controller
             ], 422);
         }
 
-        // Check if another pencatatan for this date exists (excluding current)
+        // Periksa apakah pencatatan lain untuk tanggal ini ada (kecuali yang sedang diedit)
         $existing = $pencatatan->produksi->pencatatanProduksi()
             ->where('tanggal', $request->tanggal)
             ->where('id', '!=', $pencatatan->id)
@@ -150,7 +167,10 @@ class PencatatanProduksiController extends Controller
      */
     public function destroy(PencatatanProduksi $pencatatan)
     {
-        // Check ownership
+        /**
+         * Menghapus pencatatan produksi (cek kepemilikan terlebih dahulu).
+         */
+        // Periksa kepemilikan
         if ($pencatatan->dibuat_oleh !== Auth::id()) {
             return response()->json([
                 'success' => false,
@@ -171,6 +191,9 @@ class PencatatanProduksiController extends Controller
      */
     public function getStatistics(Request $request, Produksi $produksi)
     {
+        /**
+         * Menghitung dan mengembalikan statistik pencatatan untuk rentang tanggal tertentu.
+         */
         $startDate = $request->get('start_date', Carbon::now()->startOfMonth());
         $endDate = $request->get('end_date', Carbon::now()->endOfMonth());
 

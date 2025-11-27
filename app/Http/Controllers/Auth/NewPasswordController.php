@@ -13,6 +13,14 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
+/**
+ * ==========================================
+ * Controller : NewPasswordController
+ * Deskripsi  : Menyediakan tampilan reset kata sandi dan memproses permintaan pengaturan ulang.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class NewPasswordController extends Controller
 {
     /**
@@ -20,6 +28,9 @@ class NewPasswordController extends Controller
      */
     public function create(Request $request): View
     {
+        /**
+         * Menampilkan tampilan reset kata sandi (form token).
+         */
         return view('auth.reset-password', ['request' => $request]);
     }
 
@@ -30,6 +41,9 @@ class NewPasswordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        /**
+         * Memproses permintaan pengaturan kata sandi baru menggunakan token reset.
+         */
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],

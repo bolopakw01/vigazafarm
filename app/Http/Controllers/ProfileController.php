@@ -12,6 +12,14 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
+/**
+ * ==========================================
+ * Controller : ProfileController
+ * Deskripsi  : Mengelola pengaturan profil pengguna termasuk foto, data pribadi, dan penghapusan akun.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class ProfileController extends Controller
 {
     /**
@@ -19,6 +27,9 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
+        /**
+         * Menampilkan form edit profil pengguna saat ini.
+         */
         return view('admin.pages.profile.edit', [
             'user' => $request->user(),
         ]);
@@ -29,11 +40,14 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
+        /**
+         * Memperbarui data profil pengguna termasuk foto profil dan kata sandi jika disediakan.
+         */
         $user = $request->user();
         $photoDirectory = public_path('foto_profil');
         $removePhoto = $request->boolean('remove_profile_picture');
 
-        // Handle profile picture upload
+        // Tangani unggah foto profil
         if ($request->hasFile('profile_picture')) {
             if (!File::exists($photoDirectory)) {
                 File::makeDirectory($photoDirectory, 0755, true);
@@ -58,7 +72,7 @@ class ProfileController extends Controller
             $user->foto_profil = null;
         }
 
-        // Update user data
+        // Perbarui data pengguna
         $user->nama = $request->nama;
         if (Auth::user()->peran === 'owner') {
             $user->nama_pengguna = $request->username;
@@ -66,7 +80,7 @@ class ProfileController extends Controller
         $user->surel = $request->email;
         $user->alamat = $request->alamat;
 
-        // Handle password update
+        // Tangani pembaruan kata sandi
         if ($request->filled('password')) {
             $user->kata_sandi = Hash::make($request->password);
         }

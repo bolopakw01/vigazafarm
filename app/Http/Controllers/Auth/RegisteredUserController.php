@@ -12,6 +12,14 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
+/**
+ * ==========================================
+ * Controller : RegisteredUserController
+ * Deskripsi  : Mengelola tampilan registrasi serta proses pendaftaran pengguna baru.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class RegisteredUserController extends Controller
 {
     /**
@@ -19,6 +27,9 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
+        /**
+         * Menampilkan tampilan registrasi pengguna baru.
+         */
         return view('auth.register');
     }
 
@@ -29,6 +40,9 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        /**
+         * Memproses pendaftaran pengguna baru dan melakukan login otomatis setelah registrasi.
+         */
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],

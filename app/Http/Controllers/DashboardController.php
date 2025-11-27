@@ -4,6 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * ==========================================
+ * Controller : DashboardController
+ * Deskripsi  : Menangani akses dashboard utama dan pengalihan pengguna berdasarkan peran.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class DashboardController extends Controller
 {
     protected function fetchDashboardGoals(): array
@@ -13,6 +21,10 @@ class DashboardController extends Controller
 
     public function index()
     {
+        /**
+         * Menampilkan halaman dashboard utama.
+         * Mengarahkan user berdasarkan peran (operator -> admin dashboard).
+         */
         if (!Auth::check()) {
             return redirect('/mimin');
         }

@@ -10,6 +10,14 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * ==========================================
+ * Controller : AdminController
+ * Deskripsi  : Mengelola dashboard admin serta ringkasan modul produksi, penetasan, dan pembesaran.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class AdminController extends Controller
 {
     protected array $activityDateColumns = [
@@ -20,7 +28,11 @@ class AdminController extends Controller
 
     public function dashboard()
     {
-        // Load dashboard goals from SistemController
+        /**
+         * Menampilkan dashboard admin dengan metrik, goals, dan konfigurasi performa.
+         * Menggabungkan snapshot matriks, tujuan dashboard, dan dataset aktivitas.
+         */
+        // Muat tujuan dashboard dari SistemController
         $sistemController = app(SistemController::class);
         $goals = $sistemController->getDashboardGoals();
         $matrixCards = $sistemController->getMatrixSnapshot();
@@ -33,27 +45,40 @@ class AdminController extends Controller
 
     public function kandang()
     {
+        /**
+         * Menampilkan halaman daftar kandang (view index kandang).
+         */
         return view('admin.pages.kandang.index-kandang');
     }
 
     public function karyawan()
     {
+        /**
+         * Menampilkan halaman daftar karyawan untuk manajemen pengguna internal.
+         */
         return view('admin.pages.karyawan.index-karyawan');
     }
 
     public function pembesaran()
     {
+        /**
+         * Menampilkan halaman daftar pembesaran (batch pembesaran) untuk admin.
+         */
         return view('admin.pages.pembesaran.index-pembesaran');
     }
 
     public function penetasan(Request $request)
     {
+        /**
+         * Menampilkan halaman penetasan dengan pencarian dan snapshot IoT bila diaktifkan.
+         * Menerima parameter paginasi dan pencarian melalui query string.
+         */
         $perPage = $request->get('per_page', 5);
         $search = $request->get('search', '');
 
         $query = Penetasan::with('kandang');
 
-        // Search functionality
+        // Fungsionalitas pencarian
         if ($search) {
             $query->where(function($q) use ($search) {
                 $q->where('jumlah_telur', 'like', "%{$search}%")
@@ -67,10 +92,10 @@ class AdminController extends Controller
             });
         }
 
-        // Handle "Semua" option
+        // Tangani opsi "Semua"
         if ($perPage === 'all') {
             $penetasan = $query->orderBy('dibuat_pada', 'desc')->get();
-            // Create a mock paginator for "all" records
+            // Buat paginator tiruan untuk semua record
             $penetasan = new \Illuminate\Pagination\LengthAwarePaginator(
                 $penetasan,
                 $penetasan->count(),
@@ -121,7 +146,11 @@ class AdminController extends Controller
 
     public function produksi(Request $request)
     {
-        // Basic pagination and filters
+        /**
+         * Menampilkan halaman produksi dengan metrik KPI, filter, dan ringkasan batch.
+         * Mengumpulkan statistik seperti total telur, rata-rata telur per hari, dan loss rate.
+         */
+        // Paginasi dan filter dasar
         $perPage = $request->get('per_page', 10);
         $search = $request->get('search', '');
 
@@ -142,7 +171,7 @@ class AdminController extends Controller
             ? $query->orderBy('tanggal_mulai', 'desc')->get()
             : $query->orderBy('tanggal_mulai', 'desc')->paginate($perPage);
 
-        // KPI aggregates
+        // Agregat KPI
         $totalTelur = \App\Models\LaporanHarian::selectRaw('COALESCE(SUM(produksi_telur),0) as total')->value('total') ?? 0;
         
         // Rata-rata telur per hari dari laporan harian yang memiliki produksi
@@ -154,7 +183,7 @@ class AdminController extends Controller
             return ($p->jumlah_telur ?? 0) * ($p->harga_per_pcs ?? 0); 
         });
         
-        // Loss rate: hitung dari mortalitas kumulatif rata-rata
+        // Tingkat kehilangan: hitung dari mortalitas kumulatif rata-rata
         // Atau bisa dari jumlah kematian dibanding populasi
         $totalKematian = \App\Models\LaporanHarian::selectRaw('COALESCE(SUM(jumlah_kematian),0) as total')->value('total') ?? 0;
         $totalPopulasi = \App\Models\LaporanHarian::selectRaw('COALESCE(AVG(jumlah_burung),0) as total')->value('total') ?? 0;
@@ -191,20 +220,20 @@ class AdminController extends Controller
         ));
     }
 
-    // Minimal placeholder for creating produksi
+    // Placeholder minimal untuk membuat produksi
     public function produksiCreate()
     {
-        // For now, show a simple create placeholder page or redirect back
+        // Untuk saat ini, tampilkan halaman placeholder pembuatan sederhana atau redirect kembali
         return view('admin.pages.produksi.create-produksi');
     }
 
-    // Minimal placeholder for showing a produksi record
+    // Placeholder minimal untuk menampilkan record produksi
     public function produksiShow($id)
     {
         return redirect()->route('admin.produksi.show', $id);
     }
 
-    // Minimal placeholder for editing a produksi record
+    // Placeholder minimal untuk mengedit record produksi
     public function produksiEdit($id)
     {
         return view('admin.pages.produksi.edit-produksi', ['id' => $id]);

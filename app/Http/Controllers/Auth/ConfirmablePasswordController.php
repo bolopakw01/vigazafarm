@@ -9,6 +9,14 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
+/**
+ * ==========================================
+ * Controller : ConfirmablePasswordController
+ * Deskripsi  : Menyajikan form konfirmasi kata sandi dan memvalidasi permintaan sensitif.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class ConfirmablePasswordController extends Controller
 {
     /**
@@ -16,6 +24,9 @@ class ConfirmablePasswordController extends Controller
      */
     public function show(): View
     {
+        /**
+         * Menampilkan halaman konfirmasi kata sandi untuk aksi sensitif.
+         */
         return view('auth.confirm-password');
     }
 
@@ -24,6 +35,9 @@ class ConfirmablePasswordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        /**
+         * Memvalidasi kata sandi pengguna yang sedang login dan menandai sesi telah dikonfirmasi.
+         */
         if (! Auth::guard('web')->validate([
             'email' => $request->user()->email,
             'password' => $request->password,

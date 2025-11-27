@@ -7,6 +7,14 @@ use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
 
+/**
+ * ==========================================
+ * Controller : VerifyEmailController
+ * Deskripsi  : Memfinalisasi proses verifikasi email dan mengirim event Verified.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class VerifyEmailController extends Controller
 {
     /**
@@ -14,6 +22,9 @@ class VerifyEmailController extends Controller
      */
     public function __invoke(EmailVerificationRequest $request): RedirectResponse
     {
+        /**
+         * Menandai email pengguna sebagai terverifikasi dan memicu event Verified.
+         */
         if ($request->user()->hasVerifiedEmail()) {
             return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
         }

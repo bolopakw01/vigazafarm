@@ -10,6 +10,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * ==========================================
+ * Controller : PembesaranController
+ * Deskripsi  : Mengelola siklus pembesaran mulai dari penjadwalan, pencatatan, hingga penyelesaian batch.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class PembesaranController extends Controller
 {
     /**
@@ -17,6 +25,9 @@ class PembesaranController extends Controller
      */
     public function index()
     {
+        /**
+         * Menampilkan daftar pembesaran (batch) dengan relasi dan paginasi.
+         */
         $pembesaran = Pembesaran::with(['kandang', 'penetasan'])
             ->orderBy('dibuat_pada', 'desc')
             ->paginate(10);
@@ -29,6 +40,10 @@ class PembesaranController extends Controller
      */
     public function createFromPenetasan($penetasanId)
     {
+        /**
+         * Menampilkan form pembuatan pembesaran baru yang bersumber dari penetasan tertentu.
+         * Melakukan validasi status dan jumlah DOC sebelum menampilkan form.
+         */
         $penetasan = Penetasan::with('kandang')->findOrFail($penetasanId);
         
         // Validasi status penetasan harus selesai
@@ -54,6 +69,9 @@ class PembesaranController extends Controller
      */
     public function storeFromPenetasan(Request $request, $penetasanId)
     {
+        /**
+         * Menyimpan data pembesaran yang dibuat dari penetasan setelah validasi input.
+         */
         $validated = $request->validate([
             'kandang_id' => 'required|exists:vf_kandang,id',
             'tanggal_masuk' => 'required|date',
@@ -92,6 +110,9 @@ class PembesaranController extends Controller
      */
     public function create()
     {
+        /**
+         * Menampilkan form pembuatan pembesaran baru (manual) dan meng-generate kode batch.
+         */
         $kandangList = Kandang::where('tipe_kandang', 'pembesaran')
             ->where('status', 'aktif')
             ->get();
@@ -126,6 +147,9 @@ class PembesaranController extends Controller
      */
     public function store(Request $request)
     {
+        /**
+         * Memvalidasi dan menyimpan pembesaran baru ke database.
+         */
         $validated = $request->validate([
             'kandang_id' => 'required|exists:vf_kandang,id',
             'penetasan_id' => 'nullable|exists:vf_penetasan,id',
@@ -141,7 +165,7 @@ class PembesaranController extends Controller
             'catatan' => 'nullable|string',
         ]);
 
-        // Set default values
+        // Tetapkan nilai default
         $validated['status_batch'] = 'Aktif';
         $validated['jenis_kelamin'] = $validated['jenis_kelamin'] ?? 'campuran';
 
@@ -156,6 +180,9 @@ class PembesaranController extends Controller
      */
     public function show(Pembesaran $pembesaran)
     {
+        /**
+         * Menampilkan halaman detail sebuah pembesaran beserta metrik dan reminder vaksinasi.
+         */
         $pembesaran->load(['kandang', 'penetasan']);
         
         // Hitung metrics
@@ -228,6 +255,9 @@ class PembesaranController extends Controller
      */
     public function edit(Pembesaran $pembesaran)
     {
+        /**
+         * Menampilkan form edit untuk pembesaran yang dipilih.
+         */
         $kandangList = Kandang::orderBy('nama_kandang')->get();
 
         return view('admin.pages.pembesaran.edit-pembesaran', compact('pembesaran', 'kandangList'));
@@ -238,6 +268,9 @@ class PembesaranController extends Controller
      */
     public function update(Request $request, Pembesaran $pembesaran)
     {
+        /**
+         * Memvalidasi dan memperbarui data pembesaran, termasuk kontrol akses untuk update status.
+         */
         $validated = $request->validate([
             'kandang_id' => 'required|exists:vf_kandang,id',
             'tanggal_masuk' => 'required|date',
@@ -270,6 +303,9 @@ class PembesaranController extends Controller
      */
     public function selesaikanBatch(Pembesaran $pembesaran)
     {
+        /**
+         * Menandai batch pembesaran sebagai selesai setelah pengecekan aturan (umur atau role owner).
+         */
         // Cek apakah user adalah owner atau super admin
     $user = Auth::user();
         $isOwnerOrSuperAdmin = $user && ($user->peran === 'owner' || $user->peran === 'super_admin');
@@ -303,6 +339,9 @@ class PembesaranController extends Controller
      */
     public function destroy(Pembesaran $pembesaran)
     {
+        /**
+         * Menghapus data pembesaran dari database.
+         */
         $batchLabel = $pembesaran->batch_produksi_id ?? null;
         $identifier = 'ID: ' . $pembesaran->id;
 

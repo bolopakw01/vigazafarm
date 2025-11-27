@@ -8,6 +8,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\View\View;
 
+/**
+ * ==========================================
+ * Controller : PasswordResetLinkController
+ * Deskripsi  : Menyediakan formulir lupa kata sandi dan mengirim tautan reset ke email pengguna.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class PasswordResetLinkController extends Controller
 {
     /**
@@ -15,6 +23,9 @@ class PasswordResetLinkController extends Controller
      */
     public function create(): View
     {
+        /**
+         * Menampilkan form permintaan tautan reset kata sandi.
+         */
         return view('auth.forgot-password');
     }
 
@@ -25,6 +36,9 @@ class PasswordResetLinkController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        /**
+         * Mengirimkan tautan reset kata sandi ke email yang dimasukkan apabila valid.
+         */
         $request->validate([
             'email' => ['required', 'email'],
         ]);

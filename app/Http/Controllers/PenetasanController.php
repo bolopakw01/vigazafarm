@@ -8,10 +8,21 @@ use App\Models\Kandang;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
+/**
+ * ==========================================
+ * Controller : PenetasanController
+ * Deskripsi  : Mengelola proses penetasan mulai pembuatan batch, pembaruan status, hingga penyelesaian.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class PenetasanController extends Controller
 {
     public function create()
     {
+        /**
+         * Menampilkan form pembuatan penetasan baru (pilih kandang dan tanggal simpan telur).
+         */
         $kandang = Kandang::whereRaw('LOWER(tipe_kandang) = ?', ['penetasan'])
             ->where('status', 'aktif')
             ->orderBy('nama_kandang')
@@ -21,6 +32,9 @@ class PenetasanController extends Controller
 
     public function store(Request $request)
     {
+        /**
+         * Menyimpan data penetasan baru, melakukan perhitungan estimasi tanggal menetas, dan meng-generate batch.
+         */
         $data = $request->validate([
             'kandang_id' => 'required|exists:vf_kandang,id',
             'tanggal_simpan_telur' => 'required|date',
@@ -68,7 +82,7 @@ class PenetasanController extends Controller
             $random = str_pad(rand(0, 999), 3, '0', STR_PAD_LEFT);
             $batch = "PTN-{$date}-{$random}";
             
-            // Check if batch already exists
+            // Periksa apakah batch sudah ada
             $exists = Penetasan::where('batch', $batch)->exists();
         } while ($exists);
 
@@ -77,11 +91,17 @@ class PenetasanController extends Controller
 
     public function show(Penetasan $penetasan)
     {
+        /**
+         * Menampilkan detail sebuah penetasan.
+         */
         return view('admin.pages.penetasan.show', compact('penetasan'));
     }
 
     public function edit(Penetasan $penetasan)
     {
+        /**
+         * Menampilkan form edit untuk penetasan yang dipilih.
+         */
         $kandang = Kandang::where(function ($query) {
                 $query->whereRaw('LOWER(tipe_kandang) = ?', ['penetasan'])
                     ->where('status', 'aktif');
@@ -96,6 +116,9 @@ class PenetasanController extends Controller
 
     public function update(Request $request, Penetasan $penetasan)
     {
+        /**
+         * Memvalidasi dan memperbarui data penetasan, termasuk penetapan status jika tanggal menetas terisi.
+         */
         $data = $request->validate([
             'kandang_id' => 'required|exists:vf_kandang,id',
             'tanggal_simpan_telur' => 'required|date',
@@ -136,6 +159,9 @@ class PenetasanController extends Controller
 
     public function updateStatus(Request $request, Penetasan $penetasan)
     {
+        /**
+         * Mengubah status penetasan (hanya untuk owner).
+         */
         // Only owner can update status
     if (Auth::user()->peran !== 'owner') {
             return response()->json(['error' => 'Unauthorized'], 403);
@@ -156,6 +182,9 @@ class PenetasanController extends Controller
 
     public function finish(Request $request, Penetasan $penetasan)
     {
+        /**
+         * Menyelesaikan proses penetasan: mencatat jumlah DOC, jumlah menetas, dan menetapkan status selesai.
+         */
         if ($penetasan->status === 'selesai') {
             return response()->json([
                 'message' => 'Batch sudah berstatus selesai.'
@@ -213,6 +242,9 @@ class PenetasanController extends Controller
 
     public function destroy(Penetasan $penetasan)
     {
+        /**
+         * Menghapus record penetasan dari database.
+         */
         $identifier = $penetasan->batch ? 'batch ' . $penetasan->batch : '#' . $penetasan->id;
         $penetasan->delete();
 

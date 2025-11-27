@@ -16,6 +16,14 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
+/**
+ * ==========================================
+ * Controller : SistemController
+ * Deskripsi  : Mengatur konfigurasi sistem seperti dashboard, matriks finansial, IoT, dan pengaturan performa.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class SistemController extends Controller
 {
     protected string $goalsStorage = 'dashboard_goals.json';
@@ -26,11 +34,17 @@ class SistemController extends Controller
 
     public function index()
     {
+        /**
+         * Menampilkan halaman setelan sistem utama.
+         */
         return view('admin.pages.sistem.index');
     }
 
     public function iot()
     {
+        /**
+         * Menampilkan pengaturan plugin IoT (suhu & kelembaban) untuk konfigurasi.
+         */
         $settings = $this->loadIotSettings();
 
         return view('admin.pages.sistem.plugin.suhudankelembapan', compact('settings'));
@@ -38,6 +52,9 @@ class SistemController extends Controller
 
     public function updateIot(Request $request)
     {
+        /**
+         * Memproses pembaruan konfigurasi IoT sesuai input, menyimpan ke storage.
+         */
         $mode = $request->input('mode', 'simple');
 
         $rules = [
@@ -64,6 +81,9 @@ class SistemController extends Controller
 
     public function dashboard()
     {
+        /**
+         * Menampilkan halaman konfigurasi tujuan dashboard (set goals).
+         */
         $goals = $this->loadDashboardGoals();
 
         return view('admin.pages.sistem.dashboard.setgoals', compact('goals'));
@@ -71,6 +91,9 @@ class SistemController extends Controller
 
     public function updateDashboard(Request $request)
     {
+        /**
+         * Memperbarui konfigurasi target dashboard dan menyimpannya.
+         */
         $validated = $request->validate([
             'goals' => 'present|array',
             'goals.*.title' => 'required|string|max:100',
@@ -112,6 +135,9 @@ class SistemController extends Controller
 
     public function matrix()
     {
+        /**
+         * Menampilkan konfigurasi matriks finansial dan snapshot perhitungan.
+         */
         $matrixData = $this->loadMatrixData();
         $targets = $matrixData['targets'];
         $matriks_enabled = (bool) ($matrixData['enabled'] ?? true);
@@ -123,6 +149,9 @@ class SistemController extends Controller
 
     public function updateMatrix(Request $request)
     {
+        /**
+         * Memperbarui target matriks finansial dan menyimpannya ke storage.
+         */
         $validated = $request->validate([
             'targets' => 'required|array',
             'targets.pendapatan' => 'required|numeric|min:0',
@@ -158,6 +187,9 @@ class SistemController extends Controller
 
     public function performance()
     {
+        /**
+         * Menampilkan halaman konfigurasi grafik performance.
+         */
         $performance = $this->loadPerformanceSettings();
 
         return view('admin.pages.sistem.dashboard.setperformance', compact('performance'));
@@ -165,6 +197,9 @@ class SistemController extends Controller
 
     public function updatePerformance(Request $request)
     {
+        /**
+         * Memperbarui pengaturan grafik performance dan menyimpannya.
+         */
         $validated = $request->validate([
             'series' => 'required|array|min:1|max:4',
             'series.*.key' => 'nullable|string|max:60',

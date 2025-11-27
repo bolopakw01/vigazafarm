@@ -17,6 +17,14 @@ use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 
+/**
+ * ==========================================
+ * Controller : ProduksiController
+ * Deskripsi  : Mengatur seluruh siklus produksi mulai input batch, laporan harian, tray tracking, hingga rekomendasi performa.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class ProduksiController extends Controller
 {
     /**
@@ -24,6 +32,10 @@ class ProduksiController extends Controller
      */
     public function index(Request $request)
     {
+        /**
+         * Menampilkan daftar produksi dengan filter pencarian dan paginasi.
+         * Menyusun metrik ringkasan yang diperlukan untuk tampilan index produksi.
+         */
         $perPage = $request->get('per_page', 10);
         $search = $request->get('search', '');
 
@@ -90,22 +102,22 @@ class ProduksiController extends Controller
     public function resetLaporan(Produksi $produksi, LaporanHarian $laporan)
     {
         try {
-            // Reset egg production data if present
+            // Reset data produksi telur jika ada
             if ($laporan->produksi_telur > 0 || (Schema::hasColumn('vf_laporan_harian', 'input_telur') && $laporan->input_telur > 0)) {
                 $laporan->produksi_telur = 0;
                 if (Schema::hasColumn('vf_laporan_harian', 'input_telur')) {
                     $laporan->input_telur = 0;
                 }
-                // Optionally clear sisa_telur so it doesn't carry stale value
+                // Opsional: hapus sisa_telur agar tidak membawa nilai lama
                 if (Schema::hasColumn('vf_laporan_harian', 'sisa_telur')) {
                     $laporan->sisa_telur = null;
                 }
             }
 
-            // Reset feed consumption data if present
+            // Reset data konsumsi pakan jika ada
             if ($laporan->konsumsi_pakan_kg !== null) {
                 $laporan->konsumsi_pakan_kg = 0;
-                // Optionally clear sisa_pakan_kg so it doesn't carry stale value
+                // Opsional: hapus sisa_pakan_kg agar tidak membawa nilai lama
                 if (Schema::hasColumn('vf_laporan_harian', 'sisa_pakan_kg')) {
                     $laporan->sisa_pakan_kg = null;
                 }
@@ -177,8 +189,8 @@ class ProduksiController extends Controller
                       ->orderBy('nama_kandang')
                       ->get();
         
-        // Get pembesaran with available breeding stock and load kandang relation
-        // Only get completed pembesaran with available stock
+        // Dapatkan pembesaran dengan stok breeding yang tersedia dan muat relasi kandang
+        // Hanya dapat pembesaran yang telah selesai dengan stok tersedia
         $pembesaranList = Pembesaran::with('kandang')
                                     ->where('status_batch', 'selesai')
                                     ->whereRaw('(COALESCE(jumlah_siap, 0) - COALESCE(indukan_ditransfer, 0)) > 0')
@@ -430,7 +442,7 @@ class ProduksiController extends Controller
                     }
                 }
                 
-                // Check available stock
+                // Periksa stok tersedia
                 $tersedia = $pembesaran->jumlah_siap - ($pembesaran->indukan_ditransfer ?? 0);
                 if ($validated['jumlah_indukan'] > $tersedia) {
                     throw new \Exception("Jumlah indukan melebihi stok tersedia ({$tersedia})");
@@ -439,7 +451,7 @@ class ProduksiController extends Controller
                 // Update pembesaran
                 $pembesaran->increment('indukan_ditransfer', $validated['jumlah_indukan']);
                 
-                // Check if all stock transferred
+                // Periksa apakah semua stok telah dipindahkan
                 if ($pembesaran->indukan_ditransfer >= $pembesaran->jumlah_siap) {
                     $pembesaran->update(['status_batch' => 'selesai']);
                 }
@@ -449,7 +461,7 @@ class ProduksiController extends Controller
             if ($validated['jenis_input'] === 'dari_penetasan' && $validated['penetasan_id']) {
                 $penetasan = Penetasan::findOrFail($validated['penetasan_id']);
                 
-                // Check available stock
+                // Periksa stok tersedia
                 $tersedia = $penetasan->telur_tidak_fertil - ($penetasan->telur_infertil_ditransfer ?? 0);
                 if ($validated['jumlah_telur'] > $tersedia) {
                     throw new \Exception("Jumlah telur melebihi stok tersedia ({$tersedia})");
@@ -796,7 +808,7 @@ class ProduksiController extends Controller
         }
         $request->merge($requestData);
 
-        // Get active tab to determine required fields
+        // Dapatkan tab aktif untuk menentukan field yang diperlukan
         $activeTab = $request->input('active_tab');
 
         // Build validation rules based on active tab
@@ -1105,7 +1117,7 @@ class ProduksiController extends Controller
             'keterangan_tray' => $laporan->keterangan_tray,
         ];
 
-        // Check if egg quantity is being reduced - add difference to telur_rusak
+        // Periksa apakah jumlah telur dikurangi - tambahkan selisih ke telur_rusak
         if ($validated['jumlah_telur'] < $oldValues['jumlah_telur']) {
             $difference = $oldValues['jumlah_telur'] - $validated['jumlah_telur'];
             $laporan->telur_rusak = ($laporan->telur_rusak ?? 0) + $difference;

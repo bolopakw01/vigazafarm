@@ -17,8 +17,12 @@ use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 /**
- * Controller untuk handling recording pembesaran
- * (Pakan, Kematian, Laporan Harian, Monitoring, Kesehatan)
+ * ==========================================
+ * Controller : PembesaranRecordingController
+ * Deskripsi  : Menangani pencatatan harian pembesaran mencakup pakan, kematian, monitoring, kesehatan, dan sampling berat.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
  */
 class PembesaranRecordingController extends Controller
 {
@@ -33,6 +37,10 @@ class PembesaranRecordingController extends Controller
      */
     public function storePakan(Request $request, $pembesaranId)
     {
+        /**
+         * Mencatat konsumsi pakan harian untuk suatu pembesaran (batch).
+         * Mendukung pemilihan dari master feed/vitamin atau stok pakan legacy.
+         */
         $pembesaran = Pembesaran::findOrFail($pembesaranId);
         $hasFeedMaster = Schema::hasTable('vf_feed_vitamin_items');
 
@@ -117,6 +125,9 @@ class PembesaranRecordingController extends Controller
      */
     public function updatePakan(Request $request, $pakanId)
     {
+        /**
+         * Memperbarui entri pakan sebelumnya dan menyesuaikan stok terkait.
+         */
         $pakan = Pakan::findOrFail($pakanId);
         $oldJumlahKg = $pakan->jumlah_kg;
         $oldJumlahKarung = $pakan->jumlah_karung ?? 0;
@@ -208,6 +219,9 @@ class PembesaranRecordingController extends Controller
      */
     public function destroyPakan($pakanId)
     {
+        /**
+         * Menghapus entri pakan dan mengembalikan stok jika diperlukan.
+         */
         $pakan = Pakan::findOrFail($pakanId);
 
         if ($pakan->stok_pakan_id) {
@@ -232,6 +246,9 @@ class PembesaranRecordingController extends Controller
      */
     public function getPakanList(Pembesaran $pembesaran)
     {
+        /**
+         * Mengambil daftar entri pakan terbaru untuk batch tertentu beserta ringkasan konsumsi.
+         */
         $batchId = $pembesaran->batch_produksi_id;
 
         $pakanQuery = Pakan::query();
@@ -271,6 +288,9 @@ class PembesaranRecordingController extends Controller
      */
     public function storeKematian(Request $request, $pembesaranId)
     {
+        /**
+         * Mencatat kejadian kematian pada batch dan menghitung mortalitas serta alert bila tinggi.
+         */
         $pembesaran = Pembesaran::findOrFail($pembesaranId);
         
         $validated = $request->validate([
@@ -297,7 +317,7 @@ class PembesaranRecordingController extends Controller
             $pembesaran->jumlah_anak_ayam
         );
 
-        // Check if mortalitas tinggi
+        // Periksa apakah mortalitas tinggi
         $isHighMortality = $mortalitas > 5;
 
         return response()->json([
@@ -316,6 +336,9 @@ class PembesaranRecordingController extends Controller
      */
     public function updateKematian(Request $request, $kematianId)
     {
+        /**
+         * Memperbarui catatan kematian yang sudah ada.
+         */
         $kematian = Kematian::findOrFail($kematianId);
         
         $validated = $request->validate([
@@ -339,6 +362,9 @@ class PembesaranRecordingController extends Controller
      */
     public function destroyKematian($kematianId)
     {
+        /**
+         * Menghapus catatan kematian.
+         */
         $kematian = Kematian::findOrFail($kematianId);
         $kematian->delete();
 
@@ -353,6 +379,9 @@ class PembesaranRecordingController extends Controller
      */
     public function getKematianList(Pembesaran $pembesaran)
     {
+        /**
+         * Mengambil daftar kematian untuk batch tertentu beserta statistik penyebab.
+         */
         
         $kematianList = Kematian::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->with('pengguna')
@@ -387,6 +416,9 @@ class PembesaranRecordingController extends Controller
      */
     public function generateLaporanHarian(Request $request, $pembesaranId)
     {
+        /**
+         * Mengenerate laporan harian otomatis untuk tanggal tertentu jika belum ada.
+         */
         $pembesaran = Pembesaran::findOrFail($pembesaranId);
         
         $validated = $request->validate([
@@ -394,20 +426,20 @@ class PembesaranRecordingController extends Controller
             'catatan_kejadian' => 'nullable|string',
         ]);
 
-        // Get authenticated user ID (should be integer)
+        // Dapatkan ID pengguna yang terautentikasi (harus berupa integer)
         $userId = Auth::id();
         
-        // Fallback: if Auth::id() returns null, try to get from Auth::user()
+        // Fallback: jika Auth::id() mengembalikan null, coba dapatkan dari Auth::user()
         if (!$userId && Auth::check()) {
             $userId = Auth::user()->id;
         }
         
-        // Last resort: get first user ID (for development only)
+        // Upaya terakhir: dapatkan ID pengguna pertama (hanya untuk pengembangan)
         if (!$userId) {
             $userId = \App\Models\User::first()->id ?? 1;
         }
 
-        // Check if laporan already exists for this date (server-side guard)
+        // Periksa apakah laporan sudah ada untuk tanggal ini (penjagaan sisi server)
         $existing = LaporanHarian::getLaporanHarian($pembesaran->batch_produksi_id, $validated['tanggal']);
         if ($existing) {
             return response()->json([
@@ -418,7 +450,7 @@ class PembesaranRecordingController extends Controller
             ]);
         }
 
-        // Create laporan jika belum ada
+        // Buat laporan jika belum ada
         $laporan = LaporanHarian::generateLaporanHarian(
             $pembesaran->batch_produksi_id,
             $validated['tanggal'],
@@ -443,6 +475,9 @@ class PembesaranRecordingController extends Controller
      */
     public function getLaporanHarianList(Pembesaran $pembesaran)
     {
+        /**
+         * Mengambil daftar laporan harian untuk batch tertentu.
+         */
         
         $laporanList = LaporanHarian::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->with('pengguna')
@@ -461,7 +496,10 @@ class PembesaranRecordingController extends Controller
      */
     public function showLaporanHarian(Pembesaran $pembesaran, LaporanHarian $laporan)
     {
-        // Verify laporan belongs to this pembesaran
+        /**
+         * Menampilkan detail laporan harian (halaman penuh) untuk sebuah laporan pada batch.
+         */
+        // Verifikasi laporan milik pembesaran ini
         if ($laporan->batch_produksi_id !== $pembesaran->batch_produksi_id) {
             abort(404, 'Laporan tidak ditemukan untuk pembesaran ini');
         }
@@ -480,12 +518,15 @@ class PembesaranRecordingController extends Controller
      */
     public function updateLaporanHarian(Request $request, Pembesaran $pembesaran, LaporanHarian $laporan)
     {
-        // Verify laporan belongs to this pembesaran
+        /**
+         * Memperbarui catatan laporan harian (hanya pembuat atau owner diizinkan).
+         */
+        // Verifikasi laporan milik pembesaran ini
         if ($laporan->batch_produksi_id !== $pembesaran->batch_produksi_id) {
             abort(404, 'Laporan tidak ditemukan untuk pembesaran ini');
         }
 
-        // Authorization: hanya pembuat atau owner
+        // Otorisasi: hanya pembuat atau owner
         $user = Auth::user();
         if ($laporan->pengguna_id !== $user->id && $user->peran !== 'owner') {
             return response()->json([
@@ -512,12 +553,15 @@ class PembesaranRecordingController extends Controller
      */
     public function destroyLaporanHarian(Pembesaran $pembesaran, LaporanHarian $laporan)
     {
-        // Verify laporan belongs to this pembesaran
+        /**
+         * Menghapus laporan harian (hanya pembuat atau owner diizinkan).
+         */
+        // Verifikasi laporan milik pembesaran ini
         if ($laporan->batch_produksi_id !== $pembesaran->batch_produksi_id) {
             abort(404, 'Laporan tidak ditemukan untuk pembesaran ini');
         }
 
-        // Authorization: hanya pembuat atau owner
+        // Otorisasi: hanya pembuat atau owner
         $user = Auth::user();
         if ($laporan->pengguna_id !== $user->id && $user->peran !== 'owner') {
             return response()->json([
@@ -545,6 +589,9 @@ class PembesaranRecordingController extends Controller
      */
     public function storeMonitoring(Request $request, $pembesaranId)
     {
+        /**
+         * Mencatat monitoring lingkungan (suhu, kelembaban, dll.) untuk batch.
+         */
         $pembesaran = Pembesaran::findOrFail($pembesaranId);
         
         $validated = $request->validate([
@@ -568,7 +615,7 @@ class PembesaranRecordingController extends Controller
             'pengguna_id' => Auth::id(),
         ]);
 
-        // Check status lingkungan
+        // Periksa status lingkungan
         $status = $monitoring->getStatusLingkungan('grower');
 
         return response()->json([
@@ -584,6 +631,9 @@ class PembesaranRecordingController extends Controller
      */
     public function getMonitoringList(Pembesaran $pembesaran)
     {
+        /**
+         * Mengambil daftar data monitoring lingkungan dan ringkasan mingguan.
+         */
         
         $monitoringList = MonitoringLingkungan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->with('pengguna')
@@ -591,7 +641,7 @@ class PembesaranRecordingController extends Controller
             ->limit(50)
             ->get();
 
-        // Get summary mingguan
+        // Dapatkan ringkasan mingguan
         $summaryMingguan = MonitoringLingkungan::getSummaryMingguan(
             $pembesaran->kandang_id,
             $pembesaran->batch_produksi_id
@@ -615,6 +665,9 @@ class PembesaranRecordingController extends Controller
      */
     public function storeKesehatan(Request $request, $pembesaranId)
     {
+        /**
+         * Mencatat kegiatan kesehatan/vaksinasi untuk batch.
+         */
         $pembesaran = Pembesaran::findOrFail($pembesaranId);
         
         $validated = $request->validate([
@@ -651,6 +704,9 @@ class PembesaranRecordingController extends Controller
      */
     public function getKesehatanList(Pembesaran $pembesaran)
     {
+        /**
+         * Mengambil daftar kegiatan kesehatan untuk batch beserta reminder vaksinasi.
+         */
         
         $kesehatanList = Kesehatan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->with('pengguna')
@@ -660,7 +716,7 @@ class PembesaranRecordingController extends Controller
         // Hitung umur batch
         $umurHari = Carbon::parse($pembesaran->tanggal_masuk)->diffInDays(Carbon::now());
         
-        // Generate reminder vaksinasi
+        // Generate pengingat vaksinasi
         $reminders = Kesehatan::generateReminder($pembesaran->batch_produksi_id, $umurHari);
 
         $totalBiaya = Kesehatan::getTotalBiayaKesehatan($pembesaran->batch_produksi_id);
@@ -685,6 +741,9 @@ class PembesaranRecordingController extends Controller
      */
     public function storeBeratRataRata(Request $request, $pembesaranId)
     {
+        /**
+         * Mencatat sampling berat rata-rata untuk batch dan menyimpan history sampling.
+         */
         $pembesaran = Pembesaran::findOrFail($pembesaranId);
         
         $validated = $request->validate([
@@ -711,7 +770,7 @@ class PembesaranRecordingController extends Controller
             'pengguna_id' => Auth::id(),
         ]);
 
-        // Get parameter standar untuk grower
+        // Dapatkan parameter standar untuk grower
         $paramStandar = ParameterStandar::where('fase', 'grower')
             ->where('parameter', 'berat_rata_rata')
             ->first();
@@ -751,6 +810,9 @@ class PembesaranRecordingController extends Controller
      */
     public function updateBeratRataRata(Request $request, $pembesaranId)
     {
+        /**
+         * Memperbarui nilai berat rata-rata yang tercatat untuk batch.
+         */
         $pembesaran = Pembesaran::findOrFail($pembesaranId);
         
         $validated = $request->validate([
@@ -763,7 +825,7 @@ class PembesaranRecordingController extends Controller
             'umur_hari' => $validated['umur_hari'],
         ]);
 
-        // Get parameter standar untuk grower
+        // Dapatkan parameter standar untuk grower
         $paramStandar = ParameterStandar::where('fase', 'grower')
             ->where('parameter', 'berat_rata_rata')
             ->first();
@@ -802,6 +864,9 @@ class PembesaranRecordingController extends Controller
      */
     public function getBeratList(Pembesaran $pembesaran)
     {
+        /**
+         * Mengambil daftar sampling berat untuk batch tertentu.
+         */
         $beratList = \App\Models\BeratSampling::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->with('pengguna')
             ->orderBy('tanggal_sampling', 'asc')

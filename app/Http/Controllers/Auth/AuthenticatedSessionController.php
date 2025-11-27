@@ -9,6 +9,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
+/**
+ * ==========================================
+ * Controller : AuthenticatedSessionController
+ * Deskripsi  : Menangani tampilan login, autentikasi pengguna, dan proses logout.
+ * Dibuat     : 27 November 2025
+ * Penulis    : Bolopa Kakungnge Walinono
+ * ==========================================
+ */
 class AuthenticatedSessionController extends Controller
 {
     /**
@@ -16,6 +24,9 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): View
     {
+        /**
+         * Menampilkan tampilan login.
+         */
         return view('auth.login');
     }
 
@@ -24,6 +35,10 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request)
     {
+        /**
+         * Memproses permintaan autentikasi (login).
+         * Mendukung permintaan AJAX dan non-AJAX.
+         */
         if ($request->expectsJson()) {
             try {
                 $request->authenticate();
@@ -67,6 +82,9 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        /**
+         * Menghancurkan sesi autentikasi (logout) dan mengarahkan ke halaman utama.
+         */
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
