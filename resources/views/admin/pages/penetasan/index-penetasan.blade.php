@@ -793,8 +793,20 @@
                         }
                         elapsedDays = Math.min(elapsedDays, totalDays);
                         const pct = totalDays > 0 ? Math.max(0, Math.min(100, (elapsedDays / totalDays) * 100)) : 0;
+                        
+                        // Format target date for display
+                        const formatTargetDate = (date) => {
+                            if (!date) return '';
+                            const d = new Date(date);
+                            if (isNaN(d.getTime())) return '';
+                            return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+                        };
+                        
+                        const targetDateStr = targetDate ? formatTargetDate(targetDate) : '';
                         percentLabelEl.textContent = 'Progress Penetasan';
-                        percentDescEl.textContent = 'Hari yang sudah dilalui menuju tanggal tetas';
+                        percentDescEl.textContent = targetDateStr ? 
+                            `Hari yang sudah dilalui menuju tanggal tetas (${targetDateStr})` : 
+                            'Hari yang sudah dilalui menuju tanggal tetas';
                         percentEl.textContent = `${elapsedDays}/${totalDays} hari`;
                         setTimeout(() => { if (bar) bar.style.width = pct + '%'; }, 80);
                     }

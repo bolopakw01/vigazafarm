@@ -1,4 +1,7 @@
 <script>
+  let kapasitasSisaSaatIni = 0;
+  let lastCapacityAlertValue = null;
+
   function triggerFlashToast(icon, title, message, timer = 3500) {
     if (!message) {
       return;
@@ -29,8 +32,6 @@
       });
       updateCapacityInfo();
     }
-  let kapasitasSisaSaatIni = 0;
-  let lastCapacityAlertValue = null;
 
   function formatCapacityNumber(value) {
     const numeric = Number.isFinite(value) ? value : parseInt(value ?? 0, 10) || 0;
