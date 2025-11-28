@@ -437,13 +437,7 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="tab-daily" data-bs-toggle="tab" data-bs-target="#recordHarian" type="button"
                 role="tab" aria-controls="recordHarian" aria-selected="false">
-                <i class="fa-solid fa-clipboard-list"></i> Recording Harian
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="tab-weekly" data-bs-toggle="tab" data-bs-target="#recordMingguan"
-                type="button" role="tab" aria-controls="recordMingguan" aria-selected="false">
-                <i class="fa-solid fa-calendar-week"></i> Recording Mingguan
+                <i class="fa-solid fa-clipboard-list"></i> Recording
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -464,8 +458,7 @@
     <div class="mobile-tab-selector">
         <select id="mobileTabSelector" class="form-select">
             <option value="#infoBatch" data-icon="fa-circle-info">📋 Info Batch</option>
-            <option value="#recordHarian" data-icon="fa-clipboard-list">📝 Recording Harian</option>
-            <option value="#recordMingguan" data-icon="fa-calendar-week">📅 Recording Mingguan</option>
+            <option value="#recordHarian" data-icon="fa-clipboard-list">📝 Recording</option>
             <option value="#laporanBatch" data-icon="fa-file-lines">📄 Laporan</option>
             <option value="#grafikAnalisis" data-icon="fa-chart-line">📈 Grafik & Analisis</option>
         </select>
@@ -786,7 +779,7 @@
             </div>
         </div>
 
-        {{-- Tab 2: Recording Harian --}}
+        {{-- Tab 2: Recording (Harian & Mingguan) --}}
         <div class="tab-pane fade lopa-tab-pane" id="recordHarian" role="tabpanel" aria-labelledby="tab-daily">
             @if ($isStatusSelesai)
                 <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
@@ -802,79 +795,42 @@
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                     <h5 class="section-title lopa-section-title mb-0">
                         <i class="fa-solid fa-list-check" style="color:var(--accent)"></i>
-                        Pencatatan Harian
+                        Pencatatan Pembesaran
                     </h5>
-                    <span class="text-muted small">Pisahkan pencatatan harian berdasarkan kategori</span>
+                    <span class="text-muted small">Kelola pencatatan harian &amp; mingguan berdasarkan kategori</span>
                 </div>
 
-                <ul class="nav nav-tabs lopa-subtabs gap-2 flex-wrap" id="dailySubTabs" role="tablist">
+                <ul class="nav nav-tabs lopa-subtabs gap-2 flex-wrap" id="recordSubTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="daily-subtab-pakan" data-bs-toggle="tab"
+                        <button class="nav-link active" id="record-subtab-pakan" data-bs-toggle="tab"
                             data-bs-target="#dailyPanePakan" type="button" role="tab"
                             aria-controls="dailyPanePakan" aria-selected="true">
                             <i class="fa-solid fa-bowl-food me-1"></i>Pakan
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="daily-subtab-kematian" data-bs-toggle="tab"
+                        <button class="nav-link" id="record-subtab-kematian" data-bs-toggle="tab"
                             data-bs-target="#dailyPaneKematian" type="button" role="tab"
                             aria-controls="dailyPaneKematian" aria-selected="false">
                             <i class="fa-solid fa-skull-crossbones me-1"></i>Kematian
                         </button>
                     </li>
-                </ul>
-
-                <div class="tab-content" id="dailySubTabsContent">
-                    <div class="tab-pane fade show active" id="dailyPanePakan" role="tabpanel"
-                        aria-labelledby="daily-subtab-pakan">
-                        @include('admin.pages.pembesaran.partials.daily.pakan-card')
-                    </div>
-                    <div class="tab-pane fade" id="dailyPaneKematian" role="tabpanel"
-                        aria-labelledby="daily-subtab-kematian">
-                        @include('admin.pages.pembesaran.partials.daily.kematian-card')
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Tab 3: Recording Mingguan --}}
-        <div class="tab-pane fade lopa-tab-pane" id="recordMingguan" role="tabpanel" aria-labelledby="tab-weekly">
-            @if ($isStatusSelesai)
-                <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
-                    <i class="fa-solid fa-lock me-3" style="font-size: 1.5rem; flex-shrink: 0;"></i>
-                    <div>
-                        <strong>Batch Sudah Selesai</strong> - Pencatatan tidak dapat dilakukan lagi. Anda hanya dapat
-                        melihat data historis.
-                    </div>
-                </div>
-            @endif
-
-            <div class="mb-4">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                    <h5 class="section-title lopa-section-title mb-0">
-                        <i class="fa-solid fa-calendar-week" style="color:var(--accent)"></i>
-                        Pencatatan Mingguan
-                    </h5>
-                    <span class="text-muted small">Pantau data mingguan per kategori</span>
-                </div>
-
-                <ul class="nav nav-tabs lopa-subtabs gap-2 flex-wrap" id="weeklySubTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="weekly-subtab-sampling" data-bs-toggle="tab"
+                        <button class="nav-link" id="record-subtab-berat" data-bs-toggle="tab"
                             data-bs-target="#weeklyPaneSampling" type="button" role="tab"
-                            aria-controls="weeklyPaneSampling" aria-selected="true">
+                            aria-controls="weeklyPaneSampling" aria-selected="false">
                             <i class="fa-solid fa-weight-scale me-1"></i>Sampling Berat
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="weekly-subtab-monitoring" data-bs-toggle="tab"
+                        <button class="nav-link" id="record-subtab-monitoring" data-bs-toggle="tab"
                             data-bs-target="#weeklyPaneMonitoring" type="button" role="tab"
                             aria-controls="weeklyPaneMonitoring" aria-selected="false">
                             <i class="fa-solid fa-cloud-sun me-1"></i>Monitoring Lingkungan
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="weekly-subtab-kesehatan" data-bs-toggle="tab"
+                        <button class="nav-link" id="record-subtab-kesehatan" data-bs-toggle="tab"
                             data-bs-target="#weeklyPaneKesehatan" type="button" role="tab"
                             aria-controls="weeklyPaneKesehatan" aria-selected="false">
                             <i class="fa-solid fa-syringe me-1"></i>Kesehatan &amp; Vaksinasi
@@ -882,17 +838,25 @@
                     </li>
                 </ul>
 
-                <div class="tab-content" id="weeklySubTabsContent">
-                    <div class="tab-pane fade show active" id="weeklyPaneSampling" role="tabpanel"
-                        aria-labelledby="weekly-subtab-sampling">
+                <div class="tab-content" id="recordSubTabsContent">
+                    <div class="tab-pane fade show active" id="dailyPanePakan" role="tabpanel"
+                        aria-labelledby="record-subtab-pakan">
+                        @include('admin.pages.pembesaran.partials.daily.pakan-card')
+                    </div>
+                    <div class="tab-pane fade" id="dailyPaneKematian" role="tabpanel"
+                        aria-labelledby="record-subtab-kematian">
+                        @include('admin.pages.pembesaran.partials.daily.kematian-card')
+                    </div>
+                    <div class="tab-pane fade" id="weeklyPaneSampling" role="tabpanel"
+                        aria-labelledby="record-subtab-berat">
                         @include('admin.pages.pembesaran.partials.weekly.sampling-card')
                     </div>
                     <div class="tab-pane fade" id="weeklyPaneMonitoring" role="tabpanel"
-                        aria-labelledby="weekly-subtab-monitoring">
+                        aria-labelledby="record-subtab-monitoring">
                         @include('admin.pages.pembesaran.partials.weekly.monitoring-card')
                     </div>
                     <div class="tab-pane fade" id="weeklyPaneKesehatan" role="tabpanel"
-                        aria-labelledby="weekly-subtab-kesehatan">
+                        aria-labelledby="record-subtab-kesehatan">
                         @include('admin.pages.pembesaran.partials.weekly.kesehatan-card')
                     </div>
                 </div>
@@ -1078,7 +1042,7 @@
 
         if (urlHash && urlHash.startsWith('#')) {
             const hashTabId = urlHash.substring(1);
-            const validTabs = ['infoBatch', 'recordHarian', 'recordMingguan', 'laporanBatch', 'grafikAnalisis'];
+            const validTabs = ['infoBatch', 'recordHarian', 'laporanBatch', 'grafikAnalisis'];
             if (validTabs.includes(hashTabId)) {
                 targetTab = `#${hashTabId}`;
             }
@@ -1114,49 +1078,26 @@
             });
         });
 
-        // Sub-tab persistence for daily tabs
-        const dailySubTabStorageKey = `pembesaran_daily_subtab_${pembesaranId}`;
-        const dailySubTabButtons = document.querySelectorAll('#dailySubTabs button[data-bs-toggle="tab"]');
-        dailySubTabButtons.forEach(button => {
+        // Sub-tab persistence for recording tabs
+        const recordSubTabStorageKey = `pembesaran_record_subtab_${pembesaranId}`;
+        const recordSubTabButtons = document.querySelectorAll('#recordSubTabs button[data-bs-toggle="tab"]');
+        recordSubTabButtons.forEach(button => {
             button.addEventListener('shown.bs.tab', function(event) {
                 const targetId = event.target.getAttribute('data-bs-target');
                 if (targetId) {
-                    localStorage.setItem(dailySubTabStorageKey, targetId);
-                }
-            });
-        });
-
-        // Sub-tab persistence for weekly tabs
-        const weeklySubTabStorageKey = `pembesaran_weekly_subtab_${pembesaranId}`;
-        const weeklySubTabButtons = document.querySelectorAll('#weeklySubTabs button[data-bs-toggle="tab"]');
-        weeklySubTabButtons.forEach(button => {
-            button.addEventListener('shown.bs.tab', function(event) {
-                const targetId = event.target.getAttribute('data-bs-target');
-                if (targetId) {
-                    localStorage.setItem(weeklySubTabStorageKey, targetId);
+                    localStorage.setItem(recordSubTabStorageKey, targetId);
                 }
             });
         });
 
         // Restore sub-tab states
-        const savedDailySubTab = localStorage.getItem(dailySubTabStorageKey);
-        if (savedDailySubTab) {
+        const savedRecordSubTab = localStorage.getItem(recordSubTabStorageKey);
+        if (savedRecordSubTab) {
             setTimeout(() => {
                 const dailyTabElement = document.querySelector(
-                    `button[data-bs-target="${savedDailySubTab}"]`);
+                    `button[data-bs-target="${savedRecordSubTab}"]`);
                 if (dailyTabElement && !dailyTabElement.classList.contains('active')) {
                     dailyTabElement.click();
-                }
-            }, 200);
-        }
-
-        const savedWeeklySubTab = localStorage.getItem(weeklySubTabStorageKey);
-        if (savedWeeklySubTab) {
-            setTimeout(() => {
-                const weeklyTabElement = document.querySelector(
-                    `button[data-bs-target="${savedWeeklySubTab}"]`);
-                if (weeklyTabElement && !weeklyTabElement.classList.contains('active')) {
-                    weeklyTabElement.click();
                 }
             }, 200);
         }
