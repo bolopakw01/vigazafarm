@@ -88,30 +88,44 @@
                         <i class="fa-solid fa-barcode"></i>
                         <strong>Kode Batch:</strong> {{ $penetasan->batch ?? 'Belum ada batch' }}
                     </div>
-                    @php
-                        $stageValue = strtolower($penetasan->fase_penetasan ?? 'setter');
-                        $stageLabel = $stageValue === 'hatcher' ? 'Hatcher' : 'Setter';
-                        $targetHatcher = $penetasan->target_hatcher_date;
-                        $targetHatcherLabel = $targetHatcher ? $targetHatcher->format('d/m/Y') : '-';
-                        $masukHatcherLabel = optional($penetasan->tanggal_masuk_hatcher)->format('d/m/Y');
-                    @endphp
-                    <div class="stage-flow-card stage-status-card">
-                        <div class="stage-flow-icon">
-                            <i class="fa-solid {{ $stageValue === 'hatcher' ? 'fa-shuffle' : 'fa-clock' }}"></i>
+                    
+                        @php
+                            $stageValue = strtolower($penetasan->fase_penetasan ?? 'setter');
+                            $stageLabel = $stageValue === 'hatcher' ? 'Hatcher' : 'Setter';
+                            $targetHatcher = $penetasan->target_hatcher_date;
+                            $targetHatcherLabel = $targetHatcher ? $targetHatcher->format('d/m/Y') : '-';
+                            $masukHatcherLabel = optional($penetasan->tanggal_masuk_hatcher)->format('d/m/Y');
+                        @endphp
+
+                        <div class="info-card mb-3" id="estimasiInfo" style="display: none;">
+                            <div class="info-card-icon">
+                                <i class="fa-solid fa-calendar-check"></i>
+                            </div>
+                            <div class="info-card-content">
+                                <h4>Informasi Estimasi Penetasan</h4>
+                                <p class="mb-1">
+                                    <strong>Durasi Penetasan Burung Puyuh:</strong>
+                                    <span id="estimasiDurasiText" class="text-primary fw-semibold">-</span>
+                                </p>
+                                <p class="mb-1">
+                                    <strong>Perkiraan Tanggal Menetas:</strong>
+                                    <span id="estimasiText" class="text-primary fw-semibold">-</span>
+                                </p>
+                                <p class="mb-1">
+                                    <strong>Fase Saat Ini:</strong>
+                                    <span id="faseSaatIniText" class="text-primary fw-semibold" data-current-stage="{{ $stageValue }}">{{ $stageLabel }}</span>
+                                </p>
+                                <p class="mb-1">
+                                    <strong>Jadwal Masuk Setter:</strong>
+                                    <span id="jadwalSetterText" class="text-primary fw-semibold">-</span>
+                                </p>
+                                <p class="mb-0">
+                                    <strong>Jadwal Masuk Hatcher:</strong>
+                                    <span id="jadwalHatcherText" class="text-primary fw-semibold">-</span>
+                                </p>
+                            </div>
                         </div>
-                        <div class="stage-flow-body">
-                            <h4>Status Fase Penetasan</h4>
-                            <p class="mb-1"><strong>Fase Saat Ini:</strong> {{ $stageLabel }}</p>
-                            <p class="mb-1">
-                                <strong>Jadwal Masuk Hatcher:</strong>
-                                {{ $targetHatcherLabel }}
-                            </p>
-                            <p class="mb-0">
-                                <strong>Riwayat Masuk Hatcher:</strong>
-                                {{ $masukHatcherLabel ?? 'Belum tercatat (otomatis saat melewati hari ke-14)' }}
-                            </p>
-                        </div>
-                    </div>
+                    
                     <div class="form-row">
                         <div class="form-group">
                             <label for="tanggal_simpan_telur" class="form-label">
@@ -155,28 +169,12 @@
                             <small class="form-text">Jumlah telur yang tidak fertil (jika sudah diketahui)</small>
                         </div>
                     </div>
-                    
-                    <!-- Info Card Estimasi -->
-                    <div class="info-card" id="estimasiInfo" style="display: none;">
-                        <div class="info-card-icon">
-                            <i class="fa-solid fa-calendar-check"></i>
-                        </div>
-                        <div class="info-card-content">
-                            <h4>Informasi Estimasi Penetasan</h4>
-                            <p class="mb-1">
-                                <strong>Durasi Penetasan Burung Puyuh:</strong> 17-18 hari
-                            </p>
-                            <p class="mb-0">
-                                <strong>Perkiraan Tanggal Menetas:</strong> <span id="estimasiText" class="text-primary fw-semibold">-</span>
-                            </p>
-                        </div>
-                    </div>
                 </div>
 
 
 
                 <!-- Section: Kondisi Lingkungan -->
-                <div class="form-section">
+                {{-- <div class="form-section">
                     <h3 class="section-title">
                         <i class="fa-solid fa-temperature-half"></i>
                         Kondisi Lingkungan
@@ -201,7 +199,7 @@
                             <small class="form-text">Kelembaban optimal: 55% - 65%</small>
                         </div>
                     </div>
-                </div>
+                </div> --}}
 
                 <!-- Section: Catatan -->
                 <div class="form-section">
@@ -846,23 +844,98 @@ document.addEventListener('DOMContentLoaded', function() {
     const estimasiMenetasInput = document.getElementById('estimasi_menetas');
     const estimasiInfo = document.getElementById('estimasiInfo');
     const estimasiText = document.getElementById('estimasiText');
+    const estimasiDurasiText = document.getElementById('estimasiDurasiText');
+    const faseSaatIniText = document.getElementById('faseSaatIniText');
+    const jadwalSetterText = document.getElementById('jadwalSetterText');
+    const jadwalHatcherText = document.getElementById('jadwalHatcherText');
     const jumlahTelurInput = document.getElementById('jumlah_telur');
     const jumlahMenetasInput = document.getElementById('jumlah_menetas');
     const persentaseDisplay = document.getElementById('persentase_display');
     const tanggalMenetasInput = document.getElementById('tanggal_menetas');
     const hasilPenetasanSection = document.getElementById('hasilPenetasanSection');
     const alertPenetasanSelesai = document.getElementById('alertPenetasanSelesai');
+    const stageOverrideSelect = document.getElementById('fase_penetasan');
+    const faseSaatIniDefaultStage = faseSaatIniText?.dataset?.currentStage || null;
+    const STAGE_LABELS = { setter: 'Setter', hatcher: 'Hatcher' };
     let estimasiManualEdit = !!(estimasiMenetasInput && estimasiMenetasInput.value);
     
     const isOwner = {{ auth()->user()->peran === 'owner' ? 'true' : 'false' }};
     
     // Format tanggal ke Indonesia
-    function formatTanggalIndonesia(dateString) {
-        const date = new Date(dateString);
+    function formatTanggalIndonesia(dateInput) {
+        if (!dateInput) {
+            return '-';
+        }
+
+        const date = dateInput instanceof Date ? new Date(dateInput) : new Date(dateInput);
+        if (Number.isNaN(date.getTime())) {
+            return '-';
+        }
+
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         return date.toLocaleDateString('id-ID', options);
     }
+
+    const addDays = (date, days) => {
+        if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+            return null;
+        }
+        const nextDate = new Date(date);
+        nextDate.setDate(nextDate.getDate() + days);
+        return nextDate;
+    };
     
+    function updateEstimasiMetadata() {
+        if (!tanggalSimpanInput) {
+            if (estimasiDurasiText) estimasiDurasiText.textContent = '-';
+            if (jadwalSetterText) jadwalSetterText.textContent = '-';
+            if (jadwalHatcherText) jadwalHatcherText.textContent = '-';
+            return;
+        }
+
+        const startValue = tanggalSimpanInput.value;
+        const estimasiValue = estimasiMenetasInput?.value;
+        const startDate = startValue ? new Date(startValue) : null;
+        const estimasiDate = estimasiValue ? new Date(estimasiValue) : null;
+        const validStart = startDate && !Number.isNaN(startDate.getTime());
+        const validEstimasi = estimasiDate && !Number.isNaN(estimasiDate.getTime());
+
+        if (estimasiDurasiText) {
+            if (validStart && validEstimasi) {
+                const diffTime = estimasiDate.getTime() - startDate.getTime();
+                const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+                estimasiDurasiText.textContent = `${diffDays} hari`;
+            } else {
+                estimasiDurasiText.textContent = '-';
+            }
+        }
+
+        if (jadwalSetterText) {
+            jadwalSetterText.textContent = validStart ? formatTanggalIndonesia(startDate) : '-';
+        }
+
+        if (jadwalHatcherText) {
+            let hatcherDate = null;
+            if (validEstimasi) {
+                hatcherDate = addDays(estimasiDate, -3);
+            } else if (validStart) {
+                hatcherDate = addDays(startDate, 14);
+            }
+            jadwalHatcherText.textContent = hatcherDate ? formatTanggalIndonesia(hatcherDate) : '-';
+        }
+    }
+
+    function updateFaseSaatIniDisplay() {
+        if (!faseSaatIniText) {
+            return;
+        }
+
+        let stage = stageOverrideSelect?.value || faseSaatIniDefaultStage || 'setter';
+        stage = stage.toLowerCase();
+        const label = STAGE_LABELS[stage] || 'Setter';
+        faseSaatIniText.textContent = label;
+    }
+
     function updateEstimasiDisplay(dateValue) {
         if (!estimasiMenetasInput) {
             return;
@@ -910,6 +983,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 estimasiInfo.style.display = 'none';
             }
         }
+
+        updateEstimasiMetadata();
     }
     
     // Hitung estimasi tanggal menetas (default 17 hari)
@@ -986,6 +1061,11 @@ document.addEventListener('DOMContentLoaded', function() {
             estimasiManualEdit = !!estimasiMenetasInput.value;
             updateEstimasiDisplay(estimasiMenetasInput.value);
         });
+    }
+
+    updateFaseSaatIniDisplay();
+    if (stageOverrideSelect) {
+        stageOverrideSelect.addEventListener('change', updateFaseSaatIniDisplay);
     }
     
     if (jumlahTelurInput && jumlahMenetasInput) {
