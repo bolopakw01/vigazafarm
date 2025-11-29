@@ -15,6 +15,7 @@ use App\Models\ParameterStandar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 
@@ -360,7 +361,7 @@ class PembesaranRecordingController extends Controller
             'tanggal' => 'required|date',
             'jumlah' => 'required|integer|min:1',
             'penyebab' => 'required|in:penyakit,stress,kecelakaan,usia,tidak_diketahui',
-            'keterangan' => 'nullable|string',
+            'keterangan' => 'nullable|string|max:100',
         ]);
 
         if ($guard = $this->guardBatchStartDate($pembesaran, $validated['tanggal'], 'Tanggal kematian')) {
@@ -373,7 +374,7 @@ class PembesaranRecordingController extends Controller
             'tanggal' => $validated['tanggal'],
             'jumlah' => $validated['jumlah'],
             'penyebab' => $validated['penyebab'],
-            'keterangan' => $validated['keterangan'],
+            'keterangan' => $this->normalizeNote($validated['keterangan'] ?? null),
             'pengguna_id' => Auth::id(),
         ]);
 
@@ -412,10 +413,15 @@ class PembesaranRecordingController extends Controller
             'tanggal' => 'required|date',
             'jumlah' => 'required|integer|min:1',
             'penyebab' => 'required|in:penyakit,stress,kecelakaan,usia,tidak_diketahui',
-            'keterangan' => 'nullable|string',
+            'keterangan' => 'nullable|string|max:100',
         ]);
 
-        $kematian->update($validated);
+        $kematian->update([
+            'tanggal' => $validated['tanggal'],
+            'jumlah' => $validated['jumlah'],
+            'penyebab' => $validated['penyebab'],
+            'keterangan' => $this->normalizeNote($validated['keterangan'] ?? null),
+        ]);
 
         return response()->json([
             'success' => true,
@@ -655,6 +661,21 @@ class PembesaranRecordingController extends Controller
         ]);
     }
 
+    protected function normalizeNote(?string $value, int $limit = 100): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        return Str::limit($trimmed, $limit, '');
+    }
+
     /**
      * Pastikan tanggal pencatatan tidak sebelum tanggal masuk batch.
      */
@@ -699,7 +720,7 @@ class PembesaranRecordingController extends Controller
             'kelembaban' => 'required|numeric',
             'intensitas_cahaya' => 'nullable|numeric',
             'kondisi_ventilasi' => 'nullable|in:Baik,Cukup,Kurang',
-            'catatan' => 'nullable|string',
+            'catatan' => 'nullable|string|max:100',
         ]);
 
         $monitoringDate = Carbon::parse($validated['waktu_pencatatan'])->toDateString();
@@ -715,7 +736,7 @@ class PembesaranRecordingController extends Controller
             'kelembaban' => $validated['kelembaban'],
             'intensitas_cahaya' => $validated['intensitas_cahaya'],
             'kondisi_ventilasi' => $validated['kondisi_ventilasi'],
-            'catatan' => $validated['catatan'],
+            'catatan' => $this->normalizeNote($validated['catatan'] ?? null),
             'pengguna_id' => Auth::id(),
         ]);
 
@@ -786,9 +807,9 @@ class PembesaranRecordingController extends Controller
             'tipe_kegiatan' => 'required|in:vaksinasi,pengobatan,pemeriksaan_rutin,karantina',
             'nama_vaksin_obat' => 'required|string',
             'jumlah_burung' => 'required|integer|min:1',
-            'catatan' => 'nullable|string',
+            'catatan' => 'nullable|string|max:100',
             'biaya' => 'nullable|numeric|min:0',
-            'petugas' => 'nullable|string',
+            'petugas' => 'nullable|string|max:100',
         ]);
 
         if ($guard = $this->guardBatchStartDate($pembesaran, $validated['tanggal'], 'Tanggal kesehatan')) {
@@ -801,9 +822,9 @@ class PembesaranRecordingController extends Controller
             'tipe_kegiatan' => $validated['tipe_kegiatan'],
             'nama_vaksin_obat' => $validated['nama_vaksin_obat'],
             'jumlah_burung' => $validated['jumlah_burung'],
-            'catatan' => $validated['catatan'],
+            'catatan' => $this->normalizeNote($validated['catatan'] ?? null),
             'biaya' => $validated['biaya'],
-            'petugas' => $validated['petugas'],
+            'petugas' => $this->normalizeNote($validated['petugas'] ?? null),
             'pengguna_id' => Auth::id(),
         ]);
 
@@ -871,7 +892,7 @@ class PembesaranRecordingController extends Controller
             'berat_rata_rata' => 'required|numeric|min:0',
             'umur_hari' => 'required|integer|min:0',
             'jumlah_sampel' => 'nullable|integer|min:1',
-            'catatan' => 'nullable|string',
+            'catatan' => 'nullable|string|max:100',
         ]);
 
         // Update pembesaran (nilai terkini)
@@ -887,7 +908,7 @@ class PembesaranRecordingController extends Controller
             'umur_hari' => $validated['umur_hari'],
             'berat_rata_rata' => $validated['berat_rata_rata'],
             'jumlah_sampel' => $validated['jumlah_sampel'] ?? null,
-            'catatan' => $validated['catatan'] ?? null,
+            'catatan' => $this->normalizeNote($validated['catatan'] ?? null),
             'pengguna_id' => Auth::id(),
         ]);
 
