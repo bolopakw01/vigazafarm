@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Support\Collection;
 
 /**
  * ==========================================
@@ -1208,6 +1209,7 @@ class ProduksiController extends Controller
     {
         $validated = $request->validate([
             'tanggal' => 'required|date',
+            'variant' => 'nullable|in:puyuh,telur',
         ]);
 
         if (empty($produksi->batch_produksi_id)) {
@@ -1218,6 +1220,7 @@ class ProduksiController extends Controller
 
         $tanggal = Carbon::parse($validated['tanggal'])->toDateString();
         $tanggalFormatted = Carbon::parse($tanggal)->locale('id')->translatedFormat('l, d F Y');
+        $variant = $validated['variant'] ?? ($produksi->tipe_produksi === 'telur' ? 'telur' : 'puyuh');
 
         $laporanHarian = LaporanHarian::where('batch_produksi_id', $produksi->batch_produksi_id)
             ->whereDate('tanggal', $tanggal)
@@ -1229,256 +1232,292 @@ class ProduksiController extends Controller
                 'message' => 'Belum ada pencatatan lain pada tanggal tersebut.',
             ], 404);
         }
+        if ($variant === 'telur' && $produksi->tipe_produksi !== 'telur') {
+            $variant = 'puyuh';
+        } elseif ($variant === 'puyuh' && $produksi->tipe_produksi === 'telur') {
+            $variant = 'telur';
+        }
 
+        $summary = $variant === 'telur'
+            ? $this->buildTelurDailySummary($produksi, $laporanHarian, $tanggalFormatted)
+            : $this->buildPuyuhDailySummary($produksi, $laporanHarian, $tanggalFormatted);
+
+        return response()->json([
+            'summary' => $summary,
+            'date' => $tanggal,
+        ]);
+    }
+
+    protected function buildPuyuhDailySummary(Produksi $produksi, Collection $laporanHarian, string $tanggalFormatted): string
+    {
         $formatNumber = function ($value, $decimals = 0) {
             return number_format((float) ($value ?? 0), $decimals, ',', '.');
         };
 
-        $segments = [];
+        $kandangNama = $produksi->kandang?->nama_kandang ?: 'Tidak ditentukan';
 
-        // Header profesional dengan informasi lengkap
-        $segments[] = "═══════════════════════════════════════════════════════════════";
-        $segments[] = "                    LAPORAN HARIAN PRODUKSI PUYUH";
-        $segments[] = "═══════════════════════════════════════════════════════════════";
-        $segments[] = "";
-        $segments[] = "📋 INFORMASI BATCH";
-        $segments[] = "• Kode Batch     : {$produksi->batch_produksi_id}";
-        $kandangNama = $produksi->kandang ? $produksi->kandang->nama_kandang : 'Tidak ditentukan';
-        $segments[] = "• Kandang        : {$kandangNama}";
-        $segments[] = "• Tanggal Laporan: {$tanggalFormatted}";
-        $segments[] = "• Periode Produksi: " . Carbon::parse($produksi->tanggal_mulai)->locale('id')->translatedFormat('d M Y') .
-                      ($produksi->tanggal_akhir ? ' - ' . Carbon::parse($produksi->tanggal_akhir)->locale('id')->translatedFormat('d M Y') : ' (Sedang Berlangsung)');
-        $segments[] = "• Status Batch   : " . ucfirst($produksi->status ?? 'aktif');
-        $segments[] = "";
+        $segments = [
+            "📅 Rangkuman Puyuh | {$tanggalFormatted}",
+            "🏷️ Batch {$produksi->batch_produksi_id} - {$kandangNama}",
+            '',
+        ];
 
-        // Ringkasan Eksekutif
         $totalTelur = $laporanHarian->sum('produksi_telur');
-        $totalTray = $laporanHarian->whereNotNull('nama_tray')->where('produksi_telur', '>', 0)->count();
+        $totalTelurRusak = $laporanHarian->sum('telur_rusak');
+        $sisaTelur = optional($laporanHarian->first(fn ($item) => $item->sisa_telur !== null))->sisa_telur;
+        $totalPenjualanPuyuh = $laporanHarian->sum('penjualan_puyuh_ekor');
+        $totalPendapatanPuyuh = $laporanHarian->sum(function ($laporan) {
+            return ($laporan->penjualan_puyuh_ekor ?? 0) > 0 ? (float) ($laporan->pendapatan_harian ?? 0) : 0;
+        });
+        $totalPakan = $laporanHarian->sum('konsumsi_pakan_kg');
+        $sisaPakan = optional($laporanHarian->first(fn ($item) => $item->sisa_pakan_kg !== null))->sisa_pakan_kg;
+        $totalVitamin = $laporanHarian->sum('vitamin_terpakai');
+        $sisaVitamin = optional($laporanHarian->first(fn ($item) => $item->sisa_vitamin_liter !== null))->sisa_vitamin_liter;
+        $totalKematian = $laporanHarian->sum('jumlah_kematian');
+        $currentPopulation = $laporanHarian->max('jumlah_burung') ?? $produksi->jumlah_indukan;
+
+        $produksiMetrics = [];
+        $konsumsiMetrics = [];
+        $kesehatanMetrics = [];
+
+        if ($totalTelur > 0) {
+            $line = "🥚 Telur: {$formatNumber($totalTelur)} butir";
+            if ($totalTelurRusak > 0) {
+                $line .= " (rusak {$formatNumber($totalTelurRusak)}";
+                $line .= $sisaTelur !== null ? "; sisa {$formatNumber($sisaTelur)}" : '';
+                $line .= ')';
+            } elseif ($sisaTelur !== null) {
+                $line .= " (sisa {$formatNumber($sisaTelur)})";
+            }
+            $produksiMetrics[] = $line;
+        }
+
+        if ($totalPenjualanPuyuh > 0) {
+            $line = "💰 Penjualan: {$formatNumber($totalPenjualanPuyuh)} ekor";
+            if ($totalPendapatanPuyuh > 0) {
+                $avgPrice = $totalPendapatanPuyuh / max($totalPenjualanPuyuh, 1);
+                $line .= " | Rp {$formatNumber($totalPendapatanPuyuh)} (Rp {$formatNumber(round($avgPrice))}/ekor)";
+            }
+            $produksiMetrics[] = $line;
+        }
+
+        if ($totalPakan > 0) {
+            $line = "🌾 Pakan: {$formatNumber($totalPakan, 2)} kg";
+            if ($sisaPakan !== null) {
+                $line .= " (sisa {$formatNumber($sisaPakan, 2)} kg)";
+            }
+            $konsumsiMetrics[] = $line;
+        }
+
+        if ($totalVitamin > 0) {
+            $line = "💊 Vitamin: {$formatNumber($totalVitamin, 2)} L";
+            if ($sisaVitamin !== null) {
+                $line .= " (sisa {$formatNumber($sisaVitamin, 2)} L)";
+            }
+            $konsumsiMetrics[] = $line;
+        }
+
+        if ($totalKematian > 0) {
+            $line = "⚠️ Mortalitas: {$formatNumber($totalKematian)} ekor";
+            if ($currentPopulation > 0) {
+                $mortalityRate = round(($totalKematian / max($currentPopulation, 1)) * 100, 2);
+                $line .= " ({$mortalityRate}% dari {$formatNumber($currentPopulation)} ekor)";
+            }
+            $kesehatanMetrics[] = $line;
+        }
+
+        if (!empty($produksiMetrics)) {
+            $segments[] = '📊 Produksi';
+            foreach ($produksiMetrics as $metric) {
+                $segments[] = '- ' . $metric;
+            }
+            $segments[] = '';
+        }
+
+        if (!empty($konsumsiMetrics)) {
+            $segments[] = '🍲 Konsumsi';
+            foreach ($konsumsiMetrics as $metric) {
+                $segments[] = '- ' . $metric;
+            }
+            $segments[] = '';
+        }
+
+        if (!empty($kesehatanMetrics)) {
+            $segments[] = '🏥 Kesehatan';
+            foreach ($kesehatanMetrics as $metric) {
+                $segments[] = '- ' . $metric;
+            }
+            $segments[] = '';
+        }
+
+        if (empty($produksiMetrics) && empty($konsumsiMetrics) && empty($kesehatanMetrics)) {
+            $segments[] = 'Tidak ada input pada tanggal ini.';
+            $segments[] = '';
+        }
+
+        $notePool = collect()
+            ->merge($laporanHarian->whereNotNull('catatan_kejadian')->pluck('catatan_kejadian'))
+            ->merge($laporanHarian->whereNotNull('keterangan_kematian')->pluck('keterangan_kematian'))
+            ->filter()
+            ->map(fn ($note) => trim($note))
+            ->filter(fn ($note) => !str_contains($note, 'Ringkasan') && !str_contains($note, 'Batch') && strlen($note) >= 3 && strlen($note) < 200)
+            ->unique();
+
+        $notes = $notePool->take(3);
+
+        $segments[] = '📝 Catatan';
+        if ($notes->isEmpty()) {
+            $segments[] = '- Tidak ada catatan.';
+        } else {
+            foreach ($notes as $note) {
+                $segments[] = '- ' . preg_replace('/\s+/', ' ', $note);
+            }
+        }
+
+        if ($notePool->count() > $notes->count()) {
+            $segments[] = '- Catatan lain tersimpan di histori.';
+        }
+
+        $segments[] = '- Generated by ' . (Auth::user()->nama_pengguna ?? Auth::user()->username ?? 'Sistem') . ' at ' . now()->locale('id')->format('d F Y, H:i');
+
+        return $this->finalizeSummary($segments, 1200);
+    }
+
+    protected function buildTelurDailySummary(Produksi $produksi, Collection $laporanHarian, string $tanggalFormatted): string
+    {
+        $formatNumber = fn ($value, $decimals = 0) => number_format((float) ($value ?? 0), $decimals, ',', '.');
+
+        $kandangNama = $produksi->kandang->nama_kandang ?? 'Tidak ditentukan';
+
+        $segments = [
+            "📅 Rangkuman Telur | {$tanggalFormatted}",
+            "🏷️ Batch {$produksi->batch_produksi_id} - {$kandangNama}",
+            '',
+        ];
+
+        $totalTelur = $laporanHarian->sum('produksi_telur');
+        $totalTelurRusak = $laporanHarian->sum('telur_rusak');
+        $sisaTelur = optional($laporanHarian->first(fn ($item) => $item->sisa_telur !== null))->sisa_telur;
         $totalPenjualan = $laporanHarian->sum('penjualan_telur_butir');
         $totalPendapatan = $laporanHarian->sum('pendapatan_harian');
-        $totalKematian = $laporanHarian->sum('jumlah_kematian');
+        $unsold = max($totalTelur - $totalPenjualan, 0);
+        $totalTrayDipakai = $laporanHarian->whereNotNull('nama_tray')->where('produksi_telur', '>', 0)->count();
+        $sisaTrayBal = optional($laporanHarian->first(fn ($item) => $item->sisa_tray_bal !== null))->sisa_tray_bal;
+        $sisaTrayLembar = optional($laporanHarian->first(fn ($item) => $item->sisa_tray_lembar !== null))->sisa_tray_lembar;
 
-        $segments[] = "📊 RINGKASAN EKSEKUTIF";
-        $segments[] = "• Total Produksi Telur : {$formatNumber($totalTelur)} butir";
-        $segments[] = "• Jumlah Tray Dibuat   : {$formatNumber($totalTray)} tray";
-        $segments[] = "• Telur Terjual        : {$formatNumber($totalPenjualan)} butir";
-        $segments[] = "• Total Pendapatan     : Rp {$formatNumber($totalPendapatan)}";
-        $segments[] = "• Kematian Hari Ini    : {$formatNumber($totalKematian)} ekor";
-        $segments[] = "";
+        $produksiMetrics = [];
+        $operasionalMetrics = [];
 
-        // Detail Produksi Telur
         if ($totalTelur > 0) {
-            $segments[] = "🥚 DETAIL PRODUKSI TELUR";
-            $segments[] = "• Total telur dipanen hari ini : {$formatNumber($totalTelur)} butir";
-
-            // Breakdown per tray
-            $trayEntries = $laporanHarian->whereNotNull('nama_tray')->where('produksi_telur', '>', 0);
-            if ($trayEntries->count() > 0) {
-                $segments[] = "• Rincian per tray:";
-                foreach ($trayEntries as $tray) {
-                    $trayName = $tray->nama_tray ?? 'Tray tanpa nama';
-                    $trayEggs = $tray->produksi_telur;
-                    $segments[] = "  - {$trayName}: {$formatNumber($trayEggs)} butir";
-                }
-            }
-
-            // Penjualan detail
-            if ($totalPenjualan > 0) {
-                $segments[] = "• Penjualan telur hari ini : {$formatNumber($totalPenjualan)} butir";
-                $totalRevenue = $laporanHarian->sum('pendapatan_harian');
-                if ($totalRevenue > 0) {
-                    $avgPrice = $totalPenjualan > 0 ? round($totalRevenue / $totalPenjualan, 0) : 0;
-                    $segments[] = "• Pendapatan penjualan     : Rp {$formatNumber($totalRevenue)}";
-                    $segments[] = "• Harga rata-rata per butir: Rp {$formatNumber($avgPrice)}";
-                }
-
-                $persentasePenjualan = round(($totalPenjualan / $totalTelur) * 100, 1);
-                $segments[] = "• Persentase penjualan     : {$persentasePenjualan}% dari total produksi";
-            }
-
-            // Sisa telur
-            $sisaTelur = optional($laporanHarian->first(fn ($item) => $item->sisa_telur !== null))->sisa_telur;
-            if ($sisaTelur !== null) {
-                $segments[] = "• Sisa telur di gudang     : {$formatNumber($sisaTelur)} butir";
-            }
-
-            // Telur rusak
-            $totalTelurRusak = $laporanHarian->sum('telur_rusak');
+            $line = "🥚 Telur: {$formatNumber($totalTelur)} butir";
+            $details = [];
             if ($totalTelurRusak > 0) {
-                $segments[] = "• Telur rusak/ditolak       : {$formatNumber($totalTelurRusak)} butir";
+                $details[] = 'rusak ' . $formatNumber($totalTelurRusak);
             }
-            $segments[] = "";
+            if ($sisaTelur !== null) {
+                $details[] = 'stok ' . $formatNumber($sisaTelur);
+            }
+            if (!empty($details)) {
+                $line .= ' (' . implode('; ', $details) . ')';
+            }
+            $produksiMetrics[] = $line;
         }
 
-        // Konsumsi Pakan
-        $totalPakan = $laporanHarian->sum('konsumsi_pakan_kg');
-        if ($totalPakan > 0) {
-            $segments[] = "🌾 KONSUMSI PAKAN";
-            $segments[] = "• Total pakan terpakai hari ini : {$formatNumber($totalPakan, 2)} kg";
-
-            $sisaPakan = optional($laporanHarian->first(fn ($item) => $item->sisa_pakan_kg !== null))->sisa_pakan_kg;
-            if ($sisaPakan !== null) {
-                $segments[] = "• Sisa pakan di gudang         : {$formatNumber($sisaPakan, 2)} kg";
-                $totalTersedia = $totalPakan + $sisaPakan;
-                $segments[] = "• Total pakan tersedia          : {$formatNumber($totalTersedia, 2)} kg";
-
-                // Hitung estimasi hari tersisa
-                if ($totalPakan > 0) {
-                    $hariTersisa = floor($sisaPakan / $totalPakan);
-                    $segments[] = "• Estimasi pakan tersisa untuk  : {$hariTersisa} hari (berdasarkan konsumsi hari ini)";
-                }
+        if ($totalPenjualan > 0) {
+            $line = "💰 Penjualan: {$formatNumber($totalPenjualan)} butir";
+            if ($totalPendapatan > 0) {
+                $avgPrice = $totalPendapatan / max($totalPenjualan, 1);
+                $line .= " | Rp {$formatNumber($totalPendapatan)} (Rp {$formatNumber(round($avgPrice))}/butir)";
             }
-            $segments[] = "";
+            if ($unsold > 0) {
+                $line .= " | sisa {$formatNumber($unsold)}";
+            }
+            $produksiMetrics[] = $line;
         }
 
-        // Konsumsi Vitamin
-        $totalVitamin = $laporanHarian->sum('vitamin_terpakai');
-        if ($totalVitamin > 0) {
-            $segments[] = "💊 KONSUMSI VITAMIN";
-            $segments[] = "• Total vitamin terpakai hari ini : {$formatNumber($totalVitamin, 2)} liter";
-
-            $sisaVitamin = optional($laporanHarian->first(fn ($item) => $item->sisa_vitamin_liter !== null))->sisa_vitamin_liter;
-            if ($sisaVitamin !== null) {
-                $segments[] = "• Sisa vitamin di gudang         : {$formatNumber($sisaVitamin, 2)} liter";
-                $totalTersediaVitamin = $totalVitamin + $sisaVitamin;
-                $segments[] = "• Total vitamin tersedia          : {$formatNumber($totalTersediaVitamin, 2)} liter";
-            }
-            $segments[] = "";
+        if ($totalTrayDipakai > 0) {
+            $operasionalMetrics[] = "📦 Tray: {$formatNumber($totalTrayDipakai)} terpakai";
         }
 
-        // Kesehatan dan Mortalitas
-        if ($totalKematian > 0) {
-            $segments[] = "🏥 KESEHATAN & MORTALITAS";
-            $segments[] = "• Total kematian hari ini : {$formatNumber($totalKematian)} ekor";
-
-            $genderBreakdown = [];
-            $genderMap = ['jantan' => 'Jantan', 'betina' => 'Betina', 'campuran' => 'Campuran'];
-            foreach ($genderMap as $genderKey => $label) {
-                $amount = $laporanHarian
-                    ->where('jenis_kelamin_kematian', $genderKey)
-                    ->sum('jumlah_kematian');
-                if ($amount > 0) {
-                    $genderBreakdown[] = "{$formatNumber($amount)} ekor {$label}";
-                }
+        if ($sisaTrayBal !== null || $sisaTrayLembar !== null) {
+            $parts = [];
+            if ($sisaTrayBal !== null) {
+                $parts[] = "bal {$formatNumber($sisaTrayBal, 2)}";
             }
-
-            if (!empty($genderBreakdown)) {
-                $segments[] = "• Rincian kematian berdasarkan jenis kelamin: " . implode(', ', $genderBreakdown);
+            if ($sisaTrayLembar !== null) {
+                $parts[] = "lembar {$formatNumber($sisaTrayLembar)}";
             }
-
-            // Hitung mortalitas rate
-            $currentPopulation = $laporanHarian->max('jumlah_burung') ?? $produksi->jumlah_indukan;
-            if ($currentPopulation > 0) {
-                $mortalityRate = round(($totalKematian / $currentPopulation) * 100, 2);
-                $segments[] = "• Tingkat mortalitas hari ini : {$mortalityRate}% (dari populasi {$formatNumber($currentPopulation)} ekor)";
-
-                // Analisis kesehatan
-                if ($mortalityRate > 5) {
-                    $segments[] = "• ⚠️  PERHATIAN: Tingkat mortalitas tinggi (>5%) - Perlu perhatian khusus";
-                } elseif ($mortalityRate > 2) {
-                    $segments[] = "• ⚠️  PERHATIAN: Tingkat mortalitas sedang (2-5%) - Monitor kondisi kesehatan";
-                } else {
-                    $segments[] = "• ✅ Kondisi kesehatan dalam batas normal";
-                }
-            }
-
-            // Keterangan kematian
-            $deathNotes = $laporanHarian->whereNotNull('keterangan_kematian')->pluck('keterangan_kematian')->filter()->unique();
-            if ($deathNotes->count() > 0) {
-                $segments[] = "• Catatan kematian: " . $deathNotes->implode('; ');
-            }
-            $segments[] = "";
+            $operasionalMetrics[] = '📦 Stok tray: ' . implode(' | ', $parts);
         }
 
-        // Analisis Performa
-        $segments[] = "📈 ANALISIS PERFORMA HARIAN";
+        if (!empty($produksiMetrics)) {
+            $segments[] = '📊 Produksi';
+            foreach ($produksiMetrics as $metric) {
+                $segments[] = '- ' . $metric;
+            }
+            $segments[] = '';
+        }
 
-        $performancePoints = [];
+        if (!empty($operasionalMetrics)) {
+            $segments[] = '🏭 Operasional';
+            foreach ($operasionalMetrics as $metric) {
+                $segments[] = '- ' . $metric;
+            }
+            $segments[] = '';
+        }
 
-        // Analisis produksi telur
-        if ($totalTelur > 0 && $produksi->jumlah_indukan > 0) {
-            $productivityRate = round(($totalTelur / $produksi->jumlah_indukan) * 100, 2);
-            $performancePoints[] = "• Produktivitas telur: {$productivityRate}% (telur per indukan per hari)";
+        if (empty($produksiMetrics) && empty($operasionalMetrics)) {
+            $segments[] = 'Tidak ada input pada tanggal ini.';
+            $segments[] = '';
+        }
 
-            if ($productivityRate >= 80) {
-                $performancePoints[] = "  ✅ Produktivitas sangat baik (≥80%)";
-            } elseif ($productivityRate >= 60) {
-                $performancePoints[] = "  ⚠️  Produktivitas cukup baik (60-79%)";
-            } else {
-                $performancePoints[] = "  ❌ Produktivitas rendah (<60%) - Perlu evaluasi";
+        $notePool = $laporanHarian->whereNotNull('catatan_kejadian')
+            ->pluck('catatan_kejadian')
+            ->filter()
+            ->map(fn ($note) => trim($note))
+            ->filter(fn ($note) => !str_contains($note, 'Ringkasan') && !str_contains($note, 'Batch') && strlen($note) >= 3 && strlen($note) < 200)
+            ->unique();
+
+        $notes = $notePool->take(3);
+
+        $segments[] = '📝 Catatan';
+        if ($notes->isEmpty()) {
+            $segments[] = '- Tidak ada catatan.';
+        } else {
+            foreach ($notes as $note) {
+                $segments[] = '- ' . preg_replace('/\s+/', ' ', $note);
             }
         }
 
-        // Analisis efisiensi pakan
-        if ($totalTelur > 0 && $totalPakan > 0) {
-            $feedEfficiency = round($totalTelur / $totalPakan, 2);
-            $performancePoints[] = "• Efisiensi pakan: {$feedEfficiency} butir telur per kg pakan";
-
-            if ($feedEfficiency >= 15) {
-                $performancePoints[] = "  ✅ Efisiensi pakan sangat baik (≥15 butir/kg)";
-            } elseif ($feedEfficiency >= 10) {
-                $performancePoints[] = "  ⚠️  Efisiensi pakan cukup baik (10-14 butir/kg)";
-            } else {
-                $performancePoints[] = "  ❌ Efisiensi pakan rendah (<10 butir/kg) - Perlu optimasi";
-            }
+        if ($notePool->count() > $notes->count()) {
+            $segments[] = '- Catatan lain tersimpan di histori.';
         }
 
-        if (empty($performancePoints)) {
-            $performancePoints[] = "• Belum cukup data untuk analisis performa";
+        $segments[] = '- Generated by ' . (Auth::user()->nama_pengguna ?? Auth::user()->username ?? 'Sistem') . ' at ' . now()->locale('id')->format('d F Y, H:i');
+
+        return $this->finalizeSummary($segments, 1200);
+    }
+
+    protected function finalizeSummary(array $segments, int $maxLength = 2400): string
+    {
+        $text = implode("\n", $segments);
+        $text = preg_replace("/\n{3,}/", "\n\n", $text ?? '') ?? '';
+        $text = trim($text);
+
+        if ($text === '') {
+            $text = 'Belum ada data otomatis untuk tanggal ini. Lengkapi pencatatan terlebih dahulu.';
         }
 
-        $segments = array_merge($segments, $performancePoints);
-        $segments[] = "";
+        $lengthFn = function_exists('mb_strlen') ? 'mb_strlen' : 'strlen';
+        $substrFn = function_exists('mb_substr') ? 'mb_substr' : 'substr';
 
-        // Rekomendasi
-        $segments[] = "💡 REKOMENDASI & TINDAK LANJUT";
-
-        $recommendations = [];
-
-        if ($totalKematian > 0) {
-            $recommendations[] = "• Pantau kondisi kesehatan puyuh secara intensif";
-            $recommendations[] = "• Periksa kualitas pakan dan vitamin yang diberikan";
-            $recommendations[] = "• Pastikan kebersihan kandang dan ventilasi yang baik";
+        if ($lengthFn($text) > $maxLength) {
+            $text = $substrFn($text, 0, $maxLength - 3);
+            $text = rtrim($text);
+            $text .= '...';
         }
 
-        if ($totalTelur > 0 && $totalPenjualan > 0) {
-            $unsoldEggs = $totalTelur - $totalPenjualan;
-            if ($unsoldEggs > 100) {
-                $recommendations[] = "• Optimalkan penjualan telur - masih ada {$formatNumber($unsoldEggs)} butir belum terjual";
-            }
-        }
-
-        if ($totalTray > 0) {
-            $recommendations[] = "• Pastikan tray disimpan dalam kondisi optimal untuk menjaga kualitas telur";
-        }
-
-        if (empty($recommendations)) {
-            $recommendations[] = "• Lanjutkan pemantauan rutin produksi harian";
-            $recommendations[] = "• Pastikan pencatatan data dilakukan secara konsisten";
-        }
-
-        $segments = array_merge($segments, $recommendations);
-        $segments[] = "";
-
-        // Footer profesional
-        $segments[] = "═══════════════════════════════════════════════════════════════";
-        $segments[] = "📝 CATATAN TAMBAHAN";
-        $segments[] = "• Laporan ini dibuat secara otomatis oleh Sistem Manajemen Produksi Puyuh";
-        $segments[] = "• Waktu pembuatan: " . now()->locale('id')->format('d F Y, H:i:s') . " WIB";
-        $segments[] = "• Dicatat oleh: " . (Auth::user()->nama_pengguna ?? Auth::user()->username ?? 'Sistem');
-        $segments[] = "• Periode pelaporan: Harian";
-        $segments[] = "";
-        $segments[] = "🏢 PT. VIGA ZA FARM - Manajemen Produksi Puyuh Terintegrasi";
-        $segments[] = "═══════════════════════════════════════════════════════════════";
-
-        if (empty(array_filter($segments, fn($s) => !empty(trim($s))))) {
-            $segments = ["Belum ada data otomatis untuk tanggal ini. Lengkapi pencatatan terlebih dahulu."];
-        }
-
-        return response()->json([
-            'summary' => implode("\n", $segments),
-            'date' => $tanggal,
-        ]);
+        return $text;
     }
 
     /**
@@ -1635,9 +1674,22 @@ class ProduksiController extends Controller
 
     protected function loadProduksiSumberList()
     {
-        $candidates = Produksi::with('kandang')
+        $lockedSourceIds = Produksi::query()
+            ->where('jenis_input', 'dari_produksi')
+            ->whereNotNull('produksi_sumber_id')
+            ->pluck('produksi_sumber_id')
+            ->filter()
+            ->unique();
+
+        $candidatesQuery = Produksi::with('kandang')
             ->where('tipe_produksi', 'puyuh')
-            ->where('status', 'aktif')
+            ->where('status', 'aktif');
+
+        if ($lockedSourceIds->isNotEmpty()) {
+            $candidatesQuery->whereNotIn('id', $lockedSourceIds->values());
+        }
+
+        $candidates = $candidatesQuery
             ->orderByDesc('tanggal_mulai')
             ->get();
 

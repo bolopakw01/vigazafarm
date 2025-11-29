@@ -102,9 +102,23 @@
                                 <label for="produksi_telur" class="form-label">Jumlah Telur (butir)</label>
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fa-solid fa-egg"></i></span>
-                                    <input type="number" name="produksi_telur" id="produksi_telur" class="form-control" min="0" max="100" value="{{ $defaultProduksiTelur }}">
+                                    <input
+                                        type="number"
+                                        name="produksi_telur"
+                                        id="produksi_telur"
+                                        class="form-control"
+                                        min="0"
+                                        @if ($tabVariant !== 'puyuh') max="100" @endif
+                                        value="{{ $defaultProduksiTelur }}"
+                                    >
                                 </div>
-                                <div class="form-hint">Masukkan total telur yang dipanen hari ini (maksimal 100 butir).</div>
+                                <div class="form-hint">
+                                    @if ($tabVariant === 'puyuh')
+                                        Masukkan total telur yang dipanen hari ini.
+                                    @else
+                                        Masukkan total telur yang dipanen hari ini (maksimal 100 butir).
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>

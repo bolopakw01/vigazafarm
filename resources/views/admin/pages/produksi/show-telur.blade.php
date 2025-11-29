@@ -607,6 +607,12 @@
                                                                 data-telur-rusak="{{ e($totalTelurRusakValue) }}">
                                                                 Detail
                                                             </button>
+
+                                                            <form action="{{ route('admin.produksi.laporan.destroy', [$produksi->id, $laporan->id]) }}" method="POST" class="m-0 p-0 delete-laporan-form">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
+                                                            </form>
                                                         @endif
                                                     </div>
                                                 </div>
@@ -991,7 +997,7 @@
                     
                     Swal.fire({
                         title: 'Konfirmasi Hapus',
-                        text: 'Yakin ingin menghapus histori ini? Nilai pada Menu KAI tidak akan berubah, dan histori akan dihapus secara permanen.',
+                        text: 'Konfirmasi menghapus dan data tidak bisa dikembalikan.',
                         icon: 'error',
                         showCancelButton: true,
                         confirmButtonColor: '#dc3545',

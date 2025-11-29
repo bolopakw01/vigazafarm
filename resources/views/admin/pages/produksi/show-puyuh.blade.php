@@ -290,6 +290,36 @@
                             @if ($laporanHarian->isEmpty())
                                 <div class="text-muted small">Belum ada pencatatan.</div>
                             @else
+                                @php
+                                    $dailyKaiSnapshots = $laporanHarian
+                                        ->groupBy(function ($item) {
+                                            return optional($item->tanggal)->toDateString();
+                                        })
+                                        ->map(function ($items) use ($produksi) {
+                                            $population = $items->filter(function ($entry) {
+                                                return !is_null($entry->jumlah_burung);
+                                            })->max('jumlah_burung');
+
+                                            if (!$population) {
+                                                $population = $produksi->jumlah_indukan ?? 0;
+                                            }
+
+                                            $totalTelur = $items->sum('produksi_telur');
+                                            $totalPakan = $items->sum('konsumsi_pakan_kg');
+                                            $totalVitamin = $items->sum('vitamin_terpakai');
+                                            $totalKematian = $items->sum('jumlah_kematian');
+                                            $mortalityPercent = $population > 0 ? ($totalKematian / $population) * 100 : 0;
+
+                                            return [
+                                                'population' => $population,
+                                                'telur' => $totalTelur,
+                                                'pakan' => $totalPakan,
+                                                'vitamin' => $totalVitamin,
+                                                'kematian' => $totalKematian,
+                                                'mortality_percent' => $mortalityPercent,
+                                            ];
+                                        });
+                                @endphp
                                 <div class="list-timeline">
                                     @foreach ($laporanHarian as $laporan)
                                         @if ($laporan->tampilkan_di_histori === false)
@@ -469,14 +499,21 @@
                                                                 $catatanUser = optional($laporan->pengguna)->username
                                                                     ?? optional($laporan->pengguna)->nama_pengguna
                                                                     ?? '—';
-                                                                $populasiValue = $formatNumber($laporan->jumlah_burung ?? ($produksi->jumlah_indukan ?? 0));
-                                                                $feedValue = $formatNumber($laporan->konsumsi_pakan_kg ?? 0, 2);
-                                                                $deathValue = $formatNumber($laporan->jumlah_kematian ?? 0);
-                                                                $telurValue = $formatNumber($laporan->jumlah_telur ?? 0);
-                                                                $vitaminValue = $formatNumber($laporan->konsumsi_vitamin_l ?? 0, 2);
-                                                                $mortalityPercent = ($laporan->jumlah_burung ?? 0) > 0
-                                                                    ? number_format((($laporan->jumlah_kematian ?? 0) / max($laporan->jumlah_burung, 1)) * 100, 2, ',', '.')
-                                                                    : '0,00';
+                                                                $snapshotKey = optional($laporan->tanggal)->toDateString();
+                                                                $snapshot = $dailyKaiSnapshots->get($snapshotKey) ?? [
+                                                                    'population' => $produksi->jumlah_indukan ?? 0,
+                                                                    'telur' => 0,
+                                                                    'pakan' => 0,
+                                                                    'vitamin' => 0,
+                                                                    'kematian' => 0,
+                                                                    'mortality_percent' => 0,
+                                                                ];
+                                                                $populasiValue = $formatNumber($snapshot['population']);
+                                                                $feedValue = $formatNumber($snapshot['pakan'], 2);
+                                                                $deathValue = $formatNumber($snapshot['kematian']);
+                                                                $telurValue = $formatNumber($snapshot['telur']);
+                                                                $vitaminValue = $formatNumber($snapshot['vitamin'], 2);
+                                                                $mortalityPercent = number_format($snapshot['mortality_percent'], 2, ',', '.');
                                                             @endphp
                                                             <button type="button"
                                                                 class="btn btn-sm btn-outline-info detail-catatan-btn"
@@ -843,7 +880,7 @@
                     
                     Swal.fire({
                         title: 'Konfirmasi Hapus',
-                        text: 'Yakin ingin menghapus histori ini? Nilai pada Menu KAI tidak akan berubah, dan histori akan dihapus secara permanen.',
+                        text: 'Konfirmasi menghapus dan data tidak bisa dikembalikan.',
                         icon: 'error',
                         showCancelButton: true,
                         confirmButtonColor: '#dc3545',
