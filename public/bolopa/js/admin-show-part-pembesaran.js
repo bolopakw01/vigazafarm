@@ -60,6 +60,134 @@ const duplicateDateCache = {
     berat: new Set()
 };
 
+function setDatasetCache(type, records = []) {
+    const key = datasetCacheKeys[type];
+    if (!key) return;
+    window[key] = Array.isArray(records) ? records : [];
+}
+
+function getDatasetCache(type) {
+    const key = datasetCacheKeys[type];
+    if (!key) return [];
+    const data = window[key];
+    return Array.isArray(data) ? data : [];
+}
+
+const datasetCacheKeys = {
+    pakan: '_pakanData',
+    kematian: '_kematianData',
+    monitoring: '_monitoringData',
+    kesehatan: '_kesehatanData',
+    berat: '_beratData'
+};
+
+const datasetByDateCache = {
+    pakan: {},
+    kematian: {},
+    monitoring: {},
+    kesehatan: {},
+    berat: {}
+};
+
+function getRecordsByDateCache(type, dateKey) {
+    if (!type || !dateKey) return null;
+    const bucket = datasetByDateCache[type];
+    if (!bucket) return null;
+    if (Object.prototype.hasOwnProperty.call(bucket, dateKey)) {
+        return bucket[dateKey];
+    }
+    return null;
+}
+
+function setRecordsByDateCache(type, dateKey, records) {
+    if (!type || !dateKey) return;
+    if (!datasetByDateCache[type]) {
+        datasetByDateCache[type] = {};
+    }
+    datasetByDateCache[type][dateKey] = Array.isArray(records) ? records : [];
+}
+
+function getRecordIdentityKey(type, record) {
+    if (!record) return null;
+    if (record.id !== undefined && record.id !== null) {
+        return `${type}-${record.id}`;
+    }
+    if (record.uuid) {
+        return `${type}-${record.uuid}`;
+    }
+    const dateKey = toDateKey(extractRecordDate(type, record));
+    try {
+        return `${type}-${dateKey}-${JSON.stringify(record)}`;
+    } catch (error) {
+        console.warn('Unable to stringify record for identity key:', error);
+        return `${type}-${dateKey}-${Math.random().toString(36).slice(2)}`;
+    }
+}
+
+function mergeRecordsIntoCache(type, newRecords = []) {
+    if (!type || !Array.isArray(newRecords) || !newRecords.length) return;
+    const existing = getDatasetCache(type) || [];
+    const map = new Map();
+    existing.forEach((record) => {
+        const key = getRecordIdentityKey(type, record);
+        if (key) {
+            map.set(key, record);
+        }
+    });
+    newRecords.forEach((record) => {
+        const key = getRecordIdentityKey(type, record);
+        if (key) {
+            map.set(key, record);
+        }
+    });
+    setDatasetCache(type, Array.from(map.values()));
+}
+
+async function getRecordsForDate(type, dateKey, dateExtractor) {
+    if (!type || !dateKey) return [];
+    const cachedByDate = getRecordsByDateCache(type, dateKey);
+    if (cachedByDate !== null && cachedByDate !== undefined) return cachedByDate;
+
+    const resolver = (row) => {
+        if (typeof dateExtractor === 'function') {
+            return dateExtractor(row);
+        }
+        return extractRecordDate(type, row);
+    };
+
+    const source = getDatasetCache(type) || [];
+    const matches = source.filter((row) => toDateKey(resolver(row)) === dateKey);
+    if (matches.length) {
+        setRecordsByDateCache(type, dateKey, matches);
+        return matches;
+    }
+
+    const endpoint = duplicateEndpointPaths[type];
+    if (!endpoint) {
+        const emptyArr = [];
+        setRecordsByDateCache(type, dateKey, emptyArr);
+        return emptyArr;
+    }
+
+    try {
+        const url = `${baseUrl}/admin/pembesaran/${pembesaranId}/${endpoint}?tanggal=${encodeURIComponent(dateKey)}`;
+        const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+        const result = await response.json();
+        const rows = result?.success && Array.isArray(result.data) ? result.data : [];
+        setRecordsByDateCache(type, dateKey, rows);
+        if (rows.length) {
+            mergeRecordsIntoCache(type, rows);
+            rememberRecords(type, rows);
+        }
+        return rows;
+    } catch (error) {
+        console.error(`Failed to fetch ${type} data for ${dateKey}:`, error);
+        const fallback = [];
+        setRecordsByDateCache(type, dateKey, fallback);
+        return fallback;
+    }
+}
+
 const duplicatePendingChecks = {};
 
 function extractRecordDate(type, record) {
@@ -170,13 +298,13 @@ async function confirmDuplicateSubmission(type, dateValue) {
     if (typeof Swal !== 'undefined') {
         const result = await Swal.fire({
             title: 'Catatan sudah ada di tanggal ini',
-            html: `Anda sudah memiliki ${label} pada tanggal <strong>${displayDate}</strong>.<br>Menambahkan data baru akan menimpa catatan yang sudah ada. Lanjutkan?`,
+            html: `Anda sudah memiliki ${label} pada tanggal <strong>${displayDate}</strong>.<br>Menambahkan data baru akan mengganti catatan sebelumnya untuk tanggal tersebut. Lanjutkan?`,
             icon: 'warning',
             showCancelButton: true,
             reverseButtons: true,
-            confirmButtonText: 'Timpa catatan',
+            confirmButtonText: 'Tambahkan',
             cancelButtonText: 'Batal',
-            confirmButtonColor: '#d97706',
+            confirmButtonColor: '#0d6efd',
             cancelButtonColor: '#6c757d'
         });
         return result.isConfirmed;
@@ -208,6 +336,7 @@ const kgFormatter = new Intl.NumberFormat('id-ID', {
 
 const formatCurrency = (value = 0) => rupiahFormatter.format(Math.round(parseFloat(value) || 0));
 const formatKg = (value = 0) => kgFormatter.format(parseFloat(value) || 0);
+const formatDecimal = (value = 0, digits = 2) => (Number.isFinite(parseFloat(value)) ? parseFloat(value).toFixed(digits) : (0).toFixed(digits));
 
 function updateTextValue(selector, formattedValue, numericValue) {
     const el = document.querySelector(selector);
@@ -307,6 +436,7 @@ function updateKesehatanSummary(totalBiaya) {
     setHealthCost(numeric);
     recalcTotalBiayaKeseluruhan();
 }
+
 
 // ========== HELPER FUNCTIONS ==========
 
@@ -593,7 +723,10 @@ if (btnGenerateCatatan) {
         
         try {
             // Check whether a laporan for this date already exists (to warn user)
-            const laporanListResp = await fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/laporan-harian/list`, { credentials: 'same-origin' });
+            const laporanListResp = await fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/laporan-harian/list`, {
+                credentials: 'same-origin',
+                cache: 'no-store'
+            });
             const laporanList = await laporanListResp.json();
                 const keyTanggal = toDateKey(tanggalLaporan);
                 const existsForDate = (laporanList.data || []).some(l => toDateKey(l.tanggal) === keyTanggal);
@@ -615,40 +748,23 @@ if (btnGenerateCatatan) {
                     return;
                 }
             }
-            // Fetch data pakan, kematian, kesehatan, monitoring, dan berat untuk tanggal tersebut
-            const queryTanggal = `?tanggal=${encodeURIComponent(keyTanggal)}`;
-            const [pakanResponse, kematianResponse, kesehatanResponse, monitoringResponse, beratResponse] = await Promise.all([
-                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/pakan/list${queryTanggal}`, {
-                    credentials: 'same-origin'
-                }),
-                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/kematian/list${queryTanggal}`, {
-                    credentials: 'same-origin'
-                }),
-                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/kesehatan/list${queryTanggal}`, {
-                    credentials: 'same-origin'
-                }),
-                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/monitoring/list${queryTanggal}`, {
-                    credentials: 'same-origin'
-                }),
-                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/berat/list${queryTanggal}`, {
-                    credentials: 'same-origin'
-                })
-            ]);
-            
-            const pakanResult = await pakanResponse.json();
-            const kematianResult = await kematianResponse.json();
-            const kesehatanResult = await kesehatanResponse.json();
-            const monitoringResult = await monitoringResponse.json();
-            const beratResult = await beratResponse.json();
-            
-            const safeData = (result) => (result && result.success && Array.isArray(result.data)) ? result.data : [];
+            // Fetch datasets for selected date, fallback to server when cache misses
+            const fetchRecordsForSection = (type, dateExtractor) =>
+                getRecordsForDate(type, keyTanggal, dateExtractor);
 
-            // Data already filtered by backend, but fallback to client-side filter for safety
-            const pakanHariIni = safeData(pakanResult).filter(p => toDateKey(p.tanggal) === keyTanggal);
-            const kematianHariIni = safeData(kematianResult).filter(k => toDateKey(k.tanggal) === keyTanggal);
-            const kesehatanHariIni = safeData(kesehatanResult).filter(k => toDateKey(k.tanggal) === keyTanggal);
-            const monitoringHariIni = safeData(monitoringResult).filter(m => toDateKey(m.waktu_pencatatan || m.tanggal) === keyTanggal);
-            const beratHariIni = safeData(beratResult).filter(b => toDateKey(b.tanggal_sampling || b.tanggal) === keyTanggal);
+            const [
+                pakanHariIni,
+                kematianHariIni,
+                kesehatanHariIni,
+                monitoringHariIni,
+                beratHariIni
+            ] = await Promise.all([
+                fetchRecordsForSection('pakan', (row) => row.tanggal),
+                fetchRecordsForSection('kematian', (row) => row.tanggal),
+                fetchRecordsForSection('kesehatan', (row) => row.tanggal),
+                fetchRecordsForSection('monitoring', (row) => row.waktu_pencatatan || row.tanggal),
+                fetchRecordsForSection('berat', (row) => row.tanggal_sampling || row.tanggal)
+            ]);
             
             const dateLabel = new Date(tanggalLaporan).toLocaleDateString('id-ID', {
                 weekday: 'long',
@@ -657,52 +773,107 @@ if (btnGenerateCatatan) {
                 day: 'numeric'
             });
 
-            const totalPakan = pakanHariIni.reduce((sum, p) => sum + (parseFloat(p.jumlah_kg) || 0), 0);
-            const totalSisaPakan = pakanHariIni.reduce((sum, p) => sum + (parseFloat(p.sisa_pakan_kg) || 0), 0);
-            const totalMati = kematianHariIni.reduce((sum, k) => sum + (parseInt(k.jumlah, 10) || 0), 0);
-            const mortalitasPersen = kematianResult.mortalitas ? parseFloat(kematianResult.mortalitas) : null;
-            const penyebabDominan = kematianHariIni.reduce((acc, k) => {
-                const key = k.penyebab || 'Tidak diketahui';
-                acc[key] = (acc[key] || 0) + (parseInt(k.jumlah, 10) || 0);
-                return acc;
-            }, {});
-            const topPenyebab = Object.entries(penyebabDominan)
-                .sort((a, b) => b[1] - a[1])
-                .map(entry => entry[0])[0];
+            const formatRupiah = (value) => {
+                const numeric = parseFloat(value);
+                if (Number.isNaN(numeric)) return '-';
+                return `Rp ${formatCurrency(numeric)}`;
+            };
 
-            const avgSuhu = monitoringHariIni.length
-                ? monitoringHariIni.reduce((sum, m) => sum + (parseFloat(m.suhu) || 0), 0) / monitoringHariIni.length
-                : null;
-            const avgKelembaban = monitoringHariIni.length
-                ? monitoringHariIni.reduce((sum, m) => sum + (parseFloat(m.kelembaban) || 0), 0) / monitoringHariIni.length
-                : null;
+            const formatDate = (value, withTime = false) => {
+                const dateObj = new Date(value);
+                if (Number.isNaN(dateObj.getTime())) return '-';
+                if (withTime) {
+                    return dateObj.toLocaleString('id-ID', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+                return dateObj.toLocaleDateString('id-ID', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                });
+            };
 
-            const avgBerat = beratHariIni.length
-                ? beratHariIni.reduce((sum, b) => sum + (parseFloat(b.berat_rata_rata) || 0), 0) / beratHariIni.length
-                : null;
+            const cleanText = (value) => {
+                if (!value) return '-';
+                return String(value).replace(/\s+/g, ' ').trim();
+            };
 
-            const formatNumber = (value, digits = 2) =>
-                Number.isFinite(value) ? value.toFixed(digits) : '0.00';
+            const addSection = (linesAcc, title, records, renderer, emptyMessage) => {
+                if (!records.length) {
+                    linesAcc.push(`${title}: ${emptyMessage}`);
+                    linesAcc.push('');
+                    return;
+                }
+                linesAcc.push(`${title}: ${records.length} pencatatan`);
+                linesAcc.push('');
+                records.forEach((record, index) => {
+                    const rendered = renderer(record, index);
+                    if (rendered) {
+                        linesAcc.push(rendered);
+                    }
+                });
+                linesAcc.push('');
+            };
 
-            const lines = [
-                `LAPORAN HARIAN (${dateLabel})`,
-                '',
-                `Pakan: ${formatNumber(totalPakan)} kg (${pakanHariIni.length} pencatatan)` +
-                    (totalSisaPakan > 0 ? ` | Sisa: ${formatNumber(totalSisaPakan)} kg` : ''),
-                `Kematian: ${totalMati} ekor` +
-                    (topPenyebab ? ` (dominan: ${topPenyebab})` : '') +
-                    (Number.isFinite(mortalitasPersen) ? ` | Mortalitas: ${mortalitasPersen.toFixed(2)}%` : ''),
-                `Kesehatan/Vaksinasi: ${kesehatanHariIni.length ? `${kesehatanHariIni.length} kegiatan` : 'Tidak ada kegiatan'}`,
-                `Monitoring: ${monitoringHariIni.length
-                    ? `Suhu ${formatNumber(avgSuhu, 1)}°C, kelembaban ${formatNumber(avgKelembaban, 1)}%`
-                    : 'Belum dicatat'}`,
-                `Sampling berat: ${beratHariIni.length
-                    ? `${beratHariIni.length} catatan, rata-rata ${formatNumber(avgBerat, 1)} gram`
-                    : 'Belum dilakukan'}`,
-                '',
-                'Catatan tambahan:',
-                '- '
-            ];
+            const lines = [`LAPORAN HARIAN (${dateLabel})`, ''];
+
+            addSection(lines, 'Pakan', pakanHariIni, (row) => {
+                const feedLabel = row.feed_item?.name || row.stok_pakan?.nama_pakan || row.jenis_pakan || 'Pakan';
+                const konsumsi = Number.isFinite(parseFloat(row.jumlah_kg)) ? `${formatDecimal(row.jumlah_kg)} kg` : '-';
+                const sisaKg = row.sisa_pakan_kg;
+                const legacyKarung = row.jumlah_karung ?? row.jumlah_karung_sisa;
+                let sisaDisplay = '-';
+                if (sisaKg !== null && sisaKg !== undefined && !Number.isNaN(parseFloat(sisaKg))) {
+                    sisaDisplay = `${formatDecimal(sisaKg)} kg`;
+                } else if (legacyKarung !== null && legacyKarung !== undefined && legacyKarung !== '') {
+                    sisaDisplay = `${parseInt(legacyKarung, 10) || 0} karung`;
+                }
+                const biayaDisplay = formatRupiah(row.total_biaya ?? row.biaya);
+                const pencatat = getRecorderName(row);
+                return `${feedLabel}\tTerpakai ${konsumsi}\tSisa ${sisaDisplay}\tBiaya ${biayaDisplay}\tOleh ${pencatat}`;
+            }, 'Belum ada catatan pakan');
+
+            addSection(lines, 'Kematian', kematianHariIni, (row) => {
+                const tanggal = formatDate(row.tanggal);
+                const jumlah = parseInt(row.jumlah, 10);
+                const penyebab = cleanText(row.penyebab || 'Tidak diketahui');
+                const catatan = cleanText(row.keterangan || row.catatan);
+                return `${tanggal}\t${Number.isNaN(jumlah) ? '-' : `${jumlah} ekor`}\tPenyebab ${penyebab}\tCatatan ${catatan}`;
+            }, 'Tidak ada kejadian kematian');
+
+            addSection(lines, 'Kesehatan/Vaksinasi', kesehatanHariIni, (row) => {
+                const tipe = cleanText(row.tipe_kegiatan?.replace(/_/g, ' ') || 'Kegiatan');
+                const namaObat = cleanText(row.nama_vaksin_obat);
+                const jumlah = row.jumlah_burung ? `${row.jumlah_burung} ekor` : '-';
+                const biayaDisplay = formatRupiah(row.biaya);
+                const petugas = cleanText(row.petugas || getRecorderName(row));
+                return `${tipe} - ${namaObat}\t${jumlah}\tBiaya ${biayaDisplay}\tPetugas ${petugas}`;
+            }, 'Tidak ada kegiatan kesehatan');
+
+            addSection(lines, 'Monitoring Lingkungan', monitoringHariIni, (row) => {
+                const waktu = formatDate(row.waktu_pencatatan || row.tanggal, true);
+                const suhu = Number.isNaN(parseFloat(row.suhu)) ? '-' : `${formatDecimal(row.suhu, 1)}°C`;
+                const kelembaban = Number.isNaN(parseFloat(row.kelembaban)) ? '-' : `${formatDecimal(row.kelembaban, 1)}%`;
+                const ventilasi = cleanText(row.kondisi_ventilasi || row.ventilasi);
+                const catatan = cleanText(row.catatan);
+                return `${waktu}\tSuhu ${suhu}\tKelembaban ${kelembaban}\tVentilasi ${ventilasi}\tCatatan ${catatan}`;
+            }, 'Belum ada monitoring');
+
+            addSection(lines, 'Sampling Berat', beratHariIni, (row) => {
+                const tanggal = formatDate(row.tanggal_sampling || row.tanggal);
+                const umur = row.umur_hari ? `${row.umur_hari} hari` : '-';
+                const beratAvg = Number.isNaN(parseFloat(row.berat_rata_rata)) ? '-' : `${formatDecimal(row.berat_rata_rata, 1)} gram`;
+                const sampel = row.jumlah_sampel ? `${row.jumlah_sampel} ekor` : '-';
+                const catatan = cleanText(row.catatan);
+                return `${tanggal}\tUmur ${umur}\tRata-rata ${beratAvg}\tSampel ${sampel}\tCatatan ${catatan}`;
+            }, 'Belum ada sampling berat');
+
+            lines.push('Catatan tambahan:');
+            lines.push('- ');
 
             document.getElementById('catatan_laporan').value = lines.join('\n');
             showToast('Catatan berhasil di-generate! Silakan sesuaikan jika perlu.', 'success');
@@ -836,10 +1007,12 @@ async function loadPakanData() {
             console.log('📊 Rendering pakan data, count:', result.data.length);
             renderPakanChart(result.data);
             renderPakanHistory(result.data);
+            setDatasetCache('pakan', result.data);
         } else {
             console.warn('📊 Pakan data not successful or empty');
             // Still try to render with empty state
             renderPakanHistory([]);
+            setDatasetCache('pakan', []);
         }
 
         if (result.success && Array.isArray(result.data)) {
@@ -869,9 +1042,11 @@ async function loadKematianData() {
             console.log('📊 Rendering kematian data, count:', result.data.length);
             renderKematianChart(result.data, result.mortalitas);
             renderKematianHistory(result.data);
+            setDatasetCache('kematian', result.data);
         } else {
             console.warn('📊 Kematian data not successful or empty');
             renderKematianHistory([]);
+            setDatasetCache('kematian', []);
         }
 
         if (result.success && Array.isArray(result.data)) {
@@ -923,9 +1098,11 @@ async function loadMonitoringData() {
             console.log('📊 Rendering monitoring data, count:', result.data.length);
             renderMonitoringChart(result.data);
             renderMonitoringHistory(result.data);
+            setDatasetCache('monitoring', result.data);
         } else {
             console.warn('📊 Monitoring data not successful or empty');
             renderMonitoringHistory([]);
+            setDatasetCache('monitoring', []);
         }
 
         if (result.success && Array.isArray(result.data)) {
@@ -950,10 +1127,12 @@ async function loadBeratData() {
             rememberRecords('berat', result.data);
             renderBeratChart(result.data);
             renderBeratHistory(result.data);
+            setDatasetCache('berat', result.data);
         } else {
             document.getElementById('weightError').style.display = 'block';
             document.getElementById('weightAnalysis').style.display = 'none';
             renderBeratHistory([]);
+            setDatasetCache('berat', []);
         }
     } catch (error) {
         console.error('❌ Error loading berat data:', error);
@@ -973,9 +1152,13 @@ async function loadKesehatanData() {
         if (result.success) {
             rememberRecords('kesehatan', result.data || []);
             renderKesehatanHistory(result.data || []);
+            setDatasetCache('kesehatan', result.data || []);
             if (Object.prototype.hasOwnProperty.call(result, 'total_biaya')) {
                 updateKesehatanSummary(result.total_biaya);
             }
+        } else {
+            renderKesehatanHistory([]);
+            setDatasetCache('kesehatan', []);
         }
     } catch (error) {
         console.error('Error loading kesehatan data:', error);

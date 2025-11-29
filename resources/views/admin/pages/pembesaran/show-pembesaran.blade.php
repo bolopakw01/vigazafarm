@@ -217,7 +217,9 @@
     window.vigazaConfig = {
         baseUrl: '{{ url('/') }}',
         pembesaranId: {{ $pembesaran->id }},
-        csrfToken: '{{ csrf_token() }}'
+        csrfToken: '{{ csrf_token() }}',
+        populasi_awal: {{ (int) $populasiAwal }},
+        populasi_saat_ini: {{ (int) $populasiSaatIni }}
     };
 </script>
 <script src="{{ asset('bolopa/js/admin-show-part-pembesaran.js') }}?v={{ time() }}"></script>
