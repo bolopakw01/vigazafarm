@@ -59,7 +59,7 @@ class KandangController extends Controller
             'kapasitas_maksimal' => 'nullable|integer',
             'tipe_kandang' => 'nullable|string|max:100',
             'status' => 'nullable|string|max:50',
-            'keterangan' => 'nullable|string',
+            'keterangan' => 'nullable|string|max:100',
         ]);
 
         // Generate kode_kandang secara otomatis jika tidak disediakan
@@ -98,7 +98,7 @@ class KandangController extends Controller
             'kapasitas_maksimal' => 'nullable|integer',
             'tipe_kandang' => 'nullable|string|max:100',
             'status' => 'nullable|string|max:50',
-            'keterangan' => 'nullable|string',
+            'keterangan' => 'nullable|string|max:100',
         ]);
 
         // Generate kode_kandang secara otomatis jika tidak disediakan dan record saat ini tidak memilikinya

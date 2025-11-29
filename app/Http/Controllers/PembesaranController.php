@@ -90,7 +90,7 @@ class PembesaranController extends Controller
             'tanggal_masuk' => 'required|date',
             'jumlah_anak_ayam' => 'required|integer|min:1',
             'jenis_kelamin' => 'nullable|in:betina,jantan,campuran',
-            'catatan' => 'nullable|string',
+            'catatan' => 'nullable|string|max:100',
         ]);
 
         $penetasan = Penetasan::findOrFail($penetasanId);
@@ -169,7 +169,7 @@ class PembesaranController extends Controller
             'berat_rata_rata' => 'nullable|numeric|min:0',
             'target_berat_akhir' => 'nullable|numeric|min:0',
             'kondisi_doc' => 'nullable|string',
-            'catatan' => 'nullable|string',
+            'catatan' => 'nullable|string|max:100',
         ]);
 
         $kandang = Kandang::findOrFail($validated['kandang_id']);
@@ -351,7 +351,7 @@ class PembesaranController extends Controller
             'jumlah_siap' => 'nullable|integer|min:0',
             'umur_hari' => 'nullable|integer|min:0',
             'berat_rata_rata' => 'nullable|numeric|min:0',
-            'catatan' => 'nullable|string',
+            'catatan' => 'nullable|string|max:100',
         ]);
 
         // Owner atau Super Admin bisa update status dengan menyalakan override

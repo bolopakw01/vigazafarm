@@ -8,6 +8,7 @@ use App\Models\Pembesaran;
 use App\Models\Produksi;
 use App\Models\Kandang;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 /**
@@ -32,7 +33,7 @@ class TransferController extends Controller
             'kandang_id' => 'required|exists:vf_kandang,id',
             'jumlah_doc' => 'required|integer|min:1',
             'jenis_kelamin' => 'nullable|in:jantan,betina,campuran',
-            'catatan' => 'nullable|string',
+            'catatan' => 'nullable|string|max:100',
         ]);
 
         try {
@@ -60,7 +61,7 @@ class TransferController extends Controller
                 'status_batch' => 'aktif',
                 'umur_hari' => 0,
                 'kondisi_doc' => 'baik',
-                'catatan' => $request->catatan,
+                'catatan' => $this->normalizeNote($request->catatan),
             ]);
 
             // Update tracking di penetasan
@@ -88,7 +89,7 @@ class TransferController extends Controller
             'kandang_id' => 'required|exists:vf_kandang,id',
             'jumlah_indukan' => 'required|integer|min:1',
             'tanggal_mulai_produksi' => 'required|date',
-            'catatan' => 'nullable|string',
+            'catatan' => 'nullable|string|max:100',
         ]);
 
         try {
@@ -117,7 +118,7 @@ class TransferController extends Controller
                 'umur_mulai_produksi' => $umurHari,
                 'tanggal_mulai' => $request->tanggal_mulai_produksi,
                 'status' => 'aktif',
-                'catatan' => $request->catatan,
+                'catatan' => $this->normalizeNote($request->catatan),
             ]);
 
             // Update tracking di pembesaran
@@ -149,7 +150,7 @@ class TransferController extends Controller
         $request->validate([
             'jumlah_telur' => 'required|integer|min:1',
             'harga_per_pcs' => 'nullable|numeric|min:0',
-            'catatan' => 'nullable|string',
+            'catatan' => 'nullable|string|max:100',
         ]);
 
         try {
@@ -175,7 +176,7 @@ class TransferController extends Controller
                 'harga_per_pcs' => $request->harga_per_pcs ?? 0,
                 'tanggal_mulai' => Carbon::now(),
                 'status' => 'tidak_aktif', // Langsung dinonaktifkan karena hanya record penjualan
-                'catatan' => 'Telur infertil dari penetasan. ' . ($request->catatan ?? ''),
+                'catatan' => $this->normalizeNote('Telur infertil dari penetasan.' . ($request->filled('catatan') ? ' ' . $request->catatan : '')),
             ]);
 
             // Update tracking di penetasan
@@ -217,5 +218,20 @@ class TransferController extends Controller
         $kandangList = Kandang::where('status', 'aktif')->where('tipe_kandang', 'produksi')->get();
         
         return view('admin.pages.pembesaran.transfer-pembesaran', compact('pembesaran', 'kandangList'));
+    }
+
+    private function normalizeNote(?string $note): ?string
+    {
+        if ($note === null) {
+            return null;
+        }
+
+        $trimmed = trim($note);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        return Str::limit($trimmed, 100, '');
     }
 }

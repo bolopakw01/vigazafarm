@@ -46,7 +46,7 @@ class PenetasanController extends Controller
             'suhu_penetasan' => 'nullable|numeric|min:0|max:50',
             'kelembaban_penetasan' => 'nullable|numeric|min:0|max:100',
             'telur_tidak_fertil' => 'nullable|integer|min:0',
-            'catatan' => 'nullable|string',
+            'catatan' => 'nullable|string|max:100',
         ]);
 
         $kandang = Kandang::findOrFail($data['kandang_id']);
@@ -157,7 +157,7 @@ class PenetasanController extends Controller
             'suhu_penetasan' => 'nullable|numeric|min:0|max:50',
             'kelembaban_penetasan' => 'nullable|numeric|min:0|max:100',
             'telur_tidak_fertil' => 'nullable|integer|min:0',
-            'catatan' => 'nullable|string',
+            'catatan' => 'nullable|string|max:100',
             'status' => 'nullable|in:proses,selesai,gagal',
             'fase_penetasan' => 'nullable|in:setter,hatcher',
         ]);
