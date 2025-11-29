@@ -24,6 +24,24 @@
     // Format FCR
     $fcrFormatted = $fcr == floor($fcr) ? number_format($fcr, 0) : number_format($fcr, 2);
 
+    // Hitung target umur berdasarkan Perkiraan Tanggal Siap (manual)
+    $tanggalMasukCarbon = $pembesaran->tanggal_masuk ? \Carbon\Carbon::parse($pembesaran->tanggal_masuk) : null;
+    $tanggalSiapCarbon = $pembesaran->tanggal_siap ? \Carbon\Carbon::parse($pembesaran->tanggal_siap) : null;
+    $targetUmurManual = null;
+
+    if ($tanggalMasukCarbon && $tanggalSiapCarbon) {
+        $diffManual = $tanggalMasukCarbon->diffInDays($tanggalSiapCarbon, false);
+        $targetUmurManual = max($diffManual, 0);
+
+        if ($targetUmurManual === 0) {
+            $targetUmurManual = 1;
+        }
+    }
+
+    $defaultTargetUmur = 35;
+    $targetUmur = $targetUmurManual ?? $defaultTargetUmur;
+    $tanggalSiapTercapai = $tanggalSiapCarbon ? now()->greaterThanOrEqualTo($tanggalSiapCarbon) : false;
+
     // Cek status batch - jika selesai, disable semua form
     $isStatusSelesai = strtolower($pembesaran->status_batch ?? 'aktif') === 'selesai';
     $disabledAttr = $isStatusSelesai ? 'disabled' : '';
@@ -515,6 +533,18 @@
                                 <dd class="col-sm-7">
                                     {{ \Carbon\Carbon::parse($pembesaran->tanggal_masuk)->format('d/m/Y') }}</dd>
 
+                                <dt class="col-sm-5">Perkiraan Siap:</dt>
+                                <dd class="col-sm-7">
+                                    @if ($tanggalSiapCarbon)
+                                        {{ $tanggalSiapCarbon->format('d/m/Y') }}
+                                        <span class="text-muted d-block" style="font-size: 0.85rem;">
+                                            Target umur {{ $targetUmurManual ?? $targetUmur }} hari
+                                        </span>
+                                    @else
+                                        <span class="text-muted">Belum ditentukan</span>
+                                    @endif
+                                </dd>
+
                                 <dt class="col-sm-5">Umur:</dt>
                                 <dd class="col-sm-7">{{ (int) $umurHari }} hari</dd>
 
@@ -691,8 +721,9 @@
                     $isOwnerOrSuperAdmin = $user && ($user->peran === 'owner' || $user->peran === 'super_admin');
                     $isOperator = $user && $user->peran === 'operator';
                     $isAktif = strtolower($pembesaran->status_batch ?? 'aktif') === 'aktif';
-                    $targetUmur = 35;
-                    $umurMemenuhiTarget = $umurHari >= $targetUmur;
+                    $menggunakanTanggalSiap = (bool) $tanggalSiapCarbon;
+                    $targetTanggalSiapFormatted = $tanggalSiapCarbon ? $tanggalSiapCarbon->format('d/m/Y') : null;
+                    $umurMemenuhiTarget = $menggunakanTanggalSiap ? $tanggalSiapTercapai : $umurHari >= $targetUmur;
                     $targetTercapai =
                         $umurMemenuhiTarget &&
                         (!$pembesaran->target_berat_akhir ||
@@ -711,8 +742,13 @@
                                             style="font-size: 1.5rem; flex-shrink: 0;"></i>
                                         <div style="flex: 1;">
                                             @if ($targetTercapai)
-                                                <strong>Target Tercapai!</strong> Batch sudah mencapai target umur
-                                                ({{ $umurHari }}/{{ $targetUmur }} hari)
+                                                <strong>Target Tercapai!</strong>
+                                                Batch sudah mencapai
+                                                @if ($menggunakanTanggalSiap && $targetTanggalSiapFormatted)
+                                                    Perkiraan Tanggal Siap ({{ $targetTanggalSiapFormatted }})
+                                                @else
+                                                    target umur ({{ $umurHari }}/{{ $targetUmur }} hari)
+                                                @endif
                                                 @if ($pembesaran->target_berat_akhir)
                                                     dan berat
                                                     ({{ $pembesaran->berat_rata_rata }}/{{ $pembesaran->target_berat_akhir }}g)
@@ -721,6 +757,9 @@
                                             @else
                                                 <strong>Batch Sedang Berjalan</strong> -
                                                 Umur: {{ $umurHari }}/{{ $targetUmur }} hari
+                                                @if ($targetTanggalSiapFormatted)
+                                                    | Target siap: {{ $targetTanggalSiapFormatted }}
+                                                @endif
                                                 @if ($pembesaran->target_berat_akhir)
                                                     | Berat:
                                                     {{ $pembesaran->berat_rata_rata }}/{{ $pembesaran->target_berat_akhir }}g
@@ -738,7 +777,10 @@
                                                     <span class="badge mt-2"
                                                         style="background-color: #d1fae5; color: #047857;">
                                                         <i class="fa-solid fa-user-gear" style="margin-right: 0.35rem;"></i>
-                                                        Operator dapat menyelesaikan karena umur sudah mencapai {{ $targetUmur }} hari
+                                                        Operator dapat menyelesaikan karena
+                                                        {{ $menggunakanTanggalSiap && $targetTanggalSiapFormatted
+                                                            ? 'perkiraan tanggal siap (' . $targetTanggalSiapFormatted . ') sudah tercapai'
+                                                            : 'umur sudah mencapai ' . $targetUmur . ' hari' }}
                                                     </span>
                                                 @endif
                                             @endif

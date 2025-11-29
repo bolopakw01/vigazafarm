@@ -34,9 +34,9 @@
                 <small class="form-text text-muted">Masukkan total pakan yang diberikan dalam kilogram.</small>
             </div>
             <div class="col-md-4">
-                <label class="form-label lopa-form-label">Jumlah Karung</label>
-                <input type="number" class="form-control" name="jumlah_karung" placeholder="0" {{ $disabledAttr }} />
-                <small class="form-text text-muted">Opsional, isi jika Anda juga melacak jumlah karung fisik.</small>
+                <label class="form-label lopa-form-label">Sisa Pakan (kg)</label>
+                <input type="number" class="form-control" name="sisa_pakan_kg" placeholder="0.00" step="0.01" min="0" {{ $disabledAttr }} />
+                <small class="form-text text-muted">Opsional, isi untuk mencatat sisa pakan harian dalam kilogram.</small>
             </div>
             <div class="col-md-4">
                 <label class="form-label lopa-form-label">Harga per Satuan</label>

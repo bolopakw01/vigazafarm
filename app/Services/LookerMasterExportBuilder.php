@@ -325,6 +325,7 @@ class LookerMasterExportBuilder
                     'batch_produksi_id' => $pakan->batch_produksi_id,
                     'tanggal' => $this->formatDate($pakan->tanggal),
                     'jumlah_kg' => (float) ($pakan->jumlah_kg ?? 0),
+                    'sisa_pakan_kg' => (float) ($pakan->sisa_pakan_kg ?? 0),
                     'jumlah_karung' => (int) ($pakan->jumlah_karung ?? 0),
                     'harga_per_kg' => (float) ($pakan->harga_per_kg ?? 0),
                     'total_biaya' => (float) ($pakan->total_biaya ?? 0),

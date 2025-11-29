@@ -15,6 +15,7 @@ class FeedHistory extends Model
         'feed_item_id',
         'tanggal',
         'jumlah_karung_sisa',
+        'sisa_pakan_kg',
         'keterangan',
         'pengguna_id',
     ];
@@ -22,6 +23,7 @@ class FeedHistory extends Model
     protected $casts = [
         'tanggal' => 'date',
         'jumlah_karung_sisa' => 'integer',
+        'sisa_pakan_kg' => 'decimal:2',
     ];
 
     public function stokPakan(): BelongsTo

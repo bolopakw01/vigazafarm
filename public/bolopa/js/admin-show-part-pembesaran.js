@@ -34,6 +34,168 @@ function toDateKey(input) {
     return String(input);
 }
 
+// ========== DUPLICATE SUBMISSION GUARD ==========
+
+const duplicateTypeLabels = {
+    pakan: 'pencatatan pakan',
+    kematian: 'pencatatan kematian',
+    monitoring: 'monitoring lingkungan',
+    kesehatan: 'catatan kesehatan/vaksinasi',
+    berat: 'sampling berat'
+};
+
+const duplicateEndpointPaths = {
+    pakan: 'pakan/list',
+    kematian: 'kematian/list',
+    monitoring: 'monitoring/list',
+    kesehatan: 'kesehatan/list',
+    berat: 'berat/list'
+};
+
+const duplicateDateCache = {
+    pakan: new Set(),
+    kematian: new Set(),
+    monitoring: new Set(),
+    kesehatan: new Set(),
+    berat: new Set()
+};
+
+const duplicatePendingChecks = {};
+
+function extractRecordDate(type, record) {
+    if (!record) return null;
+    switch (type) {
+        case 'pakan':
+        case 'kematian':
+        case 'kesehatan':
+            return record.tanggal;
+        case 'monitoring':
+            return record.waktu_pencatatan || record.tanggal;
+        case 'berat':
+            return record.tanggal_sampling || record.tanggal;
+        default:
+            return record.tanggal || record.waktu || record.created_at || null;
+    }
+}
+
+function formatDateForDisplay(dateKey) {
+    if (!dateKey) return '-';
+    const dateObj = new Date(dateKey);
+    if (Number.isNaN(dateObj.getTime())) return dateKey;
+    return dateObj.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+}
+
+function rememberDate(type, dateKey) {
+    if (!type || !dateKey) return;
+    if (!duplicateDateCache[type]) {
+        duplicateDateCache[type] = new Set();
+    }
+    duplicateDateCache[type].add(dateKey);
+}
+
+function rememberRecords(type, records = []) {
+    records.forEach((record) => {
+        const dateKey = toDateKey(extractRecordDate(type, record));
+        if (dateKey) rememberDate(type, dateKey);
+    });
+}
+
+function getDuplicateCheckUrl(type, dateKey) {
+    const endpoint = duplicateEndpointPaths[type];
+    if (!endpoint || !dateKey) return null;
+    return `${baseUrl}/admin/pembesaran/${pembesaranId}/${endpoint}?tanggal=${encodeURIComponent(dateKey)}`;
+}
+
+async function fetchDuplicateStatus(type, dateKey) {
+    if (!type || !dateKey) return false;
+    const cacheKey = `${type}-${dateKey}`;
+    if (duplicatePendingChecks[cacheKey]) {
+        return duplicatePendingChecks[cacheKey];
+    }
+
+    const url = getDuplicateCheckUrl(type, dateKey);
+    if (!url) return false;
+
+    duplicatePendingChecks[cacheKey] = fetch(url, { credentials: 'same-origin' })
+        .then((response) => response.json())
+        .then((result) => {
+            const hasData = result?.success && Array.isArray(result.data) && result.data.length > 0;
+            if (hasData) {
+                rememberDate(type, dateKey);
+            }
+            return hasData;
+        })
+        .catch((error) => {
+            console.error('Failed to check duplicate status:', type, error);
+            return false;
+        })
+        .finally(() => {
+            delete duplicatePendingChecks[cacheKey];
+        });
+
+    return duplicatePendingChecks[cacheKey];
+}
+
+async function hasExistingRecord(type, dateKey) {
+    if (!type || !dateKey) return false;
+    if (duplicateDateCache[type]?.has(dateKey)) {
+        return true;
+    }
+    return fetchDuplicateStatus(type, dateKey);
+}
+
+function getTodayDateKey() {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${now.getFullYear()}-${month}-${day}`;
+}
+
+async function confirmDuplicateSubmission(type, dateValue) {
+    if (!type || !dateValue) return true;
+    const dateKey = toDateKey(dateValue);
+    if (!dateKey) return true;
+
+    const exists = await hasExistingRecord(type, dateKey);
+    if (!exists) return true;
+
+    const displayDate = formatDateForDisplay(dateKey);
+    const label = duplicateTypeLabels[type] || 'pencatatan';
+
+    if (typeof Swal !== 'undefined') {
+        const result = await Swal.fire({
+            title: 'Catatan sudah ada di tanggal ini',
+            html: `Anda sudah memiliki ${label} pada tanggal <strong>${displayDate}</strong>.<br>Menambahkan data baru akan menimpa catatan yang sudah ada. Lanjutkan?`,
+            icon: 'warning',
+            showCancelButton: true,
+            reverseButtons: true,
+            confirmButtonText: 'Timpa catatan',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#d97706',
+            cancelButtonColor: '#6c757d'
+        });
+        return result.isConfirmed;
+    }
+
+    return window.confirm(`Data ${label} pada ${displayDate} sudah ada. Timpa catatan yang lama?`);
+}
+
+function registerLocalSubmission(type, record, fallbackDateValue) {
+    let entryDate = extractRecordDate(type, record);
+    if (!entryDate && fallbackDateValue) {
+        entryDate = fallbackDateValue;
+    }
+
+    const entryKey = toDateKey(entryDate);
+    if (!entryKey) return;
+    rememberDate(type, entryKey);
+}
+
 // ========== FORMATTING HELPERS ==========
 const rupiahFormatter = new Intl.NumberFormat('id-ID', {
     maximumFractionDigits: 0,
@@ -229,12 +391,15 @@ if (pakanForm) {
         e.preventDefault();
 
         const formData = new FormData(this);
+        const tanggalPakan = formData.get('tanggal');
+        const allowSubmit = await confirmDuplicateSubmission('pakan', tanggalPakan);
+        if (!allowSubmit) return;
         const feedItemId = formData.get('feed_item_id');
         const payload = {
-            tanggal: formData.get('tanggal'),
+            tanggal: tanggalPakan,
             feed_item_id: feedItemId ? parseInt(feedItemId) : null,
             jumlah_kg: parseFloat(formData.get('jumlah_kg')),
-            jumlah_karung: parseInt(formData.get('jumlah_karung')) || 0,
+            sisa_pakan_kg: formData.get('sisa_pakan_kg') ? parseFloat(formData.get('sisa_pakan_kg')) : null,
             harga_per_kg: formData.get('harga_per_kg') ? parseFloat(formData.get('harga_per_kg')) : null,
         };
 
@@ -245,6 +410,7 @@ if (pakanForm) {
             this.reset();
             if (feedUnitLabel) feedUnitLabel.textContent = feedUnitLabel.dataset?.defaultUnit || 'kg';
             updateTotal();
+            registerLocalSubmission('pakan', result.data, tanggalPakan);
             loadPakanData(); // Reload chart
         } else {
             showToast(result.message, 'error');
@@ -260,8 +426,11 @@ if (kematianForm) {
         e.preventDefault();
         
         const formData = new FormData(this);
+        const tanggalKematian = formData.get('tanggal');
+        const allowSubmit = await confirmDuplicateSubmission('kematian', tanggalKematian);
+        if (!allowSubmit) return;
         const result = await submitAjax(`${baseUrl}/admin/pembesaran/${pembesaranId}/kematian`, {
-            tanggal: formData.get('tanggal'),
+            tanggal: tanggalKematian,
             jumlah: parseInt(formData.get('jumlah_ekor')),
             penyebab: formData.get('penyebab'),
             keterangan: formData.get('catatan') || ''
@@ -270,6 +439,7 @@ if (kematianForm) {
         if (result.success) {
             showToast(result.message || 'Data kematian berhasil disimpan');
             this.reset();
+            registerLocalSubmission('kematian', result.data, tanggalKematian);
             
             // DSS Alert untuk mortalitas tinggi
             if (result.is_high_mortality && result.alert) {
@@ -299,6 +469,8 @@ if (monitoringForm) {
         const formData = new FormData(this);
         const tanggal = formData.get('tanggal');
         const waktu = formData.get('waktu');
+        const allowSubmit = await confirmDuplicateSubmission('monitoring', tanggal);
+        if (!allowSubmit) return;
         
         // Gabungkan tanggal dan waktu menjadi datetime
         const waktu_pencatatan = `${tanggal} ${waktu}:00`;
@@ -315,6 +487,7 @@ if (monitoringForm) {
         if (result.success) {
             showToast(result.message || 'Data monitoring berhasil disimpan');
             this.reset();
+            registerLocalSubmission('monitoring', result.data, tanggal);
             
             // DSS Alert untuk lingkungan tidak ideal
             if (result.dss_alert) {
@@ -336,8 +509,11 @@ if (kesehatanForm) {
         e.preventDefault();
         
         const formData = new FormData(this);
+        const tanggalKesehatan = formData.get('tanggal');
+        const allowSubmit = await confirmDuplicateSubmission('kesehatan', tanggalKesehatan);
+        if (!allowSubmit) return;
         const result = await submitAjax(`${baseUrl}/admin/pembesaran/${pembesaranId}/kesehatan`, {
-            tanggal: formData.get('tanggal'),
+            tanggal: tanggalKesehatan,
             tipe_kegiatan: formData.get('tipe_kegiatan'),
             nama_vaksin_obat: formData.get('nama_vaksin_obat'),
             jumlah_burung: parseInt(formData.get('jumlah_burung')),
@@ -345,10 +521,10 @@ if (kesehatanForm) {
             biaya: formData.get('biaya') ? parseFloat(formData.get('biaya')) : null,
             petugas: formData.get('petugas') || null
         });
-        
         if (result.success) {
             showToast(result.message || 'Data kesehatan berhasil disimpan');
             this.reset();
+            registerLocalSubmission('kesehatan', result.data, tanggalKesehatan);
             loadKesehatanData();
         } else {
             showToast(result.message, 'error');
@@ -364,6 +540,9 @@ if (beratForm) {
         e.preventDefault();
         
         const formData = new FormData(this);
+        const samplingDateKey = getTodayDateKey();
+        const allowSubmit = await confirmDuplicateSubmission('berat', samplingDateKey);
+        if (!allowSubmit) return;
         const result = await submitAjax(`${baseUrl}/admin/pembesaran/${pembesaranId}/berat`, {
             umur_hari: parseInt(formData.get('umur_hari')),
             berat_rata_rata: parseFloat(formData.get('berat_rata_rata'))
@@ -372,6 +551,7 @@ if (beratForm) {
         if (result.success) {
             showToast(result.message || 'Data berat berhasil disimpan');
             this.reset();
+            registerLocalSubmission('berat', result.sampling, samplingDateKey);
             
             // Show status berat
             if (result.status && result.status.message) {
@@ -436,20 +616,21 @@ if (btnGenerateCatatan) {
                 }
             }
             // Fetch data pakan, kematian, kesehatan, monitoring, dan berat untuk tanggal tersebut
+            const queryTanggal = `?tanggal=${encodeURIComponent(keyTanggal)}`;
             const [pakanResponse, kematianResponse, kesehatanResponse, monitoringResponse, beratResponse] = await Promise.all([
-                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/pakan/list`, {
+                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/pakan/list${queryTanggal}`, {
                     credentials: 'same-origin'
                 }),
-                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/kematian/list`, {
+                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/kematian/list${queryTanggal}`, {
                     credentials: 'same-origin'
                 }),
-                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/kesehatan/list`, {
+                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/kesehatan/list${queryTanggal}`, {
                     credentials: 'same-origin'
                 }),
-                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/monitoring/list`, {
+                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/monitoring/list${queryTanggal}`, {
                     credentials: 'same-origin'
                 }),
-                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/berat/list`, {
+                fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/berat/list${queryTanggal}`, {
                     credentials: 'same-origin'
                 })
             ]);
@@ -460,172 +641,70 @@ if (btnGenerateCatatan) {
             const monitoringResult = await monitoringResponse.json();
             const beratResult = await beratResponse.json();
             
-            // Filter data by tanggal
-                const pakanHariIni = (pakanResult.data || []).filter(p => toDateKey(p.tanggal) === keyTanggal);
-                const kematianHariIni = (kematianResult.data || []).filter(k => toDateKey(k.tanggal) === keyTanggal);
-                const kesehatanHariIni = (kesehatanResult.data || []).filter(k => toDateKey(k.tanggal) === keyTanggal);
-                const monitoringHariIni = (monitoringResult.data || []).filter(m => toDateKey(m.waktu_pencatatan || m.tanggal) === keyTanggal);
-                const beratHariIni = (beratResult.data || []).filter(b => toDateKey(b.tanggal_sampling) === keyTanggal);
+            const safeData = (result) => (result && result.success && Array.isArray(result.data)) ? result.data : [];
+
+            // Data already filtered by backend, but fallback to client-side filter for safety
+            const pakanHariIni = safeData(pakanResult).filter(p => toDateKey(p.tanggal) === keyTanggal);
+            const kematianHariIni = safeData(kematianResult).filter(k => toDateKey(k.tanggal) === keyTanggal);
+            const kesehatanHariIni = safeData(kesehatanResult).filter(k => toDateKey(k.tanggal) === keyTanggal);
+            const monitoringHariIni = safeData(monitoringResult).filter(m => toDateKey(m.waktu_pencatatan || m.tanggal) === keyTanggal);
+            const beratHariIni = safeData(beratResult).filter(b => toDateKey(b.tanggal_sampling || b.tanggal) === keyTanggal);
             
-            // Generate catatan otomatis
-            let catatan = `LAPORAN HARIAN - ${new Date(tanggalLaporan).toLocaleDateString('id-ID', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            })}\n\n`;
-            
-            // Section Pakan
-            catatan += '🌾 PEMBERIAN PAKAN:\n';
-            if (pakanHariIni.length > 0) {
-                const totalPakan = pakanHariIni.reduce((sum, p) => sum + parseFloat(p.jumlah_kg), 0);
-                const totalKarung = pakanHariIni.reduce((sum, p) => sum + parseInt(p.jumlah_karung || 0), 0);
-                
-                catatan += `- Total pakan diberikan: ${totalPakan.toFixed(2)} kg`;
-                if (totalKarung > 0) catatan += ` (${totalKarung} karung)`;
-                catatan += '\n';
-                
-                // Detail per jenis pakan
-                pakanHariIni.forEach(p => {
-                    catatan += `  • ${p.nama_pakan || 'Pakan'}: ${parseFloat(p.jumlah_kg).toFixed(2)} kg\n`;
-                });
-            } else {
-                catatan += '- Belum ada data pemberian pakan hari ini\n';
-            }
-            
-            catatan += '\n';
-            
-            // Section Kesehatan
-            catatan += '🏥 KESEHATAN & VAKSINASI:\n';
-            if (kesehatanHariIni.length > 0) {
-                kesehatanHariIni.forEach(k => {
-                    const tipeKegiatan = {
-                        'vaksinasi': 'Vaksinasi',
-                        'pengobatan': 'Pengobatan', 
-                        'pemeriksaan_rutin': 'Pemeriksaan Rutin',
-                        'karantina': 'Karantina'
-                    }[k.tipe_kegiatan] || k.tipe_kegiatan;
-                    
-                    catatan += `- ${tipeKegiatan}: ${k.nama_vaksin_obat || 'Tidak spesifik'}\n`;
-                    if (k.jumlah_burung) catatan += `  • Jumlah burung: ${k.jumlah_burung}\n`;
-                    if (k.petugas) catatan += `  • Petugas: ${k.petugas}\n`;
-                    if (k.biaya) catatan += `  • Biaya: Rp ${parseInt(k.biaya).toLocaleString('id-ID')}\n`;
-                    if (k.catatan || k.gejala) catatan += `  • Catatan: ${k.catatan || k.gejala}\n`;
-                    catatan += '\n';
-                });
-            } else {
-                catatan += '- Tidak ada kegiatan kesehatan hari ini ✅\n';
-            }
-            
-            catatan += '\n';
-            
-            // Section Monitoring Lingkungan
-            catatan += '🌡️ MONITORING LINGKUNGAN:\n';
-            if (monitoringHariIni.length > 0) {
-                const avgSuhu = monitoringHariIni.reduce((sum, m) => sum + parseFloat(m.suhu), 0) / monitoringHariIni.length;
-                const avgKelembaban = monitoringHariIni.reduce((sum, m) => sum + parseFloat(m.kelembaban), 0) / monitoringHariIni.length;
-                
-                catatan += `- Rata-rata suhu: ${avgSuhu.toFixed(1)}°C\n`;
-                catatan += `- Rata-rata kelembaban: ${avgKelembaban.toFixed(1)}%\n`;
-                
-                // Kondisi ventilasi yang tercatat
-                const ventilasiConditions = monitoringHariIni.map(m => m.kondisi_ventilasi).filter(v => v);
-                if (ventilasiConditions.length > 0) {
-                    catatan += `- Kondisi ventilasi: ${ventilasiConditions[ventilasiConditions.length - 1]}\n`;
-                }
-                
-                // Catatan monitoring
-                const monitoringNotes = monitoringHariIni.map(m => m.catatan).filter(n => n);
-                if (monitoringNotes.length > 0) {
-                    catatan += `- Catatan: ${monitoringNotes.join('; ')}\n`;
-                }
-            } else {
-                catatan += '- Belum ada data monitoring lingkungan hari ini\n';
-            }
-            
-            catatan += '\n';
-            
-            // Section Berat Sampling
-            catatan += '⚖️ SAMPLING BERAT:\n';
-            if (beratHariIni.length > 0) {
-                beratHariIni.forEach(b => {
-                    catatan += `- Umur: ${b.umur_hari} hari\n`;
-                    catatan += `  • Berat rata-rata: ${parseFloat(b.berat_rata_rata).toFixed(1)} gram (${(parseFloat(b.berat_rata_rata)/1000).toFixed(3)} kg)\n`;
-                    if (b.catatan) catatan += `  • Catatan: ${b.catatan}\n`;
-                    catatan += '\n';
-                });
-            } else {
-                catatan += '- Belum ada data sampling berat hari ini\n';
-            }
-            
-            catatan += '\n';
-            catatan += '💀 MORTALITAS:\n';
-            if (kematianHariIni.length > 0) {
-                const totalMati = kematianHariIni.reduce((sum, k) => sum + parseInt(k.jumlah), 0);
-                catatan += `- Total kematian: ${totalMati} ekor\n`;
-                
-                // Group by penyebab
-                const groupedByPenyebab = kematianHariIni.reduce((acc, k) => {
-                    const penyebab = k.penyebab || 'Tidak diketahui';
-                    acc[penyebab] = (acc[penyebab] || 0) + parseInt(k.jumlah);
-                    return acc;
-                }, {});
-                
-                catatan += '- Penyebab:\n';
-                Object.entries(groupedByPenyebab).forEach(([penyebab, jumlah]) => {
-                    catatan += `  • ${penyebab}: ${jumlah} ekor\n`;
-                });
-                
-                // Tingkat mortalitas (jika ada data populasi)
-                if (kematianResult.mortalitas) {
-                    catatan += `- Tingkat mortalitas: ${parseFloat(kematianResult.mortalitas).toFixed(2)}%\n`;
-                }
-            } else {
-                catatan += '- Tidak ada kematian hari ini ✅\n';
-            }
-            
-            catatan += '\n';
-            
-            // Section Kesimpulan
-            catatan += '📋 KESIMPULAN:\n';
-            const hasAnyActivity = pakanHariIni.length > 0 || kematianHariIni.length > 0 || kesehatanHariIni.length > 0 || monitoringHariIni.length > 0 || beratHariIni.length > 0;
-            
-            if (!hasAnyActivity) {
-                catatan += '- Belum ada aktivitas tercatat untuk hari ini\n';
-            } else {
-                if (kematianHariIni.length === 0) {
-                    catatan += '- Kondisi populasi stabil, tidak ada mortalitas\n';
-                } else {
-                    const totalMati = kematianHariIni.reduce((sum, k) => sum + parseInt(k.jumlah), 0);
-                    if (totalMati > 10) {
-                        catatan += '- PERHATIAN: Tingkat mortalitas tinggi, perlu investigasi lebih lanjut\n';
-                    } else {
-                        catatan += '- Mortalitas dalam batas normal\n';
-                    }
-                }
-                
-                if (pakanHariIni.length > 0) {
-                    catatan += '- Pemberian pakan berjalan sesuai jadwal\n';
-                }
-                
-                if (kesehatanHariIni.length > 0) {
-                    catatan += '- Ada kegiatan kesehatan/vaksinasi hari ini\n';
-                }
-                
-                if (monitoringHariIni.length > 0) {
-                    catatan += '- Monitoring lingkungan telah dilakukan\n';
-                }
-                
-                if (beratHariIni.length > 0) {
-                    catatan += '- Sampling berat telah dilakukan\n';
-                }
-            }
-            
-            catatan += '\n---\n';
-            catatan += 'Catatan tambahan: (Silakan edit jika perlu)';
-            
-            // Set ke textarea
-            document.getElementById('catatan_laporan').value = catatan;
+            const dateLabel = new Date(tanggalLaporan).toLocaleDateString('id-ID', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            const totalPakan = pakanHariIni.reduce((sum, p) => sum + (parseFloat(p.jumlah_kg) || 0), 0);
+            const totalSisaPakan = pakanHariIni.reduce((sum, p) => sum + (parseFloat(p.sisa_pakan_kg) || 0), 0);
+            const totalMati = kematianHariIni.reduce((sum, k) => sum + (parseInt(k.jumlah, 10) || 0), 0);
+            const mortalitasPersen = kematianResult.mortalitas ? parseFloat(kematianResult.mortalitas) : null;
+            const penyebabDominan = kematianHariIni.reduce((acc, k) => {
+                const key = k.penyebab || 'Tidak diketahui';
+                acc[key] = (acc[key] || 0) + (parseInt(k.jumlah, 10) || 0);
+                return acc;
+            }, {});
+            const topPenyebab = Object.entries(penyebabDominan)
+                .sort((a, b) => b[1] - a[1])
+                .map(entry => entry[0])[0];
+
+            const avgSuhu = monitoringHariIni.length
+                ? monitoringHariIni.reduce((sum, m) => sum + (parseFloat(m.suhu) || 0), 0) / monitoringHariIni.length
+                : null;
+            const avgKelembaban = monitoringHariIni.length
+                ? monitoringHariIni.reduce((sum, m) => sum + (parseFloat(m.kelembaban) || 0), 0) / monitoringHariIni.length
+                : null;
+
+            const avgBerat = beratHariIni.length
+                ? beratHariIni.reduce((sum, b) => sum + (parseFloat(b.berat_rata_rata) || 0), 0) / beratHariIni.length
+                : null;
+
+            const formatNumber = (value, digits = 2) =>
+                Number.isFinite(value) ? value.toFixed(digits) : '0.00';
+
+            const lines = [
+                `LAPORAN HARIAN (${dateLabel})`,
+                '',
+                `Pakan: ${formatNumber(totalPakan)} kg (${pakanHariIni.length} pencatatan)` +
+                    (totalSisaPakan > 0 ? ` | Sisa: ${formatNumber(totalSisaPakan)} kg` : ''),
+                `Kematian: ${totalMati} ekor` +
+                    (topPenyebab ? ` (dominan: ${topPenyebab})` : '') +
+                    (Number.isFinite(mortalitasPersen) ? ` | Mortalitas: ${mortalitasPersen.toFixed(2)}%` : ''),
+                `Kesehatan/Vaksinasi: ${kesehatanHariIni.length ? `${kesehatanHariIni.length} kegiatan` : 'Tidak ada kegiatan'}`,
+                `Monitoring: ${monitoringHariIni.length
+                    ? `Suhu ${formatNumber(avgSuhu, 1)}°C, kelembaban ${formatNumber(avgKelembaban, 1)}%`
+                    : 'Belum dicatat'}`,
+                `Sampling berat: ${beratHariIni.length
+                    ? `${beratHariIni.length} catatan, rata-rata ${formatNumber(avgBerat, 1)} gram`
+                    : 'Belum dilakukan'}`,
+                '',
+                'Catatan tambahan:',
+                '- '
+            ];
+
+            document.getElementById('catatan_laporan').value = lines.join('\n');
             showToast('Catatan berhasil di-generate! Silakan sesuaikan jika perlu.', 'success');
             
         } catch (error) {
@@ -763,6 +842,10 @@ async function loadPakanData() {
             renderPakanHistory([]);
         }
 
+        if (result.success && Array.isArray(result.data)) {
+            rememberRecords('pakan', result.data);
+        }
+
         if (result.summary) {
             updatePakanSummaries(result.summary);
         }
@@ -789,6 +872,10 @@ async function loadKematianData() {
         } else {
             console.warn('📊 Kematian data not successful or empty');
             renderKematianHistory([]);
+        }
+
+        if (result.success && Array.isArray(result.data)) {
+            rememberRecords('kematian', result.data);
         }
     } catch (error) {
         console.error('❌ Error loading kematian data:', error);
@@ -840,6 +927,10 @@ async function loadMonitoringData() {
             console.warn('📊 Monitoring data not successful or empty');
             renderMonitoringHistory([]);
         }
+
+        if (result.success && Array.isArray(result.data)) {
+            rememberRecords('monitoring', result.data);
+        }
     } catch (error) {
         console.error('❌ Error loading monitoring data:', error);
         renderMonitoringHistory([]);
@@ -856,6 +947,7 @@ async function loadBeratData() {
         const result = await response.json();
         
         if (result.success && result.data && result.data.length > 0) {
+            rememberRecords('berat', result.data);
             renderBeratChart(result.data);
             renderBeratHistory(result.data);
         } else {
@@ -879,6 +971,7 @@ async function loadKesehatanData() {
         const result = await response.json();
         
         if (result.success) {
+            rememberRecords('kesehatan', result.data || []);
             renderKesehatanHistory(result.data || []);
             if (Object.prototype.hasOwnProperty.call(result, 'total_biaya')) {
                 updateKesehatanSummary(result.total_biaya);
@@ -1106,17 +1199,22 @@ function renderPakanHistory(data) {
             <tbody>
                 ${data.slice(0, 10).map(d => {
                     const feedLabel = d.feed_item?.name || d.stok_pakan?.nama_pakan || '-';
-                    const rawKarung = d.jumlah_karung ?? d.jumlah_karung_sisa;
-                    const karungValue = rawKarung === null || rawKarung === undefined || rawKarung === ''
-                        ? '-'
-                        : `${parseInt(rawKarung, 10) || 0} karung`;
+                    const hasSisaKg = d.sisa_pakan_kg !== null && d.sisa_pakan_kg !== undefined;
+                    const sisaKg = hasSisaKg ? parseFloat(d.sisa_pakan_kg) : null;
+                    const legacyKarung = d.jumlah_karung ?? d.jumlah_karung_sisa;
+                    let sisaDisplay = '-';
+                    if (hasSisaKg && !Number.isNaN(sisaKg) && sisaKg > 0) {
+                        sisaDisplay = `${sisaKg.toFixed(2)} kg`;
+                    } else if (legacyKarung !== null && legacyKarung !== undefined && legacyKarung !== '') {
+                        sisaDisplay = `${parseInt(legacyKarung, 10) || 0} karung`;
+                    }
                     const totalBiaya = parseFloat(d.total_biaya);
                     return `
                         <tr>
                             <td class="text-start">${new Date(d.tanggal).toLocaleDateString('id-ID', {day:'2-digit', month:'short'})}</td>
                             <td class="text-start"><small>${feedLabel}</small></td>
                             <td class="text-end">${parseFloat(d.jumlah_kg).toFixed(2)} kg</td>
-                            <td class="text-end">${karungValue}</td>
+                            <td class="text-end">${sisaDisplay}</td>
                             <td class="text-end"><small>Rp ${(Number.isNaN(totalBiaya) ? 0 : totalBiaya).toLocaleString('id-ID')}</small></td>
                             <td class="text-start"><small>${getRecorderName(d)}</small></td>
                         </tr>

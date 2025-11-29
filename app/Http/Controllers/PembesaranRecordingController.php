@@ -49,6 +49,7 @@ class PembesaranRecordingController extends Controller
             'tanggal' => 'required|date',
             'jumlah_kg' => 'required|numeric|min:0',
             'jumlah_karung' => 'nullable|integer|min:0',
+            'sisa_pakan_kg' => 'nullable|numeric|min:0',
         ];
 
         if ($hasFeedMaster) {
@@ -59,6 +60,9 @@ class PembesaranRecordingController extends Controller
         }
 
         $validated = $request->validate($rules);
+        $sisaPakanKg = $request->input('sisa_pakan_kg');
+        $sisaPakanKg = ($sisaPakanKg === null || $sisaPakanKg === '') ? null : (float) $sisaPakanKg;
+        $jumlahKarung = $validated['jumlah_karung'] ?? 0;
 
         $stokPakan = null;
         $feedItem = null;
@@ -98,7 +102,8 @@ class PembesaranRecordingController extends Controller
             'feed_item_id' => $feedItem?->id,
             'tanggal' => $validated['tanggal'],
             'jumlah_kg' => $validated['jumlah_kg'],
-            'jumlah_karung' => $validated['jumlah_karung'] ?? 0,
+            'sisa_pakan_kg' => $sisaPakanKg,
+            'jumlah_karung' => $jumlahKarung,
             'harga_per_kg' => $hargaPerKg,
             'total_biaya' => $hargaPerKg !== null ? $validated['jumlah_kg'] * $hargaPerKg : null,
             'pengguna_id' => Auth::id(),
@@ -106,8 +111,8 @@ class PembesaranRecordingController extends Controller
 
         if ($stokPakan) {
             $stokPakan->stok_kg -= $validated['jumlah_kg'];
-            if ($validated['jumlah_karung']) {
-                $stokPakan->stok_karung -= $validated['jumlah_karung'];
+            if ($jumlahKarung) {
+                $stokPakan->stok_karung -= $jumlahKarung;
             }
             $stokPakan->save();
         }
@@ -115,14 +120,15 @@ class PembesaranRecordingController extends Controller
         $pakan->load(['stokPakan', 'feedItem', 'pengguna']);
 
         // Jika ada jumlah karung, simpan sebagai sisa pakan ke histori
-        if ($validated['jumlah_karung'] > 0) {
+        if ($sisaPakanKg !== null && $sisaPakanKg > 0) {
             FeedHistory::create([
                 'batch_produksi_id' => $pembesaran->batch_produksi_id,
                 'stok_pakan_id' => $stokPakan?->id,
                 'feed_item_id' => $feedItem?->id,
                 'tanggal' => $validated['tanggal'],
-                'jumlah_karung_sisa' => $validated['jumlah_karung'],
-                'keterangan' => 'Sisa pakan dari pencatatan konsumsi harian',
+                'jumlah_karung_sisa' => $jumlahKarung ?: 0,
+                'sisa_pakan_kg' => $sisaPakanKg,
+                'keterangan' => 'Sisa pakan (kg) dari pencatatan konsumsi harian',
                 'pengguna_id' => Auth::id(),
             ]);
         }
@@ -152,6 +158,7 @@ class PembesaranRecordingController extends Controller
             'tanggal' => 'required|date',
             'jumlah_kg' => 'required|numeric|min:0',
             'jumlah_karung' => 'nullable|integer|min:0',
+            'sisa_pakan_kg' => 'nullable|numeric|min:0',
         ];
 
         if ($hasFeedMaster) {
@@ -162,6 +169,9 @@ class PembesaranRecordingController extends Controller
         }
 
         $validated = $request->validate($rules);
+        $sisaPakanKg = $request->input('sisa_pakan_kg');
+        $sisaPakanKg = ($sisaPakanKg === null || $sisaPakanKg === '') ? null : (float) $sisaPakanKg;
+        $jumlahKarungBaru = $validated['jumlah_karung'] ?? 0;
 
         if ($pakan->stok_pakan_id) {
             $oldStok = StokPakan::find($pakan->stok_pakan_id);
@@ -208,15 +218,16 @@ class PembesaranRecordingController extends Controller
             'feed_item_id' => $feedItem?->id,
             'tanggal' => $validated['tanggal'],
             'jumlah_kg' => $validated['jumlah_kg'],
-            'jumlah_karung' => $validated['jumlah_karung'] ?? 0,
+            'sisa_pakan_kg' => $sisaPakanKg,
+            'jumlah_karung' => $jumlahKarungBaru,
             'harga_per_kg' => $hargaPerKg,
             'total_biaya' => $hargaPerKg !== null ? $validated['jumlah_kg'] * $hargaPerKg : null,
         ]);
 
         if ($stokPakan) {
             $stokPakan->stok_kg -= $validated['jumlah_kg'];
-            if ($validated['jumlah_karung']) {
-                $stokPakan->stok_karung -= $validated['jumlah_karung'];
+            if ($jumlahKarungBaru) {
+                $stokPakan->stok_karung -= $jumlahKarungBaru;
             }
             $stokPakan->save();
         }
@@ -271,12 +282,15 @@ class PembesaranRecordingController extends Controller
 
         $totalSisaKarung = FeedHistory::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->sum('jumlah_karung_sisa');
+        $totalSisaKg = FeedHistory::where('batch_produksi_id', $pembesaran->batch_produksi_id)
+            ->sum('sisa_pakan_kg');
 
         return response()->json([
             'success' => true,
             'data' => $feedHistoryList,
             'summary' => [
                 'total_sisa_karung' => $totalSisaKarung,
+                'total_sisa_pakan_kg' => $totalSisaKg,
             ],
         ]);
     }
@@ -284,18 +298,27 @@ class PembesaranRecordingController extends Controller
     /**
      * Get list konsumsi pakan harian untuk pembesaran
      */
-    public function getPakanList(Pembesaran $pembesaran)
+    public function getPakanList(Request $request, Pembesaran $pembesaran)
     {
         /**
          * Mengambil daftar konsumsi pakan, sekaligus ringkasan total dan rata-rata harian.
          */
+        $tanggal = $request->query('tanggal');
         $baseQuery = Pakan::where('batch_produksi_id', $pembesaran->batch_produksi_id);
 
-        $pakanList = (clone $baseQuery)
+        if ($tanggal) {
+            $baseQuery->whereDate('tanggal', $tanggal);
+        }
+
+        $pakanQuery = (clone $baseQuery)
             ->with(['stokPakan', 'feedItem', 'pengguna'])
-            ->orderByDesc('tanggal')
-            ->limit(60)
-            ->get();
+            ->orderByDesc('tanggal');
+
+        if (!$tanggal) {
+            $pakanQuery->limit(60);
+        }
+
+        $pakanList = $pakanQuery->get();
 
         $totalKonsumsiKg = (clone $baseQuery)->sum('jumlah_kg');
         $totalBiaya = (clone $baseQuery)->sum('total_biaya');
@@ -413,17 +436,24 @@ class PembesaranRecordingController extends Controller
     /**
      * Get list kematian
      */
-    public function getKematianList(Pembesaran $pembesaran)
+    public function getKematianList(Request $request, Pembesaran $pembesaran)
     {
         /**
          * Mengambil daftar kematian untuk batch tertentu beserta statistik penyebab.
          */
-        
-        $kematianList = Kematian::where('batch_produksi_id', $pembesaran->batch_produksi_id)
+        $tanggal = $request->query('tanggal');
+
+        $kematianQuery = Kematian::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->with('pengguna')
-            ->orderByDesc('tanggal')
-            ->limit(30)
-            ->get();
+            ->orderByDesc('tanggal');
+
+        if ($tanggal) {
+            $kematianQuery->whereDate('tanggal', $tanggal);
+        } else {
+            $kematianQuery->limit(30);
+        }
+
+        $kematianList = $kematianQuery->get();
 
         $totalMati = Kematian::totalKematianByBatch($pembesaran->batch_produksi_id);
         $mortalitas = Kematian::hitungMortalitasKumulatif(
@@ -665,17 +695,24 @@ class PembesaranRecordingController extends Controller
     /**
      * Get monitoring list
      */
-    public function getMonitoringList(Pembesaran $pembesaran)
+    public function getMonitoringList(Request $request, Pembesaran $pembesaran)
     {
         /**
          * Mengambil daftar data monitoring lingkungan dan ringkasan mingguan.
          */
-        
-        $monitoringList = MonitoringLingkungan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
+        $tanggal = $request->query('tanggal');
+
+        $monitoringQuery = MonitoringLingkungan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->with('pengguna')
-            ->orderByDesc('waktu_pencatatan')
-            ->limit(50)
-            ->get();
+            ->orderByDesc('waktu_pencatatan');
+
+        if ($tanggal) {
+            $monitoringQuery->whereDate('waktu_pencatatan', $tanggal);
+        } else {
+            $monitoringQuery->limit(50);
+        }
+
+        $monitoringList = $monitoringQuery->get();
 
         // Dapatkan ringkasan mingguan
         $summaryMingguan = MonitoringLingkungan::getSummaryMingguan(
@@ -738,16 +775,22 @@ class PembesaranRecordingController extends Controller
     /**
      * Get kesehatan list
      */
-    public function getKesehatanList(Pembesaran $pembesaran)
+    public function getKesehatanList(Request $request, Pembesaran $pembesaran)
     {
         /**
          * Mengambil daftar kegiatan kesehatan untuk batch beserta reminder vaksinasi.
          */
-        
-        $kesehatanList = Kesehatan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
+        $tanggal = $request->query('tanggal');
+
+        $kesehatanQuery = Kesehatan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->with('pengguna')
-            ->orderByDesc('tanggal')
-            ->get();
+            ->orderByDesc('tanggal');
+
+        if ($tanggal) {
+            $kesehatanQuery->whereDate('tanggal', $tanggal);
+        }
+
+        $kesehatanList = $kesehatanQuery->get();
 
         // Hitung umur batch
         $umurHari = Carbon::parse($pembesaran->tanggal_masuk)->diffInDays(Carbon::now());
@@ -898,15 +941,22 @@ class PembesaranRecordingController extends Controller
     /**
      * Get list berat sampling
      */
-    public function getBeratList(Pembesaran $pembesaran)
+    public function getBeratList(Request $request, Pembesaran $pembesaran)
     {
         /**
          * Mengambil daftar sampling berat untuk batch tertentu.
          */
-        $beratList = \App\Models\BeratSampling::where('batch_produksi_id', $pembesaran->batch_produksi_id)
+        $tanggal = $request->query('tanggal');
+
+        $beratQuery = \App\Models\BeratSampling::where('batch_produksi_id', $pembesaran->batch_produksi_id)
             ->with('pengguna')
-            ->orderBy('tanggal_sampling', 'asc')
-            ->get();
+            ->orderBy('tanggal_sampling', 'asc');
+
+        if ($tanggal) {
+            $beratQuery->whereDate('tanggal_sampling', $tanggal);
+        }
+
+        $beratList = $beratQuery->get();
 
         return response()->json([
             'success' => true,

@@ -21,6 +21,7 @@ class Pakan extends Model
         'batch_produksi_id',
         'tanggal',
         'jumlah_kg',
+        'sisa_pakan_kg',
         'jumlah_karung',
         'harga_per_kg',
         'total_biaya',
@@ -30,6 +31,7 @@ class Pakan extends Model
     protected $casts = [
         'tanggal' => 'date',
         'jumlah_kg' => 'decimal:2',
+        'sisa_pakan_kg' => 'decimal:2',
         'jumlah_karung' => 'integer',
         'harga_per_kg' => 'decimal:2',
         'total_biaya' => 'decimal:2',
