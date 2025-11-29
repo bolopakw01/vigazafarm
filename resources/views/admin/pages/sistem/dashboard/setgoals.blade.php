@@ -546,7 +546,7 @@
                             <select id="goal_category" name="key" class="form-control" required>
                                 <option value="">Pilih kategori</option>
                                 <option value="produksi">⚙️ Produksi - Total batch/record produksi aktif</option>
-                                <option value="penetasan">🐣 Penetasan - Total telur menetas/DOC</option>
+                                <option value="penetasan">🐣 Penetasan - Total telur menetas/DOQ</option>
                                 <option value="pembesaran">🌱 Pembesaran - Total batch pembesaran</option>
                                 <option value="user">👥 User - Total pengguna terdaftar</option>
                             </select>
@@ -792,7 +792,7 @@ function updateCategoryDropdowns() {
     const usedCategories = goals.map(goal => goal.key);
     const allCategories = [
         { value: 'produksi', label: '⚙️ Produksi - Total batch/record produksi aktif', shortLabel: 'Produksi' },
-        { value: 'penetasan', label: '🐣 Penetasan - Total telur menetas/DOC', shortLabel: 'Penetasan' },
+        { value: 'penetasan', label: '🐣 Penetasan - Total telur menetas/DOQ', shortLabel: 'Penetasan' },
         { value: 'pembesaran', label: '🌱 Pembesaran - Total batch pembesaran', shortLabel: 'Pembesaran' },
         { value: 'user', label: '👥 User - Total pengguna terdaftar', shortLabel: 'User' }
     ];
@@ -847,7 +847,7 @@ function renderGoals() {
     container.innerHTML = goals.map((goal, index) => {
         const categoryDescriptions = {
             'produksi': '⚙️ Total batch produksi aktif',
-            'penetasan': '🐣 Total telur menetas/DOC',
+            'penetasan': '🐣 Total telur menetas/DOQ',
             'pembesaran': '🌱 Total batch pembesaran',
             'user': '👥 Total pengguna terdaftar'
         };

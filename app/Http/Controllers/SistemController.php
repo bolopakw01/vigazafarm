@@ -295,7 +295,7 @@ class SistemController extends Controller
                 'title' => 'Penetasan',
                 'current' => 310,
                 'target' => 400,
-                'unit' => 'doc',
+                'unit' => 'doq',
                 'color' => '#7c3aed',
                 'icon' => 'fas fa-baby',
             ],

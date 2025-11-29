@@ -49,7 +49,7 @@ class Pembesaran extends Model
     }
 
     /**
-     * Relasi ke penetasan (sumber DOC)
+     * Relasi ke penetasan (sumber DOQ)
      */
     public function penetasan()
     {

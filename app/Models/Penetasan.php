@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class Penetasan extends Model
@@ -17,6 +18,7 @@ class Penetasan extends Model
         'kandang_id',
         'tanggal_simpan_telur',
         'estimasi_tanggal_menetas',
+        'tanggal_masuk_hatcher',
         'jumlah_telur',
         'tanggal_menetas',
         'jumlah_menetas',
@@ -27,6 +29,7 @@ class Penetasan extends Model
         'persentase_tetas',
         'catatan',
         'status',
+        'fase_penetasan',
         'doc_ditransfer',
         'telur_infertil_ditransfer',
         'created_by',
@@ -36,10 +39,13 @@ class Penetasan extends Model
     protected $casts = [
         'tanggal_simpan_telur' => 'date',
         'estimasi_tanggal_menetas' => 'date',
+        'tanggal_masuk_hatcher' => 'date',
         'tanggal_menetas' => 'date',
         'dibuat_pada' => 'datetime',
         'diperbarui_pada' => 'datetime',
     ];
+
+    private const SETTER_DURATION_DAYS = 14;
 
     /**
      * Relasi ke tabel kandang
@@ -82,7 +88,7 @@ class Penetasan extends Model
     }
 
     /**
-     * Hitung DOC yang tersedia untuk ditransfer ke pembesaran
+     * Hitung DOQ yang tersedia untuk ditransfer ke pembesaran
      */
     public function getDocTersediaAttribute()
     {
@@ -95,5 +101,53 @@ class Penetasan extends Model
     public function getTelurInfertilTersediaAttribute()
     {
         return ($this->telur_tidak_fertil ?? 0) - ($this->telur_infertil_ditransfer ?? 0);
+    }
+
+    /**
+     * Target tanggal otomatis untuk memindahkan telur dari setter ke hatcher.
+     */
+    public function getTargetHatcherDateAttribute(): ?Carbon
+    {
+        if (empty($this->tanggal_simpan_telur)) {
+            return null;
+        }
+
+        $start = $this->tanggal_simpan_telur instanceof Carbon
+            ? $this->tanggal_simpan_telur->copy()
+            : Carbon::parse($this->tanggal_simpan_telur);
+
+        return $start->addDays(self::SETTER_DURATION_DAYS);
+    }
+
+    /**
+     * Sinkronkan penetasan yang sudah melewati fase setter menjadi hatcher.
+     */
+    public static function syncHatcherTransitions(): int
+    {
+        $threshold = now()->subDays(self::SETTER_DURATION_DAYS)->startOfDay();
+        $candidates = static::query()
+            ->where('fase_penetasan', 'setter')
+            ->whereNotNull('tanggal_simpan_telur')
+            ->whereDate('tanggal_simpan_telur', '<=', $threshold)
+            ->get();
+
+        $updated = 0;
+
+        foreach ($candidates as $penetasan) {
+            $penetasan->fase_penetasan = 'hatcher';
+
+            if (empty($penetasan->tanggal_masuk_hatcher)) {
+                $start = $penetasan->tanggal_simpan_telur instanceof Carbon
+                    ? $penetasan->tanggal_simpan_telur->copy()
+                    : Carbon::parse($penetasan->tanggal_simpan_telur);
+
+                $penetasan->tanggal_masuk_hatcher = $start->addDays(self::SETTER_DURATION_DAYS);
+            }
+
+            $penetasan->save();
+            $updated++;
+        }
+
+        return $updated;
     }
 }

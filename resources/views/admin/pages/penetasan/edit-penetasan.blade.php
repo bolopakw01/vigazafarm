@@ -88,6 +88,30 @@
                         <i class="fa-solid fa-barcode"></i>
                         <strong>Kode Batch:</strong> {{ $penetasan->batch ?? 'Belum ada batch' }}
                     </div>
+                    @php
+                        $stageValue = strtolower($penetasan->fase_penetasan ?? 'setter');
+                        $stageLabel = $stageValue === 'hatcher' ? 'Hatcher' : 'Setter';
+                        $targetHatcher = $penetasan->target_hatcher_date;
+                        $targetHatcherLabel = $targetHatcher ? $targetHatcher->format('d/m/Y') : '-';
+                        $masukHatcherLabel = optional($penetasan->tanggal_masuk_hatcher)->format('d/m/Y');
+                    @endphp
+                    <div class="stage-flow-card stage-status-card">
+                        <div class="stage-flow-icon">
+                            <i class="fa-solid {{ $stageValue === 'hatcher' ? 'fa-shuffle' : 'fa-clock' }}"></i>
+                        </div>
+                        <div class="stage-flow-body">
+                            <h4>Status Fase Penetasan</h4>
+                            <p class="mb-1"><strong>Fase Saat Ini:</strong> {{ $stageLabel }}</p>
+                            <p class="mb-1">
+                                <strong>Jadwal Masuk Hatcher:</strong>
+                                {{ $targetHatcherLabel }}
+                            </p>
+                            <p class="mb-0">
+                                <strong>Riwayat Masuk Hatcher:</strong>
+                                {{ $masukHatcherLabel ?? 'Belum tercatat (otomatis saat melewati hari ke-14)' }}
+                            </p>
+                        </div>
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="tanggal_simpan_telur" class="form-label">
@@ -269,6 +293,33 @@
                         </div>
                     </div>
 
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fase_penetasan" class="form-label">
+                                <i class="fa-solid fa-cubes"></i> Fase Penetasan
+                            </label>
+                            <select name="fase_penetasan" id="fase_penetasan" class="form-control">
+                                <option value="">-- Gunakan fase otomatis --</option>
+                                <option value="setter" {{ old('fase_penetasan', $penetasan->fase_penetasan) === 'setter' ? 'selected' : '' }}>
+                                    Setter (Hari 1-14)
+                                </option>
+                                <option value="hatcher" {{ old('fase_penetasan', $penetasan->fase_penetasan) === 'hatcher' ? 'selected' : '' }}>
+                                    Hatcher (Hari 15-17)
+                                </option>
+                            </select>
+                            <small class="form-text">Setter menangani inkubasi awal, Hatcher digunakan menjelang menetas.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="tanggal_masuk_hatcher" class="form-label">
+                                <i class="fa-solid fa-calendar-day"></i> Tanggal Masuk Hatcher
+                            </label>
+                            <input type="date" name="tanggal_masuk_hatcher" id="tanggal_masuk_hatcher"
+                                   class="form-control"
+                                   value="{{ old('tanggal_masuk_hatcher', $penetasan->tanggal_masuk_hatcher?->format('Y-m-d')) }}">
+                            <small class="form-text">Kosongkan untuk otomatis +14 hari dari tanggal simpan telur.</small>
+                        </div>
+                    </div>
+
                     <!-- Hasil Penetasan -->
                     <h4 style="margin-top: 25px; margin-bottom: 15px; color: #dc3545; font-size: 16px;">
                         <i class="fa-solid fa-dove"></i> Hasil Penetasan
@@ -295,12 +346,12 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="jumlah_doc" class="form-label">
-                                Jumlah DOC (Day Old Chick)
+                                Jumlah DOQ (Day Old Quail)
                             </label>
                             <input type="number" name="jumlah_doc" id="jumlah_doc" 
                                    class="form-control" value="{{ old('jumlah_doc', $penetasan->jumlah_doc) }}" 
                                    min="0" placeholder="Contoh: 840">
-                            <small class="form-text">Jumlah anak ayam yang sehat dan layak pindah ke kandang pembesaran</small>
+                            <small class="form-text">Jumlah anak puyuh yang sehat dan layak pindah ke kandang pembesaran</small>
                         </div>
                         <div class="form-group">
                             <label class="form-label">
@@ -380,6 +431,47 @@
 .bolopa-form-header p {
     font-size: 14px;
     color: #64748b;
+}
+
+.stage-flow-card {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 16px;
+    background: #f8fafc;
+    border: 1px dashed #94a3b8;
+    border-radius: 12px;
+    padding: 18px 20px;
+    align-items: flex-start;
+}
+
+.stage-status-card {
+    border: 1px solid #cbd5f5;
+    background: #eef2ff;
+}
+
+.stage-flow-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #2563eb;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+}
+
+.stage-status-card .stage-flow-icon {
+    background: linear-gradient(135deg, #6366f1, #2563eb);
+}
+
+.stage-flow-body h4 {
+    margin-bottom: 8px;
+    color: #0f172a;
+}
+
+.stage-flow-body p {
+    margin-bottom: 4px;
+    color: #475569;
 }
 
 /* Alert Styles */

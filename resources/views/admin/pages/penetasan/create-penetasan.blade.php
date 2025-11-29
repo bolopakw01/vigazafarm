@@ -174,6 +174,7 @@
                             </p>
                         </div>
                     </div>
+
                 </div>
 
                 <!-- Section: Kondisi Lingkungan -->
@@ -287,6 +288,7 @@
 }
 
 /* Alert Styles */
+
 .alert {
     padding: 12px 16px;
     border-radius: 8px;

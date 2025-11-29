@@ -93,8 +93,8 @@
                                 <img class="bolopa-tabel-sort-icon bolopa-tabel-sort-down" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down" width="10" height="9">
                             </span>
                         </th>
-                        <th data-sort="tanggal_menetas" class="bolopa-tabel-text-center">
-                            Tanggal Menetas
+                        <th data-sort="fase" class="bolopa-tabel-text-center">
+                            Fase Penetasan
                             <span class="bolopa-tabel-sort-wrap">
                                 <img class="bolopa-tabel-sort-icon bolopa-tabel-sort-up" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up" width="10" height="9">
                                 <img class="bolopa-tabel-sort-icon bolopa-tabel-sort-down" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down" width="10" height="9">
@@ -119,16 +119,17 @@
                         <td class="bolopa-tabel-text-center" style="text-align: center;">{{ \Carbon\Carbon::parse($item->tanggal_simpan_telur)->format('d/m/Y') }}</td>
                         <td class="bolopa-tabel-text-right" style="text-align: right;">{{ number_format($item->jumlah_telur) }} butir</td>
                         @php
-                            $displayDate = null;
-                            if (($item->status ?? 'proses') === 'selesai' && $item->tanggal_menetas) {
-                                $displayDate = \Carbon\Carbon::parse($item->tanggal_menetas)->format('d/m/Y');
-                            } elseif ($item->estimasi_tanggal_menetas) {
-                                $displayDate = \Carbon\Carbon::parse($item->estimasi_tanggal_menetas)->format('d/m/Y');
-                            } elseif ($item->tanggal_menetas) {
-                                $displayDate = \Carbon\Carbon::parse($item->tanggal_menetas)->format('d/m/Y');
-                            }
+                            $faseValue = strtolower($item->fase_penetasan ?? 'setter');
+                            $faseLabel = $faseValue === 'hatcher' ? 'Hatcher' : 'Setter';
+                            $targetHatcher = $item->target_hatcher_date;
+                            $targetHatcherLabel = $targetHatcher ? $targetHatcher->format('d/m/Y') : null;
+                            $targetHatcherIso = $targetHatcher ? $targetHatcher->format('Y-m-d') : null;
                         @endphp
-                        <td class="bolopa-tabel-text-center" style="text-align: center;">{{ $displayDate ?? '-' }}</td>
+                        <td class="bolopa-tabel-text-center fase-table-cell">
+                            <div class="fase-cell">
+                                <span class="fase-badge fase-{{ $faseValue }}">{{ $faseLabel }}</span>
+                            </div>
+                        </td>
                         <td class="bolopa-tabel-text-center" style="text-align: center;">
                             @php
                                 $statusClass = 'bolopa-tabel-badge-warning';
@@ -168,6 +169,12 @@
                                         'formatted_tanggal_menetas' => optional($item->tanggal_menetas)->format('d/m/Y'),
                                         'formatted_tanggal_menetas_waktu' => optional($item->tanggal_menetas ? $item->diperbarui_pada : null)->format('d/m/Y H:i'),
                                         'tanggal_menetas_iso' => optional($item->tanggal_menetas)->format('Y-m-d H:i:s'),
+                                        'fase_penetasan' => $item->fase_penetasan ?? 'setter',
+                                        'formatted_tanggal_masuk_hatcher' => optional($item->tanggal_masuk_hatcher)->format('d/m/Y'),
+                                        'formatted_tanggal_masuk_hatcher_waktu' => optional($item->tanggal_masuk_hatcher)->format('d/m/Y H:i'),
+                                        'tanggal_masuk_hatcher_iso' => optional($item->tanggal_masuk_hatcher)->format('Y-m-d'),
+                                        'formatted_target_hatcher' => optional($item->target_hatcher_date)->format('d/m/Y'),
+                                        'target_hatcher_iso' => optional($item->target_hatcher_date)->format('Y-m-d'),
                                         'jumlah_telur' => $item->jumlah_telur,
                                         'jumlah_menetas' => $item->jumlah_menetas,
                                         'jumlah_doc' => $item->jumlah_doc,
@@ -197,39 +204,72 @@
                                     } else {
                                         $expectedFinish = $startDate ? (clone $startDate)->addDays(17) : null;
                                     }
-                                @endphp
 
-                                @php
                                     $statusValue = strtolower($item->status ?? 'proses');
                                     $hasActualMenetas = !empty($item->tanggal_menetas);
                                     $today = now()->startOfDay();
                                     $expectedReadyDate = $expectedFinish ? $expectedFinish->copy()->startOfDay() : null;
                                     $isReady = $hasActualMenetas || ($expectedReadyDate && $today->gte($expectedReadyDate));
-
-                                    $buttonTitle = 'Menunggu tanggal tetas';
-                                    $buttonClass = 'finish-waiting';
-                                    $buttonIcon = 'line-md--cancel-twotone.svg';
-                                    $buttonDisabled = true;
+                                    $stageAction = [
+                                        'type' => 'idle',
+                                        'class' => 'stage-action-btn stage-disabled',
+                                        'icon' => 'line-md--cancel-twotone.svg',
+                                        'title' => $targetHatcherLabel ? 'Menunggu jadwal Hatcher' : 'Jadwal Hatcher belum tersedia',
+                                        'disabled' => true,
+                                    ];
 
                                     if ($statusValue === 'selesai') {
-                                        $buttonTitle = 'Batch sudah selesai';
-                                        $buttonClass = 'bolopa-tabel-btn-success finish-completed';
-                                        $buttonIcon = 'line-md--emoji-grin-filled.svg';
-                                        $buttonDisabled = false;
-                                    } elseif ($isReady) {
-                                        $buttonTitle = 'Selesaikan penetasan';
-                                        $buttonClass = 'bolopa-tabel-btn-success finish-ready';
-                                        $buttonIcon = 'line-md--check-all.svg';
-                                        $buttonDisabled = false;
+                                        $stageAction = [
+                                            'type' => 'finish',
+                                            'class' => 'stage-action-btn stage-done bolopa-tabel-btn-success',
+                                            'icon' => 'line-md--emoji-grin-filled.svg',
+                                            'title' => 'Penetasan selesai',
+                                            'disabled' => false,
+                                        ];
+                                    } elseif ($faseValue === 'hatcher') {
+                                        if ($isReady) {
+                                            $stageAction = [
+                                                'type' => 'finish',
+                                                'class' => 'stage-action-btn stage-ready bolopa-tabel-btn-success',
+                                                'icon' => 'line-md--check-all.svg',
+                                                'title' => 'Masukkan DOQ & selesaikan',
+                                                'disabled' => false,
+                                            ];
+                                        } else {
+                                            $stageAction = [
+                                                'type' => 'waiting-hatcher',
+                                                'class' => 'stage-action-btn stage-hatcher-waiting',
+                                                'icon' => 'line-md--home-twotone.svg',
+                                                'title' => 'Menunggu waktu menetas',
+                                                'disabled' => true,
+                                            ];
+                                        }
+                                    } else {
+                                        if ($targetHatcher && $today->gte(optional($targetHatcher)->copy()->startOfDay())) {
+                                            $stageAction = [
+                                                'type' => 'move',
+                                                'class' => 'stage-action-btn stage-move-ready bolopa-tabel-btn-warning',
+                                                'icon' => 'line-md--arrows-vertical.svg',
+                                                'title' => 'Konfirmasi pindah Setter → Hatcher',
+                                                'disabled' => false,
+                                            ];
+                                        }
                                     }
                                 @endphp
 
                                 <button type="button"
-                                    class="bolopa-tabel-btn bolopa-tabel-btn-action finish-btn {{ $buttonClass }}"
-                                    title="{{ $buttonTitle }}"
+                                    class="bolopa-tabel-btn bolopa-tabel-btn-action {{ $stageAction['class'] }}"
+                                    title="{{ $stageAction['title'] }}"
+                                    data-action-type="{{ $stageAction['type'] }}"
+                                    data-state="{{ $stageAction['type'] }}"
+                                    data-hatcher-target-date="{{ $targetHatcherIso }}"
+                                    data-hatcher-target-date-label="{{ $targetHatcherLabel ?? '-' }}"
+                                    data-move-url="{{ route('admin.penetasan.moveToHatcher', $item->id) }}"
+                                    data-batch="{{ $item->batch ?? '-' }}"
+                                    data-current-kandang="{{ $item->kandang_id }}"
+                                    data-current-kandang-name="{{ $item->kandang->nama_kandang ?? '-' }}"
                                     data-status="{{ $statusValue }}"
                                     data-finished-date="{{ optional($item->tanggal_menetas)->format('d/m/Y') }}"
-                                    data-batch="{{ $item->batch ?? '-' }}"
                                     data-finish-url="{{ route('admin.penetasan.finish', $item->id) }}"
                                     data-max-telur="{{ $item->jumlah_telur ?? 0 }}"
                                     data-jumlah-telur="{{ $item->jumlah_telur ?? 0 }}"
@@ -239,9 +279,8 @@
                                     data-target-date="{{ optional($expectedFinish)->format('d/m/Y') }}"
                                     data-target-date-iso="{{ optional($expectedFinish)->format('Y-m-d') }}"
                                     data-min-date="{{ optional($startDate)->format('Y-m-d') }}"
-                                    aria-disabled="{{ $buttonDisabled ? 'true' : 'false' }}"
-                                    {{ $buttonDisabled ? 'disabled' : '' }}>
-                                    <img src="{{ asset('bolopa/img/icon/' . $buttonIcon) }}" alt="Finish" width="14" height="14">
+                                    {{ $stageAction['disabled'] ? 'disabled' : '' }}>
+                                    <img src="{{ asset('bolopa/img/icon/' . $stageAction['icon']) }}" alt="Stage Action" width="14" height="14">
                                 </button>
                                 
                                 <a href="{{ route('admin.penetasan.edit', $item->id) }}" class="bolopa-tabel-btn bolopa-tabel-btn-warning bolopa-tabel-btn-action" title="Edit">
@@ -297,6 +336,7 @@
 
 <script>
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const hatcherKandangOptions = @json($hatcherKandangOptions ?? []);
 
     // Search functionality with debounce
     let searchTimeout;
@@ -467,6 +507,29 @@
         }, 3000);
     }
 
+    function generateHatcherSelectOptions(selectedId) {
+        if (!Array.isArray(hatcherKandangOptions) || hatcherKandangOptions.length === 0) {
+            return '<option value="">Tidak ada kandang Hatcher aktif</option>';
+        }
+
+        const selectedStr = selectedId !== null && selectedId !== undefined ? String(selectedId) : '';
+        const options = ['<option value="">-- Pilih Kandang Hatcher --</option>'];
+
+        hatcherKandangOptions.forEach(option => {
+            const value = option?.id ?? '';
+            const labelRaw = option?.label ?? `Kandang #${value}`;
+            const safeLabel = String(labelRaw)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+            const isSelected = selectedStr !== '' && String(value) === selectedStr ? 'selected' : '';
+            options.push(`<option value="${value}" ${isSelected}>${safeLabel}</option>`);
+        });
+
+        return options.join('');
+    }
+
     const triggerFlashToast = (icon, title, message, timer = 3500) => {
         if (!message) {
             return;
@@ -632,19 +695,31 @@
             }
         }
         const gagal = isCompleted && totalTelur !== null ? Math.max(totalTelur - (menetas ?? 0) - (tidakFertil ?? 0), 0) : null;
+        const fase = (data.fase_penetasan || 'setter').toLowerCase();
+        const faseLabel = fase === 'hatcher' ? 'Hatcher' : 'Setter';
+        const hatcherInfoDate = fase === 'hatcher'
+            ? (data.formatted_tanggal_masuk_hatcher || data.formatted_target_hatcher || '-')
+            : (data.formatted_target_hatcher || '-');
+        const stageDesc = fase === 'hatcher'
+            ? `Masuk Hatcher: ${hatcherInfoDate}`
+            : `Estimasi Hatcher: ${hatcherInfoDate}`;
 
         // Split date and time helper
         const splitDateTime = (dateTimeStr) => {
-            if (!dateTimeStr || dateTimeStr === '-') return { date: '-', time: '' };
+            if (!dateTimeStr || dateTimeStr === '-') return { date: '-', time: '--:--' };
             const parts = dateTimeStr.split(' ');
             return { 
                 date: parts[0] || '-', 
-                time: parts[1] || '' 
+                time: parts[1] || '--:--' 
             };
         };
 
         const simpanDateTime = splitDateTime(data.formatted_tanggal_simpan_telur_waktu);
         const menetasDateTime = splitDateTime(data.formatted_tanggal_menetas_waktu);
+        const hatcherDateString = fase === 'hatcher'
+            ? (data.formatted_tanggal_masuk_hatcher_waktu || data.formatted_tanggal_masuk_hatcher)
+            : data.formatted_target_hatcher;
+        const hatcherDateTime = splitDateTime(hatcherDateString);
 
         // Format dates
         const pad = (n) => String(n).padStart(2, '0');
@@ -699,7 +774,7 @@
                         <div class="stats-grid">
                             <div class="stat-item"><div class="stat-icon icon total"><i class="fa-solid fa-egg"></i></div><div class="stat-body"><div class="label">Total Telur</div><div class="desc">Jumlah keseluruhan</div></div><div class="value" id="sw-total">${formatNumber(totalTelur)}</div></div>
                             <div class="stat-item"><div class="stat-icon icon menetas"><i class="fa-solid fa-circle-check"></i></div><div class="stat-body"><div class="label">Menetas</div><div class="desc">Telur yang menetas</div></div><div class="value" id="sw-menetas">${formatNumber(menetas)}</div></div>
-                            <div class="stat-item"><div class="stat-icon icon doc"><i class="fa-solid fa-dove"></i></div><div class="stat-body"><div class="label">DOC</div><div class="desc">Day Old Chicks</div></div><div class="value" id="sw-doc">${formatNumber(doc)}</div></div>
+                            <div class="stat-item"><div class="stat-icon icon doq"><i class="fa-solid fa-dove"></i></div><div class="stat-body"><div class="label">DOQ</div><div class="desc">Day Old Quail</div></div><div class="value" id="sw-doq">${formatNumber(doc)}</div></div>
                             <div class="stat-item"><div class="stat-icon icon fertil"><i class="fa-solid fa-seedling"></i></div><div class="stat-body"><div class="label">Tidak Fertil</div><div class="desc">Tidak berkembang</div></div><div class="value" id="sw-fertil">${formatNumber(tidakFertil)}</div></div>
                             <div class="stat-item"><div class="stat-icon icon gagal"><i class="fa-solid fa-triangle-exclamation"></i></div><div class="stat-body"><div class="label">Gagal</div><div class="desc">Gagal menetas</div></div><div class="value" id="sw-gagal">${formatNumber(gagal)}</div></div>
                         </div>
@@ -729,6 +804,7 @@
                     <div class="card-clean">
                         <div class="mini-label">Timeline</div>
                         <div class="entry" aria-label="Tanggal Menyimpan"><div style="display:flex;align-items:center;gap:.5rem"><i class="fa-regular fa-calendar-days entry-icon"></i><div class="label">Tanggal Menyimpan</div></div><div class="result-box"><div class="value">${escapeHtml(simpanDateTime.date)}</div><div class="time">${escapeHtml(simpanDateTime.time)}</div></div></div>
+                        <div class="entry" aria-label="Tahap Hatcher"><div style="display:flex;align-items:center;gap:.5rem"><i class="fa-solid fa-shuffle entry-icon"></i><div class="label">${fase === 'hatcher' ? 'Masuk Hatcher' : 'Estimasi Hatcher'}</div></div><div class="result-box"><div class="value">${escapeHtml(hatcherDateTime.date)}</div><div class="time">${escapeHtml(hatcherDateTime.time)}</div></div></div>
                         <div class="entry" aria-label="Tanggal Menetas"><div style="display:flex;align-items:center;gap:.5rem"><i class="fa-solid fa-calendar-check entry-icon"></i><div class="label">Tanggal Menetas</div></div><div class="result-box"><div class="value">${escapeHtml(menetasDateTime.date)}</div><div class="time">${escapeHtml(menetasDateTime.time)}</div></div></div>
                     </div>
                 </div>
@@ -782,40 +858,65 @@
                         percentEl.textContent = (Math.round(pct * 10) / 10).toFixed(1) + '%';
                         setTimeout(() => { if (bar) bar.style.width = pct + '%'; }, 80);
                     } else {
-                        const startDate = parseDateSafe(data.tanggal_simpan_telur_iso || '');
-                        let targetDate = parseDateSafe(data.tanggal_menetas_iso || '');
-                        if (!targetDate && !isCompleted) {
-                            targetDate = parseDateSafe(data.estimasi_tanggal_menetas_iso || '');
-                        }
-                        let totalDays = 17;
-                        if (startDate && targetDate && targetDate > startDate) {
-                            totalDays = Math.max(1, Math.ceil((targetDate - startDate) / DAY_MS));
-                        } else if (!startDate) {
-                            totalDays = 17;
-                        }
-                        if (!targetDate && startDate) {
-                            targetDate = new Date(startDate.getTime() + totalDays * DAY_MS);
-                        }
-                        const now = new Date();
-                        let elapsedDays = 0;
-                        if (startDate) {
-                            elapsedDays = Math.max(0, Math.floor((now - startDate) / DAY_MS));
-                        }
-                        const pct = totalDays > 0 ? Math.max(0, Math.min(100, (elapsedDays / totalDays) * 100)) : 0;
-                        
-                        // Format target date for display
-                        const formatTargetDate = (date) => {
-                            if (!date) return '';
-                            const d = new Date(date);
-                            if (isNaN(d.getTime())) return '';
-                            return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+                        const fasePenetasan = (data.fase_penetasan || 'setter').toLowerCase();
+                        const applyProgressTheme = (phase) => {
+                            if (!bar) return;
+                            if (phase === 'hatcher') {
+                                bar.style.background = 'linear-gradient(135deg,#38bdf8,#0ea5e9)';
+                            } else {
+                                bar.style.background = 'linear-gradient(135deg,#f472b6,#ec4899)';
+                            }
                         };
-                        
-                        const targetDateStr = targetDate ? formatTargetDate(targetDate) : '';
-                        percentLabelEl.textContent = 'Progress Penetasan';
-                        percentDescEl.textContent = targetDateStr ? 
-                            `Hari yang sudah dilalui menuju tanggal tetas (${targetDateStr})` : 
-                            'Hari yang sudah dilalui menuju tanggal tetas';
+                        const setterDurationDays = 14;
+                        const hatcherMinimumDays = 2;
+                        const hatcherMaxDays = 3;
+                        const setterStartDate = parseDateSafe(data.tanggal_simpan_telur_iso || '');
+                        const setterTargetDateRaw = parseDateSafe(data.target_hatcher_iso || '');
+                        const setterFallbackTarget = setterStartDate ? new Date(setterStartDate.getTime() + setterDurationDays * DAY_MS) : null;
+                        const setterTargetDate = setterTargetDateRaw || setterFallbackTarget;
+
+                        const hatcherStartDateRaw = parseDateSafe(data.tanggal_masuk_hatcher_iso || '');
+                        const hatcherStartDate = hatcherStartDateRaw || setterTargetDate || setterFallbackTarget;
+                        const hatcherTargetDateRaw = parseDateSafe(data.tanggal_menetas_iso || '') || parseDateSafe(data.estimasi_tanggal_menetas_iso || '');
+                        const hatcherFallbackTarget = hatcherStartDate ? new Date(hatcherStartDate.getTime() + hatcherMaxDays * DAY_MS) : null;
+                        const hatcherTargetDate = hatcherTargetDateRaw || hatcherFallbackTarget;
+
+                        const progressStart = fasePenetasan === 'hatcher'
+                            ? (hatcherStartDate || setterTargetDate || setterStartDate)
+                            : (setterStartDate || hatcherStartDate);
+                        const progressTarget = fasePenetasan === 'hatcher'
+                            ? (hatcherTargetDate || hatcherFallbackTarget)
+                            : (setterTargetDate || hatcherStartDate || hatcherTargetDate);
+
+                        let totalDays = fasePenetasan === 'hatcher' ? hatcherMaxDays : setterDurationDays;
+                        if (fasePenetasan === 'hatcher') {
+                            totalDays = Math.max(hatcherMinimumDays, Math.min(hatcherMaxDays, totalDays));
+                        }
+
+                        let targetDate = progressTarget;
+                        if (!targetDate && progressStart) {
+                            targetDate = new Date(progressStart.getTime() + totalDays * DAY_MS);
+                        }
+
+                        const now = new Date();
+                        const rawElapsed = progressStart ? Math.floor((now - progressStart) / DAY_MS) : 0;
+                        const elapsedDays = Math.max(0, Math.min(totalDays, rawElapsed));
+                        const pct = totalDays > 0 ? Math.max(0, Math.min(100, (elapsedDays / totalDays) * 100)) : 0;
+
+                        const targetDateStr = targetDate ? `${pad(targetDate.getDate())}/${pad(targetDate.getMonth() + 1)}/${targetDate.getFullYear()}` : '';
+                        if (fasePenetasan === 'hatcher') {
+                            percentLabelEl.textContent = 'Progress Penetasan (Hatcher)';
+                            percentDescEl.textContent = targetDateStr ?
+                                `Hari yang sudah dilalui menuju tanggal tetas (${targetDateStr}) • Durasi 2–3 hari terakhir (hari ke-14 s/d 16–17)` :
+                                'Hari yang sudah dilalui menuju tanggal tetas • Durasi 2–3 hari terakhir (hari ke-14 s/d 16–17)';
+                            applyProgressTheme('hatcher');
+                        } else {
+                            percentLabelEl.textContent = 'Progress Penetasan (Setter)';
+                            percentDescEl.textContent = targetDateStr ?
+                                `Hari yang sudah dilalui menuju jadwal masuk Hatcher (${targetDateStr}) • Durasi 14 hari (Inkubasi Awal)` :
+                                'Hari yang sudah dilalui menuju jadwal masuk Hatcher • Durasi 14 hari (Inkubasi Awal)';
+                            applyProgressTheme('setter');
+                        }
                         percentEl.textContent = `${elapsedDays}/${totalDays} hari`;
                         setTimeout(() => { if (bar) bar.style.width = pct + '%'; }, 80);
                     }
@@ -875,9 +976,11 @@
                 if (copyBtn) copyBtn.addEventListener('click', async () => {
                     const summary = [
                         `ID: ${root.querySelector('.id-val')?.textContent || ''}`,
+                        `Fase: ${faseLabel}`,
+                        `Info Hatcher: ${stageDesc}`,
                         `Total Telur: ${root.querySelector('#sw-total')?.textContent || ''}`,
                         `Menetas: ${root.querySelector('#sw-menetas')?.textContent || ''}`,
-                        `DOC: ${root.querySelector('#sw-doc')?.textContent || ''}`,
+                        `DOQ: ${root.querySelector('#sw-doq')?.textContent || ''}`,
                         `Tidak Fertil: ${root.querySelector('#sw-fertil')?.textContent || ''}`,
                         `Gagal: ${root.querySelector('#sw-gagal')?.textContent || ''}`,
                         `Suhu: ${hasRealtimeMetrics ? `${originalTemp.toFixed(1)}°C` : '—'}`,
@@ -919,10 +1022,10 @@
         const targetDateLabel = button.dataset.targetDate || '-';
 
         if (defaultDoc) {
-            // Jika sudah ada DOC, tampilkan konfirmasi selesai
+            // Jika sudah ada DOQ, tampilkan konfirmasi selesai
             Swal.fire({
                 title: 'Sudah menyelesaikan penetasan?',
-                text: `Batch ${batchName} sudah memiliki data DOC (${defaultDoc}). Apakah Anda ingin menyelesaikan penetasan?`,
+                text: `Batch ${batchName} sudah memiliki data DOQ (${defaultDoc}). Apakah Anda ingin menyelesaikan penetasan?`,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Ya, Selesaikan',
@@ -935,7 +1038,7 @@
                 preConfirm: () => {
                     const payload = {
                         jumlah_doc: parseInt(defaultDoc),
-                        jumlah_menetas: parseInt(defaultDoc), // set menetas sama dengan DOC
+                        jumlah_menetas: parseInt(defaultDoc), // set menetas sama dengan DOQ
                         tanggal_menetas: new Date().toISOString().split('T')[0]
                     };
                     return { payload, finishUrl };
@@ -946,7 +1049,7 @@
                 }
             });
         } else {
-            // Jika belum ada DOC, tampilkan modal input
+            // Jika belum ada DOQ, tampilkan modal input
             Swal.fire({
                 title: '',
                 html: `
@@ -965,9 +1068,9 @@
 
                         <div class="finish-input-section">
                             <div class="finish-field">
-                                <label for="finish-doc" style="font-size:0.95rem;">Jumlah DOC <span style="color:#dc2626">*</span></label>
+                                <label for="finish-doc" style="font-size:0.95rem;">Jumlah DOQ <span style="color:#dc2626">*</span></label>
                                 <input type="number" id="finish-doc" placeholder="0" min="0" step="1" ${maxTelur ? `max="${maxTelur}"` : ''} value="${defaultDoc}" inputmode="numeric" style="width:100%;padding:12px 10px;font-size:1rem;border-radius:10px;border:1px solid #dbeafe;">
-                                <small style="display:block;margin-top:6px;color:#64748b;">Masukkan jumlah Day Old Chick yang akan dipindah.</small>
+                                <small style="display:block;margin-top:6px;color:#64748b;">Masukkan jumlah Day Old Quail yang akan dipindah.</small>
                             </div>
 
                             <div class="finish-result" style="margin-top:8px;">
@@ -1005,7 +1108,7 @@
                         let docValue = parseInt(docInput.value) || 0;
                         if (maxTelur && docValue > maxTelur) {
                             docInput.value = maxTelur;
-                            showToast('Jumlah DOC tidak boleh melebihi total telur yang disimpan.', 'warning');
+                            showToast('Jumlah DOQ tidak boleh melebihi total telur yang disimpan.', 'warning');
                         }
                         updatePercentage();
                     });
@@ -1018,24 +1121,24 @@
 
                     const docValue = docInput.value.trim();
                     if (docValue === '') {
-                        Swal.showValidationMessage('Jumlah DOC wajib diisi.');
+                        Swal.showValidationMessage('Jumlah DOQ wajib diisi.');
                         return false;
                     }
 
                     const docNumber = Number(docValue);
                     if (!Number.isFinite(docNumber) || docNumber < 0) {
-                        Swal.showValidationMessage('Jumlah DOC tidak valid.');
+                        Swal.showValidationMessage('Jumlah DOQ tidak valid.');
                         return false;
                     }
 
                     if (maxTelur && docNumber > maxTelur) {
-                        Swal.showValidationMessage('Jumlah DOC melebihi total telur yang disimpan.');
+                        Swal.showValidationMessage('Jumlah DOQ melebihi total telur yang disimpan.');
                         return false;
                     }
 
                     const payload = {
                         jumlah_doc: docNumber,
-                        jumlah_menetas: docNumber, // set menetas sama dengan DOC
+                        jumlah_menetas: docNumber, // set menetas sama dengan DOQ
                         tanggal_menetas: new Date().toISOString().split('T')[0]
                     };
 
@@ -1103,17 +1206,175 @@
             });
     }
 
+    function openMoveToHatcherModal(button) {
+        const moveUrl = button.getAttribute('data-move-url');
+        if (!moveUrl) {
+            showToast('Endpoint perpindahan tidak ditemukan.', 'danger');
+            return;
+        }
+
+        const batchName = button.getAttribute('data-batch') || '-';
+        const targetDateLabel = button.getAttribute('data-hatcher-target-date-label') || '-';
+        const targetDateValue = button.getAttribute('data-hatcher-target-date') || '';
+        const currentKandangId = button.getAttribute('data-current-kandang') || '';
+        const currentKandangName = button.getAttribute('data-current-kandang-name') || '-';
+        const fallbackDate = targetDateValue || new Date().toISOString().split('T')[0];
+        const hasOptions = Array.isArray(hatcherKandangOptions) && hatcherKandangOptions.length > 0;
+        const selectOptions = generateHatcherSelectOptions(currentKandangId);
+
+        Swal.fire({
+            title: '',
+            html: `
+                <div class="finish-modal-wrapper" style="padding:18px 22px;">
+                    <div class="finish-modal-header" style="margin-bottom:12px;">
+                        <div>
+                            <div class="finish-modal-label">Batch</div>
+                            <div style="font-size:1.05rem;font-weight:700;color:#0f172a;">${batchName}</div>
+                            <div style="font-size:0.82rem;color:#64748b;margin-top:2px;">${currentKandangName}</div>
+                        </div>
+                        <div class="finish-badge" style="font-size:0.82rem; display:inline-flex; align-items:center; gap:8px;">
+                            <i class="fa-regular fa-calendar-days" style="color:#086100;font-size:14px;" aria-hidden="true"></i>
+                            <span style="vertical-align:middle;">${targetDateLabel || 'Belum dijadwalkan'}</span>
+                        </div>
+                    </div>
+
+                    <div class="finish-input-section">
+                        <div class="finish-field">
+                            <label for="sw-hatcher-select" style="font-size:0.95rem;">Pilih Kandang Hatcher <span style="color:#dc2626">*</span></label>
+                            <select id="sw-hatcher-select" class="form-control" style="width:100%;padding:12px 10px;font-size:1rem;border-radius:10px;border:1px solid #dbeafe;${hasOptions ? '' : 'background:#f3f4f6;'}" ${hasOptions ? '' : 'disabled'}>
+                                ${selectOptions}
+                            </select>
+                            <small style="display:block;margin-top:6px;color:#64748b;">Pilih kandang Hatcher yang tersedia.</small>
+                        </div>
+
+                        <div class="finish-field" style="margin-top:15px;">
+                            <label for="sw-hatcher-date" style="font-size:0.95rem;">Tanggal Masuk Hatcher <span style="color:#dc2626">*</span></label>
+                            <input type="date" id="sw-hatcher-date" class="form-control" value="${fallbackDate}" style="width:100%;padding:12px 10px;font-size:1rem;border-radius:10px;border:1px solid #dbeafe;">
+                            <small style="display:block;margin-top:6px;color:#64748b;">Tanggal batch dipindahkan ke Hatcher.</small>
+                        </div>
+                    </div>
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Pindahkan',
+            cancelButtonText: 'Batal',
+            reverseButtons: true,
+            buttonsStyling: true,
+            customClass: {
+                popup: 'swal2-finish-popup',
+                confirmButton: 'btn btn-primary',
+                cancelButton: 'btn btn-secondary'
+            },
+            preConfirm: () => {
+                if (!hasOptions) {
+                    Swal.showValidationMessage('Tidak ada kandang Hatcher aktif yang bisa dipilih.');
+                    return false;
+                }
+
+                const selectEl = document.getElementById('sw-hatcher-select');
+                const dateEl = document.getElementById('sw-hatcher-date');
+
+                if (!selectEl || !dateEl) {
+                    Swal.showValidationMessage('Form perpindahan tidak valid.');
+                    return false;
+                }
+
+                const kandangId = selectEl.value.trim();
+                const tanggalMasuk = dateEl.value;
+
+                if (!kandangId) {
+                    Swal.showValidationMessage('Silakan pilih kandang Hatcher.');
+                    return false;
+                }
+
+                if (!tanggalMasuk) {
+                    Swal.showValidationMessage('Tanggal masuk Hatcher wajib diisi.');
+                    return false;
+                }
+
+                return {
+                    payload: {
+                        kandang_id: kandangId,
+                        tanggal_masuk_hatcher: tanggalMasuk
+                    },
+                    moveUrl
+                };
+            }
+        }).then(result => {
+            if (result.isConfirmed && result.value) {
+                submitMoveToHatcherRequest(result.value.moveUrl, result.value.payload, batchName);
+            }
+        });
+    }
+
+    function submitMoveToHatcherRequest(url, payload, batchName) {
+        if (!csrfToken) {
+            Swal.fire({ icon: 'error', title: 'Gagal', text: 'Token CSRF tidak ditemukan.' });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Memindahkan ke Hatcher...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(async response => {
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    const message = data?.message || 'Gagal memindahkan batch ke Hatcher.';
+                    throw new Error(message);
+                }
+                return data;
+            })
+            .then(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: `Batch ${batchName} sekarang berada di Hatcher.`
+                }).then(() => window.location.reload());
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Memindahkan',
+                    text: error.message || 'Terjadi kesalahan tak terduga.'
+                });
+            });
+    }
+
     // Handle delete confirmation with SweetAlert2
     document.addEventListener('DOMContentLoaded', function() {
         // Use event delegation for better performance and to handle dynamically added elements
         document.addEventListener('click', function(e) {
-            const finishBtn = e.target.closest('.finish-btn');
-            if (finishBtn) {
-                if (finishBtn.hasAttribute('disabled')) {
-                    showToast('Menunggu tanggal tetas sebelum menyelesaikan batch.', 'info');
+            const stageBtn = e.target.closest('.stage-action-btn');
+            if (stageBtn) {
+                const actionType = stageBtn.getAttribute('data-action-type') || 'idle';
+                if (stageBtn.hasAttribute('disabled') || ['idle', 'waiting-hatcher'].includes(actionType)) {
+                    const title = stageBtn.getAttribute('title') || 'Aksi belum tersedia';
+                    showToast(title, 'info');
                     return;
                 }
-                openFinishModal(finishBtn);
+
+                if (actionType === 'move') {
+                    openMoveToHatcherModal(stageBtn);
+                } else if (actionType === 'finish') {
+                    openFinishModal(stageBtn);
+                } else if (actionType === 'done') {
+                    showToast('Batch sudah selesai.', 'success');
+                }
                 return;
             }
 

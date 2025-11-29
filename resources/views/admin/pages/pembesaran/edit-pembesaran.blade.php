@@ -97,7 +97,7 @@
                     <i class="fa-solid fa-dove"></i>
                     Edit Data Pembesaran
                 </h1>
-                <p class="text-muted mb-0">Formulir untuk mengedit data pembesaran DOC/anak puyuh</p>
+                <p class="text-muted mb-0">Formulir untuk mengedit data pembesaran DOQ/anak puyuh</p>
             </div>
             <a href="{{ route('admin.pembesaran') }}" class="bolopa-form-btn bolopa-form-btn-secondary">
                 <i class="fa-solid fa-arrow-left"></i>
@@ -169,11 +169,11 @@
                     </div>
                 </div>
 
-                <!-- Section: Data Masuk DOC / Anak Puyuh -->
+                <!-- Section: Data Masuk DOQ / Anak Puyuh -->
                 <div class="form-section">
                     <h3 class="section-title">
                         <i class="fa-solid fa-dove"></i>
-                        Data Masuk DOC / Anak Puyuh
+                        Data Masuk DOQ / Anak Puyuh
                     </h3>
                     
                     <div class="form-row">
@@ -184,7 +184,7 @@
                             <input type="date" name="tanggal_masuk" id="tanggal_masuk" class="form-control" 
                                 value="{{ old('tanggal_masuk', $pembesaran->tanggal_masuk ? $pembesaran->tanggal_masuk->format('Y-m-d') : '') }}" 
                                 required max="{{ date('Y-m-d') }}">
-                            <small class="form-text">Tanggal DOC masuk ke kandang pembesaran</small>
+                            <small class="form-text">Tanggal DOQ masuk ke kandang pembesaran</small>
                         </div>
 
                         <div class="form-group">
@@ -194,7 +194,7 @@
                             <input type="number" name="jumlah_anak_ayam" id="jumlah_anak_ayam" class="form-control" 
                                 value="{{ old('jumlah_anak_ayam', $pembesaran->jumlah_anak_ayam) }}" 
                                 required min="1" placeholder="Contoh: 500">
-                            <small class="form-text">Jumlah DOC/anak puyuh yang masuk</small>
+                            <small class="form-text">Jumlah DOQ/anak puyuh yang masuk</small>
                         </div>
                     </div>
 
@@ -244,7 +244,7 @@
                             <input type="number" name="umur_hari" id="umur_hari" class="form-control" 
                                 value="{{ old('umur_hari', $pembesaran->umur_hari ?? 1) }}" 
                                 min="0" placeholder="Default: 1">
-                            <small class="form-text">Umur DOC saat masuk ke pembesaran (default: 1 hari)</small>
+                            <small class="form-text">Umur DOQ saat masuk ke pembesaran (default: 1 hari)</small>
                         </div>
 
                         <div class="form-group">
@@ -380,12 +380,12 @@
                     <div class="form-row">
                         <div class="form-group full-width">
                             <label for="kondisi_doc" class="form-label">
-                                Kondisi DOC Saat Masuk
+                                Kondisi DOQ Saat Masuk
                             </label>
                             <input type="text" class="form-control" 
                                 value="{{ $pembesaran->kondisi_doc ?? 'Tidak ada data' }}" 
                                 readonly style="background-color: #f1f5f9;">
-                            <small class="form-text">Kondisi fisik DOC saat masuk (tidak dapat diubah)</small>
+                            <small class="form-text">Kondisi fisik DOQ saat masuk (tidak dapat diubah)</small>
                         </div>
                     </div>
 
@@ -615,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div style="text-align: left; padding: 10px;">
                     <p><strong>Batch:</strong> ${batchCode}</p>
                     <p><strong>Kandang:</strong> ${kandang}</p>
-                    <p><strong>Jumlah DOC:</strong> ${jumlah.toLocaleString('id-ID')} ekor</p>
+                    <p><strong>Jumlah DOQ:</strong> ${jumlah.toLocaleString('id-ID')} ekor</p>
                     <hr>
                     <p style="color: #dc2626;">Apakah Anda yakin ingin mengupdate data ini?</p>
                 </div>

@@ -26,7 +26,7 @@ return new class extends Migration
         if (!Schema::hasColumn('pembesaran', 'kondisi_doc')) {
             Schema::table('pembesaran', function (Blueprint $table) {
                 $table->string('kondisi_doc', 100)->nullable()->after('berat_rata_rata')
-                    ->comment('Kondisi DOC saat masuk: Baik, Lemah, dll');
+                    ->comment('Kondisi DOQ saat masuk: Baik, Lemah, dll');
             });
         }
 
@@ -139,7 +139,7 @@ return new class extends Migration
         if (!Schema::hasTable('parameter_standar')) {
             Schema::create('parameter_standar', function (Blueprint $table) {
                 $table->id();
-                $table->enum('fase', ['DOC', 'grower', 'layer']);
+                $table->enum('fase', ['DOQ', 'grower', 'layer']);
                 $table->string('parameter', 100)->comment('Nama parameter: berat_rata_rata, suhu, kelembaban, dll');
                 $table->decimal('nilai_minimal', 10, 2)->nullable();
                 $table->decimal('nilai_optimal', 10, 2)->nullable();

@@ -87,6 +87,7 @@ class PenetasanController extends Controller
 
         // Set status default to 'proses'
         $data['status'] = 'proses';
+        $data['fase_penetasan'] = 'setter';
         $data['created_by'] = Auth::id();
 
         $penetasan = Penetasan::create($data);
@@ -148,6 +149,7 @@ class PenetasanController extends Controller
             'kandang_id' => 'required|exists:vf_kandang,id',
             'tanggal_simpan_telur' => 'required|date',
             'estimasi_tanggal_menetas' => 'nullable|date|after_or_equal:tanggal_simpan_telur',
+            'tanggal_masuk_hatcher' => 'nullable|date|after_or_equal:tanggal_simpan_telur',
             'jumlah_telur' => 'required|integer|min:1',
             'tanggal_menetas' => 'nullable|date|after_or_equal:tanggal_simpan_telur',
             'jumlah_menetas' => 'nullable|integer|min:0',
@@ -157,6 +159,7 @@ class PenetasanController extends Controller
             'telur_tidak_fertil' => 'nullable|integer|min:0',
             'catatan' => 'nullable|string',
             'status' => 'nullable|in:proses,selesai,gagal',
+            'fase_penetasan' => 'nullable|in:setter,hatcher',
         ]);
 
         $user = Auth::user();
@@ -179,8 +182,27 @@ class PenetasanController extends Controller
             $data['status'] = 'selesai';
         }
 
-        if (!$ownerOverrideActive) {
-            unset($data['status'], $data['tanggal_menetas'], $data['jumlah_menetas'], $data['jumlah_doc']);
+        if ($ownerOverrideActive) {
+            $faseOverride = $data['fase_penetasan'] ?? null;
+
+            if ($faseOverride === 'setter') {
+                $data['tanggal_masuk_hatcher'] = null;
+            }
+
+            if (($faseOverride ?? $penetasan->fase_penetasan) === 'hatcher' && empty($data['tanggal_masuk_hatcher'])) {
+                $data['tanggal_masuk_hatcher'] = $penetasan->target_hatcher_date
+                    ? $penetasan->target_hatcher_date->copy()
+                    : Carbon::parse($data['tanggal_simpan_telur'])->addDays(14);
+            }
+        } else {
+            unset(
+                $data['status'],
+                $data['tanggal_menetas'],
+                $data['jumlah_menetas'],
+                $data['jumlah_doc'],
+                $data['fase_penetasan'],
+                $data['tanggal_masuk_hatcher']
+            );
         }
 
         $data['updated_by'] = Auth::id();
@@ -217,10 +239,70 @@ class PenetasanController extends Controller
         ]);
     }
 
+    public function moveToHatcher(Request $request, Penetasan $penetasan)
+    {
+        /**
+         * Memindahkan batch dari Setter ke Hatcher saat mencapai target hari ke-14.
+         */
+        if ($penetasan->fase_penetasan === 'hatcher' && !empty($penetasan->tanggal_masuk_hatcher)) {
+            return response()->json([
+                'message' => 'Batch sudah berada dalam fase Hatcher.'
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'kandang_id' => 'required|exists:vf_kandang,id',
+            'tanggal_masuk_hatcher' => 'nullable|date',
+        ]);
+
+        $kandang = Kandang::findOrFail($data['kandang_id']);
+        $kandangStatus = strtolower((string) $kandang->status);
+        $allowedStatuses = ['aktif', 'active', 'berjalan', 'proses'];
+
+        if (!in_array($kandangStatus, $allowedStatuses, true)) {
+            return response()->json([
+                'message' => 'Kandang yang dipilih tidak aktif untuk penetasan.'
+            ], 422);
+        }
+
+        $targetDate = $penetasan->target_hatcher_date;
+        $today = Carbon::now()->startOfDay();
+
+        if ($targetDate && $today->lt($targetDate->copy()->startOfDay())) {
+            return response()->json([
+                'message' => 'Batch belum memasuki jadwal Hatcher.'
+            ], 422);
+        }
+
+        $requestedDate = !empty($data['tanggal_masuk_hatcher'])
+            ? Carbon::parse($data['tanggal_masuk_hatcher'])->startOfDay()
+            : Carbon::now()->startOfDay();
+
+        if ($targetDate && $requestedDate->lt($targetDate->copy()->startOfDay())) {
+            $requestedDate = $targetDate->copy()->startOfDay();
+        }
+
+        $penetasan->kandang_id = $data['kandang_id'];
+        $penetasan->fase_penetasan = 'hatcher';
+        $penetasan->tanggal_masuk_hatcher = $requestedDate;
+        $penetasan->updated_by = Auth::id();
+        $penetasan->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Batch berhasil dipindahkan ke Hatcher.',
+            'data' => [
+                'fase_penetasan' => $penetasan->fase_penetasan,
+                'tanggal_masuk_hatcher' => optional($penetasan->tanggal_masuk_hatcher)->format('Y-m-d'),
+                'kandang_id' => $penetasan->kandang_id,
+            ],
+        ]);
+    }
+
     public function finish(Request $request, Penetasan $penetasan)
     {
         /**
-         * Menyelesaikan proses penetasan: mencatat jumlah DOC, jumlah menetas, dan menetapkan status selesai.
+         * Menyelesaikan proses penetasan: mencatat jumlah DOQ, jumlah menetas, dan menetapkan status selesai.
          */
         if ($penetasan->status === 'selesai') {
             return response()->json([
@@ -239,7 +321,7 @@ class PenetasanController extends Controller
         if (isset($data['jumlah_menetas']) && $data['jumlah_doc'] > $data['jumlah_menetas']) {
             return response()->json([
                 'errors' => [
-                    'jumlah_doc' => ['Jumlah DOC tidak boleh melebihi jumlah menetas.'],
+                    'jumlah_doc' => ['Jumlah DOQ tidak boleh melebihi jumlah menetas.'],
                 ],
             ], 422);
         }
@@ -258,6 +340,24 @@ class PenetasanController extends Controller
 
         if ($penetasan->jumlah_telur && $penetasan->jumlah_menetas) {
             $penetasan->persentase_tetas = ($penetasan->jumlah_menetas / max(1, $penetasan->jumlah_telur)) * 100;
+        }
+
+        if ($penetasan->fase_penetasan !== 'hatcher') {
+            $penetasan->fase_penetasan = 'hatcher';
+        }
+
+        if (empty($penetasan->tanggal_masuk_hatcher)) {
+            if ($penetasan->target_hatcher_date) {
+                $penetasan->tanggal_masuk_hatcher = $penetasan->target_hatcher_date->copy();
+            } elseif ($penetasan->tanggal_menetas) {
+                $penetasan->tanggal_masuk_hatcher = $penetasan->tanggal_menetas->copy()->subDays(3);
+            } else {
+                $start = $penetasan->tanggal_simpan_telur instanceof Carbon
+                    ? $penetasan->tanggal_simpan_telur->copy()
+                    : Carbon::parse($penetasan->tanggal_simpan_telur ?? Carbon::now());
+
+                $penetasan->tanggal_masuk_hatcher = $start->addDays(14);
+            }
         }
 
         $penetasan->status = 'selesai';

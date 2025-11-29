@@ -154,6 +154,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/penetasan/{penetasan}/edit', [App\Http\Controllers\PenetasanController::class, 'edit'])->name('admin.penetasan.edit');
     Route::patch('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'update'])->name('admin.penetasan.update');
     Route::patch('/admin/penetasan/{penetasan}/status', [App\Http\Controllers\PenetasanController::class, 'updateStatus'])->name('admin.penetasan.updateStatus');
+    Route::post('/admin/penetasan/{penetasan}/move-to-hatcher', [App\Http\Controllers\PenetasanController::class, 'moveToHatcher'])->name('admin.penetasan.moveToHatcher');
     Route::post('/admin/penetasan/{penetasan}/finish', [App\Http\Controllers\PenetasanController::class, 'finish'])->name('admin.penetasan.finish');
     Route::delete('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'destroy'])->name('admin.penetasan.destroy');
     

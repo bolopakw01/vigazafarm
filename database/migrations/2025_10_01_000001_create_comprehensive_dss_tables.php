@@ -35,7 +35,7 @@ return new class extends Migration
             $table->date('tanggal_akhir')->nullable();
             $table->integer('jumlah_awal');
             $table->integer('jumlah_saat_ini')->nullable();
-            $table->enum('fase', ['DOC', 'grower', 'layer', 'afkir'])->default('DOC');
+            $table->enum('fase', ['DOQ', 'grower', 'layer', 'afkir'])->default('DOQ');
             $table->enum('status', ['aktif', 'selesai', 'dibatalkan'])->default('aktif');
             $table->text('catatan')->nullable();
             $table->timestamps();
@@ -139,7 +139,7 @@ return new class extends Migration
             $table->string('kode_transaksi', 50)->unique();
             $table->date('tanggal');
             $table->foreignId('batch_produksi_id')->nullable()->constrained('batch_produksi')->onDelete('set null');
-            $table->enum('kategori', ['DOC', 'grower', 'layer', 'afkir', 'jantan']);
+            $table->enum('kategori', ['DOQ', 'grower', 'layer', 'afkir', 'jantan']);
             $table->integer('jumlah_ekor');
             $table->decimal('berat_rata_rata', 8, 2)->nullable(); // gram
             $table->decimal('harga_per_ekor', 10, 2);
@@ -169,7 +169,7 @@ return new class extends Migration
         // 10. Tabel Parameter Standar (Standard Parameters for DSS)
         Schema::create('parameter_standar', function (Blueprint $table) {
             $table->id();
-            $table->enum('fase', ['DOC', 'grower', 'layer']);
+            $table->enum('fase', ['DOQ', 'grower', 'layer']);
             $table->string('parameter', 100); // misal: konsumsi_pakan_harian, produksi_telur_target
             $table->decimal('nilai_minimal', 10, 2)->nullable();
             $table->decimal('nilai_optimal', 10, 2)->nullable();

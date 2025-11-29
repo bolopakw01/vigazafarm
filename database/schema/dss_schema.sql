@@ -50,7 +50,7 @@ CREATE TABLE batch_produksi (
     tanggal_akhir DATE,
     jumlah_awal INT NOT NULL,
     jumlah_saat_ini INT,
-    fase ENUM('DOC', 'grower', 'layer', 'afkir') DEFAULT 'DOC',
+    fase ENUM('DOQ', 'grower', 'layer', 'afkir') DEFAULT 'DOQ',
     status ENUM('aktif', 'selesai', 'dibatalkan') DEFAULT 'aktif',
     catatan TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -92,8 +92,11 @@ CREATE TABLE stok_pakan (
 -- Tabel Penetasan
 CREATE TABLE penetasan (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    batch VARCHAR(50),
     kandang_id BIGINT,
     tanggal_simpan_telur DATE NOT NULL,
+    estimasi_tanggal_menetas DATE,
+    tanggal_masuk_hatcher DATE,
     jumlah_telur INT NOT NULL,
     tanggal_menetas DATE,
     jumlah_menetas INT,
@@ -103,11 +106,22 @@ CREATE TABLE penetasan (
     telur_tidak_fertil INT,
     persentase_tetas DECIMAL(5,2),
     catatan TEXT,
+    status ENUM('proses', 'selesai', 'gagal') DEFAULT 'proses',
+    fase_penetasan ENUM('setter', 'hatcher') DEFAULT 'setter',
+    doc_ditransfer INT DEFAULT 0,
+    telur_infertil_ditransfer INT DEFAULT 0,
+    created_by BIGINT NULL,
+    updated_by BIGINT NULL,
     dibuat_pada TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     diperbarui_pada TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (kandang_id) REFERENCES kandang(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES pengguna(id) ON DELETE SET NULL,
+    FOREIGN KEY (updated_by) REFERENCES pengguna(id) ON DELETE SET NULL,
+    INDEX idx_batch_penetasan (batch),
     INDEX idx_tanggal_simpan (tanggal_simpan_telur),
-    INDEX idx_kandang_id (kandang_id)
+    INDEX idx_kandang_id (kandang_id),
+    INDEX idx_status_penetasan (status),
+    INDEX idx_fase_penetasan (fase_penetasan)
 );
 
 -- Tabel Pembesaran
@@ -308,7 +322,7 @@ CREATE TABLE penjualan_burung (
     kode_transaksi VARCHAR(50) UNIQUE NOT NULL,
     tanggal DATE NOT NULL,
     batch_produksi_id BIGINT,
-    kategori ENUM('DOC', 'grower', 'layer', 'afkir', 'jantan') NOT NULL,
+    kategori ENUM('DOQ', 'grower', 'layer', 'afkir', 'jantan') NOT NULL,
     jumlah_ekor INT NOT NULL,
     berat_rata_rata DECIMAL(8,2),
     harga_per_ekor DECIMAL(10,2) NOT NULL,
@@ -353,7 +367,7 @@ CREATE TABLE monitoring_lingkungan (
 -- Tabel Parameter Standar
 CREATE TABLE parameter_standar (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    fase ENUM('DOC', 'grower', 'layer') NOT NULL,
+    fase ENUM('DOQ', 'grower', 'layer') NOT NULL,
     parameter VARCHAR(100) NOT NULL,
     nilai_minimal DECIMAL(10,2),
     nilai_optimal DECIMAL(10,2),

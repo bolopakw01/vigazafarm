@@ -29,6 +29,8 @@ class ParameterStandar extends Model
         'updated_at' => 'datetime',
     ];
 
+    private const LEGACY_CHICK_PHASE = 'doc';
+
     /**
      * Check if a value is within acceptable range
      */
@@ -95,7 +97,8 @@ class ParameterStandar extends Model
      */
     public function scopeForFase($query, string $fase)
     {
-        return $query->where('fase', $fase);
+        $aliases = self::faseAliases($fase);
+        return $query->whereIn('fase', $aliases);
     }
 
     /**
@@ -106,10 +109,25 @@ class ParameterStandar extends Model
         $query = $query->where('parameter', $parameter);
         
         if ($fase) {
-            $query->where('fase', $fase);
+            $query->whereIn('fase', self::faseAliases($fase));
         }
         
         return $query;
+    }
+
+    /**
+     * Normalise fase input to support DOQ terminology while still accepting legacy chick labels.
+     */
+    protected static function faseAliases(string $fase): array
+    {
+        $upper = strtoupper($fase);
+        $legacy = strtoupper(self::LEGACY_CHICK_PHASE);
+
+        if (in_array($upper, ['DOQ', $legacy], true)) {
+            return ['DOQ', $legacy];
+        }
+
+        return [$fase];
     }
 
     /**
@@ -123,13 +141,21 @@ class ParameterStandar extends Model
     }
 
     /**
-     * Static helper: Get DOC phase standards
+     * Static helper: Get DOQ (Day Old Quail) phase standards
+     */
+    public static function getDoqStandards(): array
+    {
+        $standards = self::forFase('DOQ')->get();
+        
+        return $standards->keyBy('parameter')->toArray();
+    }
+
+    /**
+     * @deprecated Gunakan getDoqStandards() untuk terminologi terbaru.
      */
     public static function getDocStandards(): array
     {
-        $standards = self::forFase('DOC')->get();
-        
-        return $standards->keyBy('parameter')->toArray();
+        return self::getDoqStandards();
     }
 
     /**

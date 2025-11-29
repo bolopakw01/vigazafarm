@@ -9,7 +9,7 @@
     // FCR = Total Pakan Konsumsi (kg) / Total Pertambahan Berat Badan (kg)
     // Rumus: FCR = Total Pakan / (Populasi Saat Ini × (Berat Akhir - Berat Awal))
 
-    $beratAwalKg = 0.009; // Berat awal DOC puyuh standar = 9 gram = 0.009 kg
+    $beratAwalKg = 0.009; // Berat awal DOQ puyuh standar = 9 gram = 0.009 kg
     $beratAkhirKg = ($pembesaran->berat_rata_rata ?? 0) / 1000; // konversi gram ke kg
     $pertambahanBeratPerEkor = $beratAkhirKg - $beratAwalKg; // kg per ekor
     $totalPertambahanBerat = $pertambahanBeratPerEkor * $populasiSaatIni; // total kg

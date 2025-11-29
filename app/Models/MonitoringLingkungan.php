@@ -18,6 +18,8 @@ class MonitoringLingkungan extends Model
     const VENTILASI_CUKUP = 'Cukup';
     const VENTILASI_KURANG = 'Kurang';
 
+    private const LEGACY_CHICK_PHASE = 'doc';
+
     protected $fillable = [
         'kandang_id',
         'batch_produksi_id',
@@ -125,12 +127,13 @@ class MonitoringLingkungan extends Model
     public function isSuhuOptimal($fase = 'grower')
     {
         $standards = [
-            'DOC' => ['min' => 32, 'max' => 38],
+            'DOQ' => ['min' => 32, 'max' => 38],
             'grower' => ['min' => 24, 'max' => 28],
             'layer' => ['min' => 20, 'max' => 27],
         ];
 
-        $std = $standards[$fase] ?? $standards['grower'];
+        $faseKey = $this->normalizePhaseLabel($fase);
+        $std = $standards[$faseKey] ?? $standards['grower'];
 
         return $this->suhu >= $std['min'] && $this->suhu <= $std['max'];
     }
@@ -141,12 +144,13 @@ class MonitoringLingkungan extends Model
     public function isKelembabanOptimal($fase = 'grower')
     {
         $standards = [
-            'DOC' => ['min' => 60, 'max' => 70],
+            'DOQ' => ['min' => 60, 'max' => 70],
             'grower' => ['min' => 55, 'max' => 65],
             'layer' => ['min' => 50, 'max' => 70],
         ];
 
-        $std = $standards[$fase] ?? $standards['grower'];
+        $faseKey = $this->normalizePhaseLabel($fase);
+        $std = $standards[$faseKey] ?? $standards['grower'];
 
         return $this->kelembaban >= $std['min'] && $this->kelembaban <= $std['max'];
     }
@@ -204,5 +208,20 @@ class MonitoringLingkungan extends Model
             ->groupBy('tanggal')
             ->orderBy('tanggal')
             ->get();
+    }
+
+    /**
+     * Normalise fase label to support DOQ terminology and legacy chick records.
+     */
+    protected function normalizePhaseLabel($fase): string
+    {
+        $upper = strtoupper((string) $fase);
+        $legacy = strtoupper(self::LEGACY_CHICK_PHASE);
+
+        if (in_array($upper, ['DOQ', $legacy], true)) {
+            return 'DOQ';
+        }
+
+        return $fase;
     }
 }

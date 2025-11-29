@@ -62,7 +62,7 @@ return new class extends Migration
         // Tambahkan kolom status transfer di penetasan
         Schema::table('penetasan', function (Blueprint $table) {
             if (!Schema::hasColumn('penetasan', 'doc_ditransfer')) {
-                $table->integer('doc_ditransfer')->default(0)->comment('Jumlah DOC yang sudah ditransfer ke pembesaran');
+                $table->integer('doc_ditransfer')->default(0)->comment('Jumlah DOQ yang sudah ditransfer ke pembesaran');
             }
             
             if (!Schema::hasColumn('penetasan', 'telur_infertil_ditransfer')) {

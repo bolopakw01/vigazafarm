@@ -158,7 +158,7 @@ return new class extends Migration
                 $table->string('kode_transaksi', 50)->unique();
                 $table->date('tanggal');
                 $table->foreignId('batch_produksi_id')->nullable()->constrained('batch_produksi')->onDelete('set null');
-                $table->enum('kategori', ['DOC', 'grower', 'layer', 'afkir', 'jantan']);
+                $table->enum('kategori', ['DOQ', 'grower', 'layer', 'afkir', 'jantan']);
                 $table->integer('jumlah_ekor');
                 $table->decimal('berat_rata_rata', 8, 2)->nullable();
                 $table->decimal('harga_per_ekor', 10, 2);

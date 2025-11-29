@@ -55,7 +55,7 @@ class PembesaranController extends Controller
     {
         /**
          * Menampilkan form pembuatan pembesaran baru yang bersumber dari penetasan tertentu.
-         * Melakukan validasi status dan jumlah DOC sebelum menampilkan form.
+         * Melakukan validasi status dan jumlah DOQ sebelum menampilkan form.
          */
         $penetasan = Penetasan::with('kandang')->findOrFail($penetasanId);
         
@@ -65,10 +65,10 @@ class PembesaranController extends Controller
                 ->with('error', 'Hanya penetasan dengan status "selesai" yang dapat dipindahkan ke pembesaran.');
         }
 
-        // Validasi harus ada jumlah DOC
+        // Validasi harus ada jumlah DOQ
         if (!$penetasan->jumlah_doc || $penetasan->jumlah_doc <= 0) {
             return redirect()->route('admin.penetasan')
-                ->with('error', 'Penetasan harus memiliki jumlah DOC yang valid untuk dipindahkan ke pembesaran.');
+            ->with('error', 'Penetasan harus memiliki jumlah DOQ yang valid untuk dipindahkan ke pembesaran.');
         }
 
         // Ambil kandang pembesaran
@@ -95,10 +95,10 @@ class PembesaranController extends Controller
 
         $penetasan = Penetasan::findOrFail($penetasanId);
 
-        // Validasi jumlah tidak melebihi DOC yang tersedia
+        // Validasi jumlah tidak melebihi DOQ yang tersedia
         if ($validated['jumlah_anak_ayam'] > $penetasan->jumlah_doc) {
             return back()->withInput()
-                ->withErrors(['jumlah_anak_ayam' => 'Jumlah anak ayam tidak boleh melebihi jumlah DOC yang tersedia (' . $penetasan->jumlah_doc . ')']);
+            ->withErrors(['jumlah_anak_ayam' => 'Jumlah anak puyuh tidak boleh melebihi jumlah DOQ yang tersedia (' . $penetasan->jumlah_doc . ')']);
         }
 
         $readyDate = $request->input('tanggal_siap');
@@ -138,7 +138,7 @@ class PembesaranController extends Controller
             ->where('status', 'aktif')
             ->get();
 
-        // Ambil daftar penetasan yang selesai dan punya DOC
+        // Ambil daftar penetasan yang selesai dan punya DOQ
         $penetasanList = Penetasan::where('status', 'selesai')
             ->where('jumlah_doc', '>', 0)
             ->orderBy('tanggal_menetas', 'desc')

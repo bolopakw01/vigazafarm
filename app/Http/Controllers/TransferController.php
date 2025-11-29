@@ -13,7 +13,7 @@ use Carbon\Carbon;
 /**
  * ==========================================
  * Controller : TransferController
- * Deskripsi  : Mengatur perpindahan DOC, indukan, dan telur antar modul penetasan, pembesaran, serta produksi.
+ * Deskripsi  : Mengatur perpindahan DOQ, indukan, dan telur antar modul penetasan, pembesaran, serta produksi.
  * Dibuat     : 27 November 2025
  * Penulis    : Bolopa Kakungnge Walinono
  * ==========================================
@@ -21,12 +21,12 @@ use Carbon\Carbon;
 class TransferController extends Controller
 {
     /**
-     * Transfer DOC dari Penetasan ke Pembesaran
+     * Transfer DOQ dari Penetasan ke Pembesaran
      */
     public function transferDocToPembesaran(Request $request, $penetasanId)
     {
         /**
-         * Melakukan transfer DOC dari entri penetasan ke modul pembesaran, membuat batch pembesaran baru.
+         * Melakukan transfer DOQ dari entri penetasan ke modul pembesaran, membuat batch pembesaran baru.
          */
         $request->validate([
             'kandang_id' => 'required|exists:vf_kandang,id',
@@ -40,10 +40,10 @@ class TransferController extends Controller
 
             $penetasan = Penetasan::findOrFail($penetasanId);
             
-            // Validasi ketersediaan DOC
+            // Validasi ketersediaan DOQ
             $docTersedia = $penetasan->doc_tersedia;
             if ($request->jumlah_doc > $docTersedia) {
-                return redirect()->back()->with('error', "DOC tidak cukup. Tersedia: {$docTersedia}, diminta: {$request->jumlah_doc}");
+                return redirect()->back()->with('error', "DOQ tidak cukup. Tersedia: {$docTersedia}, diminta: {$request->jumlah_doc}");
             }
 
             // Buat batch produksi ID
@@ -68,11 +68,11 @@ class TransferController extends Controller
 
             DB::commit();
 
-            return redirect()->back()->with('success', "Berhasil transfer {$request->jumlah_doc} DOC ke pembesaran (Batch: {$batchId})");
+            return redirect()->back()->with('success', "Berhasil transfer {$request->jumlah_doc} DOQ ke pembesaran (Batch: {$batchId})");
             
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Gagal transfer DOC: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal transfer DOQ: ' . $e->getMessage());
         }
     }
 

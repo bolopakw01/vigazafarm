@@ -6,6 +6,7 @@ use App\Models\MonitoringLingkungan;
 use App\Models\Penetasan;
 use App\Models\Pembesaran;
 use App\Models\Produksi;
+use App\Models\Kandang;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -141,9 +142,24 @@ class AdminController extends Controller
                     ->toArray();
             }
         }
-        $currentUser = auth()->user();
+        $currentUser = Auth::user();
+        $hatcherKandangOptions = Kandang::query()
+            ->whereIn('status', ['aktif', 'active', 'berjalan', 'proses'])
+            ->where(function ($query) {
+                $query->whereRaw("LOWER(COALESCE(tipe_kandang, '')) LIKE ?", ['%hatch%'])
+                    ->orWhereRaw("LOWER(COALESCE(tipe_kandang, '')) LIKE ?", ['%penetasan%'])
+                    ->orWhereNull('tipe_kandang');
+            })
+            ->orderBy('nama_kandang')
+            ->get()
+            ->map(fn ($kandang) => [
+                'id' => $kandang->id,
+                'label' => $kandang->nama_dengan_detail,
+                'tipe' => $kandang->tipe_kandang,
+            ])
+            ->values();
 
-        return view('admin.pages.penetasan.index-penetasan', compact('penetasan', 'iotMode', 'iotSnapshots', 'currentUser'));
+        return view('admin.pages.penetasan.index-penetasan', compact('penetasan', 'iotMode', 'iotSnapshots', 'currentUser', 'hatcherKandangOptions'));
     }
 
     public function produksi(Request $request)

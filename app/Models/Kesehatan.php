@@ -114,7 +114,7 @@ class Kesehatan extends Model
 
     /**
      * Jadwal vaksinasi standar untuk grower
-     * Berdasarkan umur DOC
+     * Berdasarkan umur DOQ
      */
     public static function getJadwalVaksinasiStandar()
     {
