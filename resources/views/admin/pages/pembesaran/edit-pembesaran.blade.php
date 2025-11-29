@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Edit Data Pembesaran - ' . $pembesaran->batch_produksi_id)
+@section('title', 'Edit Pembesaran Puyuh - ' . $pembesaran->batch_produksi_id)
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-pembesaran.css') }}">

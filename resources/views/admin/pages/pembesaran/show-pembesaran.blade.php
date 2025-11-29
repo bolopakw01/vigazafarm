@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Detail Pembesaran - ' . $pembesaran->batch_produksi_id)
+@section('title', 'Detail Pembesaran Puyuh - ' . $pembesaran->batch_produksi_id)
 
 @push('styles')
 {{-- Custom CSS for this page only (scoped to prevent sidebar conflicts) --}}
@@ -170,8 +170,9 @@
             <i class="fa-solid fa-dove"></i>
         </div>
         <div class="bolopa-header-content">
-            <h5 class="bolopa-page-title">Detail Pembesaran</h5>
+            <h5 class="bolopa-page-title">Detail Pembesaran Puyuh</h5>
             <div class="bolopa-page-subtitle">
+                <span class="text-uppercase text-muted" style="font-size: 0.75rem; letter-spacing: 0.05em;">DOQ Puyuh → Puyuh dewasa siap produksi</span><br>
                 Batch: <a href="#">{{ $pembesaran->batch_produksi_id }}</a> &nbsp;|&nbsp;
                 Kandang: <strong>{{ $pembesaran->kandang->nama_kandang ?? '-' }}</strong> &nbsp;|&nbsp;
                 Umur: <strong>{{ (int)$umurHari }} hari</strong>

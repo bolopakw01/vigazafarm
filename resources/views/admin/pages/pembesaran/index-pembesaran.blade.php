@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Data Pembesaran')
+@section('title', 'Pembesaran Puyuh')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-penetasan.css') }}">
@@ -11,10 +11,15 @@
 <div class="bolopa-tabel-wrapper">
     <div class="bolopa-tabel-container">
         <header>
-            <h1>
-                <img src="{{ asset('bolopa/img/icon/game-icons--nest-birds.svg') }}" alt="Pembesaran" width="28" height="28" style="vertical-align: middle;">
-                Data Pembesaran
-            </h1>
+            <div>
+                <h1>
+                    <img src="{{ asset('bolopa/img/icon/game-icons--nest-birds.svg') }}" alt="Pembesaran" width="28" height="28" style="vertical-align: middle;">
+                    Data Pembesaran
+                </h1>
+                {{-- <p class="text-muted mb-0" style="font-size: 0.95rem;">
+                    Alur Day Old Quail (DOQ) hingga puyuh dewasa siap produksi.
+                </p> --}}
+            </div>
             <a href="{{ route('admin.pembesaran.create') }}" class="bolopa-tabel-btn bolopa-tabel-btn-primary">
                 <img src="{{ asset('bolopa/img/icon/line-md--plus-square-filled.svg') }}" alt="Tambah" width="20" height="20" style="vertical-align: middle;">
                 Tambah Pembesaran
@@ -88,14 +93,14 @@
                             </span>
                         </th>
                         <th data-sort="jumlah_anak_ayam" class="bolopa-tabel-text-right">
-                            Jumlah Anak Ayam
+                            Jumlah DOQ
                             <span class="bolopa-tabel-sort-wrap">
                                 <img class="bolopa-tabel-sort-icon bolopa-tabel-sort-up" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up" width="10" height="9">
                                 <img class="bolopa-tabel-sort-icon bolopa-tabel-sort-down" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down" width="10" height="9">
                             </span>
                         </th>
                         <th data-sort="jenis_kelamin" class="bolopa-tabel-text-center">
-                            Jenis Kelamin
+                            Jenis
                             <span class="bolopa-tabel-sort-wrap">
                                 <img class="bolopa-tabel-sort-icon bolopa-tabel-sort-up" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up" width="10" height="9">
                                 <img class="bolopa-tabel-sort-icon bolopa-tabel-sort-down" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down" width="10" height="9">

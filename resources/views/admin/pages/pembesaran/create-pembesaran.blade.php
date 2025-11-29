@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Tambah Data Pembesaran')
+@section('title', 'Tambah Pembesaran Puyuh')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-pembesaran.css') }}">
