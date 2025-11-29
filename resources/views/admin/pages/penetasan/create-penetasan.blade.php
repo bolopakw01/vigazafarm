@@ -169,8 +169,14 @@
                             <p class="mb-1">
                                 <strong>Durasi Penetasan Burung Puyuh:</strong> 17-18 hari
                             </p>
-                            <p class="mb-0">
+                            <p class="mb-1">
                                 <strong>Perkiraan Tanggal Menetas:</strong> <span id="estimasiText" class="text-primary fw-semibold">-</span>
+                            </p>
+                            <p class="mb-1">
+                                <strong>Estimasi Setter:</strong> <span id="estimasiSetterText" class="text-primary fw-semibold">-</span>
+                            </p>
+                            <p class="mb-0">
+                                <strong>Estimasi Hatcher:</strong> <span id="estimasiHatcherText" class="text-primary fw-semibold">-</span>
                             </p>
                         </div>
                     </div>
@@ -183,14 +189,18 @@
                         <i class="fa-solid fa-temperature-half"></i>
                         Kondisi Lingkungan
                     </h3>
-                    <div class="form-row">
+                    <div class="alert alert-info" style="margin-bottom: 20px;">
+                        <i class="fa-solid fa-info-circle"></i>
+                        Data kondisi lingkungan diambil secara otomatis dari sistem IoT. Klik "Update IoT" untuk mendapatkan data terkini.
+                    </div>
+                    <div class="form-row form-row-three">
                         <div class="form-group">
                             <label for="suhu_penetasan" class="form-label">
                                 Suhu Penetasan (°C)
                             </label>
                             <input type="number" name="suhu_penetasan" id="suhu_penetasan" 
                                    class="form-control" value="{{ old('suhu_penetasan') }}" 
-                                   step="0.1" min="0" max="50" placeholder="Contoh: 37.5">
+                                   step="0.1" min="0" max="50" readonly>
                             <small class="form-text">Suhu optimal: 37.0°C - 38.0°C</small>
                         </div>
                         <div class="form-group">
@@ -199,8 +209,16 @@
                             </label>
                             <input type="number" name="kelembaban_penetasan" id="kelembaban_penetasan" 
                                    class="form-control" value="{{ old('kelembaban_penetasan') }}" 
-                                   step="0.1" min="0" max="100" placeholder="Contoh: 65">
+                                   step="0.1" min="0" max="100" readonly>
                             <small class="form-text">Kelembaban optimal: 55% - 65%</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" id="updateIotData" class="btn btn-primary btn-iot">
+                                <i class="fa-solid fa-sync-alt"></i>
+                                Update IoT
+                            </button>
+                            <small class="form-text">Data diambil dari sensor IoT</small>
                         </div>
                     </div>
                 </div>
@@ -564,6 +582,20 @@ textarea.form-control {
     line-height: 1.6;
 }
 
+/* IoT Button */
+.btn-iot {
+    height: 38px; /* Match form-control height */
+    font-size: 14px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.form-row-three {
+    grid-template-columns: 1fr 1fr auto;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .bolopa-form-container {
@@ -618,6 +650,9 @@ textarea.form-control {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const SETTER_DURATION_DAYS = 14;
+    const HATCHER_DURATION_DAYS = 3;
+
     const triggerFlashToast = (icon, title, message, timer = 3500) => {
         if (!message) {
             return;
@@ -651,6 +686,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const estimasiMenetasInput = document.getElementById('estimasi_menetas');
     const estimasiInfo = document.getElementById('estimasiInfo');
     const estimasiText = document.getElementById('estimasiText');
+    const estimasiSetterText = document.getElementById('estimasiSetterText');
+    const estimasiHatcherText = document.getElementById('estimasiHatcherText');
     const jumlahTelurInput = document.getElementById('jumlah_telur');
     const kandangSelect = document.getElementById('kandang_id');
     const capacityInfo = document.getElementById('kandangCapacityInfo');
@@ -758,10 +795,65 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Format tanggal ke Indonesia
-    function formatTanggalIndonesia(dateString) {
-        const date = new Date(dateString);
+    const addDays = (date, days) => {
+        const nextDate = new Date(date);
+        nextDate.setDate(nextDate.getDate() + days);
+        return nextDate;
+    };
+
+    function formatTanggalIndonesia(dateInput) {
+        if (!dateInput) {
+            return '-';
+        }
+
+        const date = dateInput instanceof Date ? new Date(dateInput) : new Date(dateInput);
+        if (Number.isNaN(date.getTime())) {
+            return '-';
+        }
+
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         return date.toLocaleDateString('id-ID', options);
+    }
+
+    function updatePhaseEstimations() {
+        if (!estimasiSetterText || !estimasiHatcherText) {
+            return;
+        }
+
+        const tanggalSimpan = tanggalSimpanInput?.value;
+        const estimasiMenetas = estimasiMenetasInput?.value;
+
+        if (!tanggalSimpan) {
+            estimasiSetterText.textContent = '-';
+            estimasiHatcherText.textContent = '-';
+            return;
+        }
+
+        const startDate = new Date(tanggalSimpan);
+        if (Number.isNaN(startDate.getTime())) {
+            estimasiSetterText.textContent = '-';
+            estimasiHatcherText.textContent = '-';
+            return;
+        }
+
+        let endDate;
+        if (estimasiMenetas && !Number.isNaN(new Date(estimasiMenetas).getTime())) {
+            endDate = new Date(estimasiMenetas);
+        } else {
+            // Default 17 hari
+            endDate = addDays(startDate, 17);
+        }
+
+        // Setter: dari start sampai end - 3 hari
+        const setterEnd = addDays(endDate, -3);
+        const setterStart = startDate;
+
+        // Hatcher: dari end - 2 hari sampai end
+        const hatcherStart = addDays(endDate, -2);
+        const hatcherEnd = endDate;
+
+        estimasiSetterText.textContent = `${formatTanggalIndonesia(setterStart)} - ${formatTanggalIndonesia(setterEnd)}`;
+        estimasiHatcherText.textContent = `${formatTanggalIndonesia(hatcherStart)} - ${formatTanggalIndonesia(hatcherEnd)}`;
     }
     
     function updateEstimasiDisplay(dateValue) {
@@ -834,6 +926,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         updateEstimasiDisplay(estimasiMenetasInput.value || estimasiDate);
+        updatePhaseEstimations();
     }
     
     // Event listeners
@@ -851,8 +944,11 @@ document.addEventListener('DOMContentLoaded', function() {
         estimasiMenetasInput.addEventListener('input', () => {
             estimasiManualEdit = !!estimasiMenetasInput.value;
             updateEstimasiDisplay(estimasiMenetasInput.value);
+            updatePhaseEstimations();
         });
     }
+
+    updatePhaseEstimations();
 
     // Form validation before submit
     const form = document.getElementById('formPenetasan');
@@ -912,6 +1008,58 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (jumlahTelurInput) {
         jumlahTelurInput.addEventListener('input', () => enforceCapacityLimit(true));
+    }
+
+    // IoT Data Update
+    const updateIotDataBtn = document.getElementById('updateIotData');
+    const suhuInput = document.getElementById('suhu_penetasan');
+    const kelembabanInput = document.getElementById('kelembaban_penetasan');
+
+    function updateIotData() {
+        if (!updateIotDataBtn || !suhuInput || !kelembabanInput) {
+            return;
+        }
+
+        // Disable button during loading
+        updateIotDataBtn.disabled = true;
+        updateIotDataBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengambil Data...';
+
+        // Fetch data from IoT endpoint
+        fetch('/admin/iot/environment', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Gagal mengambil data IoT');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.suhu !== undefined) {
+                suhuInput.value = data.suhu;
+            }
+            if (data.kelembaban !== undefined) {
+                kelembabanInput.value = data.kelembaban;
+            }
+            triggerFlashToast('success', 'Berhasil!', 'Data kondisi lingkungan berhasil diperbarui dari IoT.');
+        })
+        .catch(error => {
+            console.error('Error fetching IoT data:', error);
+            triggerFlashToast('error', 'Gagal!', 'Tidak dapat mengambil data dari sistem IoT. Silakan coba lagi.');
+        })
+        .finally(() => {
+            // Re-enable button
+            updateIotDataBtn.disabled = false;
+            updateIotDataBtn.innerHTML = '<i class="fa-solid fa-sync-alt"></i> Update dari IoT';
+        });
+    }
+
+    if (updateIotDataBtn) {
+        updateIotDataBtn.addEventListener('click', updateIotData);
     }
 });
 </script>
