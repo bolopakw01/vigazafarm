@@ -929,7 +929,7 @@
                             <label class="form-label lopa-form-label">Tanggal Laporan <span
                                     class="text-danger">*</span></label>
                             <input type="date" class="form-control" name="tanggal_laporan" id="tanggal_laporan"
-                                value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
+                                value="{{ date('Y-m-d') }}" @if($batchStartDate) min="{{ $batchStartDate }}" @endif {{ $disabledAttr }} required />
                             <small class="form-text text-muted">Tanggal laporan dibuat atau dirangkum.</small>
                         </div>
                         <div class="col-12">

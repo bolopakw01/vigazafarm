@@ -9,7 +9,7 @@
         <div class="row g-3">
             <div class="col-md-4">
                 <label class="form-label lopa-form-label">Tanggal <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" {{ $disabledAttr }} required />
+                <input type="date" class="form-control" name="tanggal" value="{{ date('Y-m-d') }}" @if($batchStartDate) min="{{ $batchStartDate }}" @endif {{ $disabledAttr }} required />
                 <small class="form-text text-muted">Catat tanggal konsumsi pakan yang ingin disimpan.</small>
             </div>
             <div class="col-md-4">

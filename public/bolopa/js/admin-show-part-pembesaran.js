@@ -34,6 +34,27 @@ function toDateKey(input) {
     return String(input);
 }
 
+const batchStartDateKey = toDateKey(config.batchStartDate);
+const batchStartDateLabel = batchStartDateKey
+    ? new Date(batchStartDateKey).toLocaleDateString('id-ID', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    })
+    : null;
+
+function validateBatchDate(dateValue, contextLabel = 'Pencatatan') {
+    if (!batchStartDateKey || !dateValue) return true;
+    const entryKey = toDateKey(dateValue);
+    if (!entryKey) return true;
+    if (entryKey < batchStartDateKey) {
+        const label = batchStartDateLabel || batchStartDateKey;
+        showToast(`${contextLabel} tidak boleh sebelum tanggal masuk batch (${label}).`, 'warning');
+        return false;
+    }
+    return true;
+}
+
 // ========== DUPLICATE SUBMISSION GUARD ==========
 
 const duplicateTypeLabels = {
@@ -446,20 +467,36 @@ function getRecorderName(record) {
     return user.nama_pengguna || user.username || user.nama || user.name || '-';
 }
 
+const toastElementId = 'pembesaran-toast';
 function showToast(message, type = 'success') {
-    const colors = { success: '#10b981', error: '#ef4444', warning: '#f59e0b' };
-    const icons = { success: '✅', error: '❌', warning: '⚠️' };
-    
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        position: fixed; top: 80px; right: 20px; z-index: 9999;
-        background: ${colors[type]}; color: white; padding: 16px 24px;
-        border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-        font-weight: 600; min-width: 250px; max-width: 400px;
-    `;
-    toast.textContent = `${icons[type]} ${message}`;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
+    const toast = document.getElementById(toastElementId);
+    if (!toast) {
+        console.warn('Toast container not found');
+        return;
+    }
+
+    const backgrounds = {
+        success: '#22c55e',
+        error: '#ef4444',
+        warning: '#f97316'
+    };
+
+    if (toast.dataset.timeoutId) {
+        clearTimeout(parseInt(toast.dataset.timeoutId, 10));
+    }
+
+    toast.textContent = message;
+    toast.style.background = backgrounds[type] || backgrounds.success;
+    toast.style.display = 'block';
+    toast.classList.add('bolopa-tabel-show');
+
+    const timeoutId = window.setTimeout(() => {
+        toast.classList.remove('bolopa-tabel-show');
+        toast.style.display = 'none';
+        toast.dataset.timeoutId = '';
+    }, 3200);
+
+    toast.dataset.timeoutId = timeoutId.toString();
 }
 
 async function submitAjax(url, data) {
@@ -522,6 +559,7 @@ if (pakanForm) {
 
         const formData = new FormData(this);
         const tanggalPakan = formData.get('tanggal');
+        if (!validateBatchDate(tanggalPakan, 'Tanggal pakan')) return;
         const allowSubmit = await confirmDuplicateSubmission('pakan', tanggalPakan);
         if (!allowSubmit) return;
         const feedItemId = formData.get('feed_item_id');
@@ -557,6 +595,7 @@ if (kematianForm) {
         
         const formData = new FormData(this);
         const tanggalKematian = formData.get('tanggal');
+        if (!validateBatchDate(tanggalKematian, 'Tanggal kematian')) return;
         const allowSubmit = await confirmDuplicateSubmission('kematian', tanggalKematian);
         if (!allowSubmit) return;
         const result = await submitAjax(`${baseUrl}/admin/pembesaran/${pembesaranId}/kematian`, {
@@ -599,6 +638,7 @@ if (monitoringForm) {
         const formData = new FormData(this);
         const tanggal = formData.get('tanggal');
         const waktu = formData.get('waktu');
+        if (!validateBatchDate(tanggal, 'Tanggal monitoring')) return;
         const allowSubmit = await confirmDuplicateSubmission('monitoring', tanggal);
         if (!allowSubmit) return;
         
@@ -640,6 +680,7 @@ if (kesehatanForm) {
         
         const formData = new FormData(this);
         const tanggalKesehatan = formData.get('tanggal');
+        if (!validateBatchDate(tanggalKesehatan, 'Tanggal kesehatan')) return;
         const allowSubmit = await confirmDuplicateSubmission('kesehatan', tanggalKesehatan);
         if (!allowSubmit) return;
         const result = await submitAjax(`${baseUrl}/admin/pembesaran/${pembesaranId}/kesehatan`, {
@@ -715,6 +756,7 @@ if (btnGenerateCatatan) {
             showToast('Pilih tanggal laporan terlebih dahulu', 'warning');
             return;
         }
+        if (!validateBatchDate(tanggalLaporan, 'Tanggal laporan')) return;
         
         // Show loading state
         const btnText = this.innerHTML;
@@ -935,6 +977,8 @@ if (laporanForm) {
         e.preventDefault();
         
         const formData = new FormData(this);
+        const tanggalLaporan = formData.get('tanggal_laporan');
+        if (!validateBatchDate(tanggalLaporan, 'Tanggal laporan')) return;
         const catatan = formData.get('catatan');
         
         // Validasi catatan tidak boleh kosong
@@ -945,8 +989,7 @@ if (laporanForm) {
         
         // Check if laporan already exists for this date
         try {
-            const tanggalLaporan = formData.get('tanggal_laporan');
-                const keyTanggal = toDateKey(tanggalLaporan);
+            const keyTanggal = toDateKey(tanggalLaporan);
                 let laporanListData = window._laporanCache;
                 if (!laporanListData) {
                     const resp = await fetch(`${baseUrl}/admin/pembesaran/${pembesaranId}/laporan-harian/list`, { credentials: 'same-origin' });

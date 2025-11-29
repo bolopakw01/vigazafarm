@@ -127,6 +127,28 @@
         height: 80px !important;
     }
 }
+
+/* Toast notification - reuse generic styling to stay consistent */
+.bolopa-tabel-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    background: #1f2937;
+    color: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.25s ease;
+    z-index: 1200;
+    display: none;
+}
+
+.bolopa-tabel-toast.bolopa-tabel-show {
+    opacity: 1;
+    transform: translateY(0);
+}
 </style>
 @endpush
 
@@ -136,6 +158,7 @@
     $mortalitasFormatted = $mortalitas == floor($mortalitas) 
         ? number_format($mortalitas, 0) 
         : rtrim(rtrim(number_format($mortalitas, 2), '0'), '.');
+    $batchStartDate = optional($pembesaran->tanggal_masuk)->format('Y-m-d');
 @endphp
 
 <div class="pembesaran-detail-wrapper">
@@ -206,6 +229,8 @@
     {{-- Notebook Container with Tabs --}}
     @include('admin.pages.pembesaran.partials._tab-show-pembesaran')
 
+    <div class="bolopa-tabel-toast" id="pembesaran-toast" role="status" aria-live="polite"></div>
+
 </div>
 </div>
 @endsection
@@ -218,6 +243,7 @@
         baseUrl: '{{ url('/') }}',
         pembesaranId: {{ $pembesaran->id }},
         csrfToken: '{{ csrf_token() }}',
+        batchStartDate: '{{ $batchStartDate ?? '' }}',
         populasi_awal: {{ (int) $populasiAwal }},
         populasi_saat_ini: {{ (int) $populasiSaatIni }}
     };

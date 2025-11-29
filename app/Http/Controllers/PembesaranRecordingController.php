@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 
 /**
  * ==========================================
@@ -60,6 +61,9 @@ class PembesaranRecordingController extends Controller
         }
 
         $validated = $request->validate($rules);
+        if ($guard = $this->guardBatchStartDate($pembesaran, $validated['tanggal'], 'Tanggal pakan')) {
+            return $guard;
+        }
         $sisaPakanKg = $request->input('sisa_pakan_kg');
         $sisaPakanKg = ($sisaPakanKg === null || $sisaPakanKg === '') ? null : (float) $sisaPakanKg;
         $jumlahKarung = $validated['jumlah_karung'] ?? 0;
@@ -359,6 +363,10 @@ class PembesaranRecordingController extends Controller
             'keterangan' => 'nullable|string',
         ]);
 
+        if ($guard = $this->guardBatchStartDate($pembesaran, $validated['tanggal'], 'Tanggal kematian')) {
+            return $guard;
+        }
+
         $kematian = Kematian::create([
             'batch_produksi_id' => $pembesaran->batch_produksi_id,
             'produksi_id' => null,
@@ -491,6 +499,9 @@ class PembesaranRecordingController extends Controller
             'tanggal' => 'required|date',
             'catatan_kejadian' => 'nullable|string',
         ]);
+        if ($guard = $this->guardBatchStartDate($pembesaran, $validated['tanggal'], 'Tanggal laporan')) {
+            return $guard;
+        }
 
         // Dapatkan ID pengguna yang terautentikasi (harus berupa integer)
         $userId = Auth::id();
@@ -645,6 +656,28 @@ class PembesaranRecordingController extends Controller
     }
 
     /**
+     * Pastikan tanggal pencatatan tidak sebelum tanggal masuk batch.
+     */
+    protected function guardBatchStartDate(Pembesaran $pembesaran, $tanggalInput, string $contextLabel = 'Pencatatan'): ?JsonResponse
+    {
+        if (!$pembesaran->tanggal_masuk || !$tanggalInput) {
+            return null;
+        }
+
+        $batchStart = Carbon::parse($pembesaran->tanggal_masuk)->startOfDay();
+        $inputDate = Carbon::parse($tanggalInput)->startOfDay();
+
+        if ($inputDate->lt($batchStart)) {
+            return response()->json([
+                'success' => false,
+                'message' => $contextLabel . ' tidak boleh sebelum tanggal masuk batch (' . $batchStart->format('d F Y') . ')'
+            ], 422);
+        }
+
+        return null;
+    }
+
+    /**
      * ==================================================
      * MONITORING LINGKUNGAN
      * ==================================================
@@ -668,6 +701,11 @@ class PembesaranRecordingController extends Controller
             'kondisi_ventilasi' => 'nullable|in:Baik,Cukup,Kurang',
             'catatan' => 'nullable|string',
         ]);
+
+        $monitoringDate = Carbon::parse($validated['waktu_pencatatan'])->toDateString();
+        if ($guard = $this->guardBatchStartDate($pembesaran, $monitoringDate, 'Tanggal monitoring')) {
+            return $guard;
+        }
 
         $monitoring = MonitoringLingkungan::create([
             'kandang_id' => $pembesaran->kandang_id,
@@ -752,6 +790,10 @@ class PembesaranRecordingController extends Controller
             'biaya' => 'nullable|numeric|min:0',
             'petugas' => 'nullable|string',
         ]);
+
+        if ($guard = $this->guardBatchStartDate($pembesaran, $validated['tanggal'], 'Tanggal kesehatan')) {
+            return $guard;
+        }
 
         $kesehatan = Kesehatan::create([
             'batch_produksi_id' => $pembesaran->batch_produksi_id,
