@@ -773,6 +773,9 @@ if (btnGenerateCatatan) {
                 day: 'numeric'
             });
 
+            const headerDivider = '='.repeat(60);
+            const sectionDivider = '-'.repeat(60);
+
             const formatRupiah = (value) => {
                 const numeric = parseFloat(value);
                 if (Number.isNaN(numeric)) return '-';
@@ -803,23 +806,36 @@ if (btnGenerateCatatan) {
             };
 
             const addSection = (linesAcc, title, records, renderer, emptyMessage) => {
+                const titleLine = `${title.toUpperCase()}${records.length ? ` (${records.length} catatan)` : ''}`;
+                linesAcc.push(titleLine);
+                linesAcc.push(sectionDivider);
+
                 if (!records.length) {
-                    linesAcc.push(`${title}: ${emptyMessage}`);
+                    linesAcc.push(`• ${emptyMessage}`);
                     linesAcc.push('');
                     return;
                 }
-                linesAcc.push(`${title}: ${records.length} pencatatan`);
-                linesAcc.push('');
+
                 records.forEach((record, index) => {
                     const rendered = renderer(record, index);
-                    if (rendered) {
-                        linesAcc.push(rendered);
-                    }
+                    const renderedLines = Array.isArray(rendered) ? rendered : [rendered];
+                    renderedLines
+                        .filter((line) => typeof line === 'string' && line.trim().length > 0)
+                        .forEach((line, lineIdx) => {
+                            const prefix = lineIdx === 0
+                                ? `${String(index + 1).padStart(2, '0')}. `
+                                : '    • ';
+                            linesAcc.push(prefix + line);
+                        });
+                    linesAcc.push('');
                 });
-                linesAcc.push('');
             };
 
-            const lines = [`LAPORAN HARIAN (${dateLabel})`, ''];
+            const lines = [
+                `LAPORAN HARIAN (${dateLabel})`,
+                headerDivider,
+                ''
+            ];
 
             addSection(lines, 'Pakan', pakanHariIni, (row) => {
                 const feedLabel = row.feed_item?.name || row.stok_pakan?.nama_pakan || row.jenis_pakan || 'Pakan';
@@ -834,7 +850,12 @@ if (btnGenerateCatatan) {
                 }
                 const biayaDisplay = formatRupiah(row.total_biaya ?? row.biaya);
                 const pencatat = getRecorderName(row);
-                return `${feedLabel}\tTerpakai ${konsumsi}\tSisa ${sisaDisplay}\tBiaya ${biayaDisplay}\tOleh ${pencatat}`;
+                const catatan = cleanText(row.catatan);
+                return [
+                    `${feedLabel}`,
+                    `Terpakai ${konsumsi} | Sisa ${sisaDisplay} | Biaya ${biayaDisplay} | Pencatat ${pencatat}`,
+                    catatan && catatan !== '-' ? `Catatan: ${catatan}` : null
+                ];
             }, 'Belum ada catatan pakan');
 
             addSection(lines, 'Kematian', kematianHariIni, (row) => {
@@ -842,7 +863,11 @@ if (btnGenerateCatatan) {
                 const jumlah = parseInt(row.jumlah, 10);
                 const penyebab = cleanText(row.penyebab || 'Tidak diketahui');
                 const catatan = cleanText(row.keterangan || row.catatan);
-                return `${tanggal}\t${Number.isNaN(jumlah) ? '-' : `${jumlah} ekor`}\tPenyebab ${penyebab}\tCatatan ${catatan}`;
+                return [
+                    `${tanggal} — ${Number.isNaN(jumlah) ? '-' : `${jumlah} ekor`}`,
+                    `Penyebab ${penyebab}`,
+                    catatan && catatan !== '-' ? `Catatan: ${catatan}` : null
+                ];
             }, 'Tidak ada kejadian kematian');
 
             addSection(lines, 'Kesehatan/Vaksinasi', kesehatanHariIni, (row) => {
@@ -851,7 +876,12 @@ if (btnGenerateCatatan) {
                 const jumlah = row.jumlah_burung ? `${row.jumlah_burung} ekor` : '-';
                 const biayaDisplay = formatRupiah(row.biaya);
                 const petugas = cleanText(row.petugas || getRecorderName(row));
-                return `${tipe} - ${namaObat}\t${jumlah}\tBiaya ${biayaDisplay}\tPetugas ${petugas}`;
+                const catatan = cleanText(row.catatan);
+                return [
+                    `${tipe} – ${namaObat}`,
+                    `${jumlah} | Biaya ${biayaDisplay} | Petugas ${petugas}`,
+                    catatan && catatan !== '-' ? `Catatan: ${catatan}` : null
+                ];
             }, 'Tidak ada kegiatan kesehatan');
 
             addSection(lines, 'Monitoring Lingkungan', monitoringHariIni, (row) => {
@@ -860,7 +890,11 @@ if (btnGenerateCatatan) {
                 const kelembaban = Number.isNaN(parseFloat(row.kelembaban)) ? '-' : `${formatDecimal(row.kelembaban, 1)}%`;
                 const ventilasi = cleanText(row.kondisi_ventilasi || row.ventilasi);
                 const catatan = cleanText(row.catatan);
-                return `${waktu}\tSuhu ${suhu}\tKelembaban ${kelembaban}\tVentilasi ${ventilasi}\tCatatan ${catatan}`;
+                return [
+                    `${waktu}`,
+                    `Suhu ${suhu} | Kelembaban ${kelembaban} | Ventilasi ${ventilasi}`,
+                    catatan && catatan !== '-' ? `Catatan: ${catatan}` : null
+                ];
             }, 'Belum ada monitoring');
 
             addSection(lines, 'Sampling Berat', beratHariIni, (row) => {
@@ -869,10 +903,16 @@ if (btnGenerateCatatan) {
                 const beratAvg = Number.isNaN(parseFloat(row.berat_rata_rata)) ? '-' : `${formatDecimal(row.berat_rata_rata, 1)} gram`;
                 const sampel = row.jumlah_sampel ? `${row.jumlah_sampel} ekor` : '-';
                 const catatan = cleanText(row.catatan);
-                return `${tanggal}\tUmur ${umur}\tRata-rata ${beratAvg}\tSampel ${sampel}\tCatatan ${catatan}`;
+                return [
+                    `${tanggal} — Umur ${umur}`,
+                    `Rata-rata ${beratAvg} | Sampel ${sampel}`,
+                    catatan && catatan !== '-' ? `Catatan: ${catatan}` : null
+                ];
             }, 'Belum ada sampling berat');
 
-            lines.push('Catatan tambahan:');
+            lines.push('CATATAN TAMBAHAN');
+            lines.push(sectionDivider);
+            lines.push('• Tambahkan poin penting lainnya di bawah ini.');
             lines.push('- ');
 
             document.getElementById('catatan_laporan').value = lines.join('\n');
