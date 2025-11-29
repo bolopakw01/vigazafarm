@@ -86,6 +86,108 @@
                 ];
             })
             ->values();
+
+        $telurAnalyticsSeries = collect($laporanHarian ?? [])
+            ->filter(fn ($laporan) => $laporan->tanggal)
+            ->sortBy('tanggal')
+            ->groupBy(fn ($laporan) => $laporan->tanggal->format('Y-m-d'))
+            ->map(function ($items) use ($eggsPerTray) {
+                $first = $items->first();
+                $dateValue = optional($first)->tanggal;
+                $displayDate = $dateValue ? $dateValue->locale('id')->translatedFormat('d M Y') : '-';
+                $telurHarian = (float) $items->sum('produksi_telur');
+                $trayEstimate = $eggsPerTray > 0 ? $telurHarian / $eggsPerTray : 0;
+                $penjualanTelur = (float) $items->sum('penjualan_telur_butir');
+
+                return [
+                    'date' => $dateValue ? $dateValue->format('Y-m-d') : null,
+                    'display' => $displayDate,
+                    'telur' => $telurHarian,
+                    'tray' => $trayEstimate,
+                    'penjualan' => $penjualanTelur,
+                ];
+            })
+            ->filter(fn ($row) => $row['date'])
+            ->values();
+
+        $totalTelurDicatat = $telurAnalyticsSeries->sum('telur');
+        $totalTrayDicatat = $telurAnalyticsSeries->sum('tray');
+        $totalPenjualanDicatat = $telurAnalyticsSeries->sum('penjualan');
+        $avgTelurDicatat = $telurAnalyticsSeries->avg('telur') ?? 0;
+        $avgTrayDicatat = $telurAnalyticsSeries->avg('tray') ?? 0;
+        $avgPenjualanDicatat = $telurAnalyticsSeries->avg('penjualan') ?? 0;
+        $peakTelurPoint = $telurAnalyticsSeries->sortByDesc('telur')->first();
+        $peakTrayPoint = $telurAnalyticsSeries->sortByDesc('tray')->first();
+        $peakPenjualanPoint = $telurAnalyticsSeries->sortByDesc('penjualan')->first();
+        $peakTelurValue = is_array($peakTelurPoint) ? ($peakTelurPoint['telur'] ?? 0) : 0;
+        $peakTelurLabel = is_array($peakTelurPoint) ? ($peakTelurPoint['display'] ?? '-') : '-';
+        $peakTrayValue = is_array($peakTrayPoint) ? ($peakTrayPoint['tray'] ?? 0) : 0;
+        $peakTrayLabel = is_array($peakTrayPoint) ? ($peakTrayPoint['display'] ?? '-') : '-';
+        $peakPenjualanValue = is_array($peakPenjualanPoint) ? ($peakPenjualanPoint['penjualan'] ?? 0) : 0;
+        $peakPenjualanLabel = is_array($peakPenjualanPoint) ? ($peakPenjualanPoint['display'] ?? '-') : '-';
+
+        $telurAnalyticsStats = [
+            [
+                'label' => 'Total Telur',
+                'value' => $formatNumber($totalTelurDicatat),
+                'suffix' => 'butir',
+                'meta' => $telurAnalyticsSeries->count() ? 'Rata-rata ' . $formatNumber($avgTelurDicatat, 0) . ' butir/hari' : null,
+            ],
+            [
+                'label' => 'Estimasi Tray',
+                'value' => $formatNumber($totalTrayDicatat, 2),
+                'suffix' => 'tray',
+                'meta' => $telurAnalyticsSeries->count() ? 'Rata-rata ' . $formatNumber($avgTrayDicatat, 2) . ' tray/hari' : null,
+            ],
+            [
+                'label' => 'Penjualan Telur',
+                'value' => $formatNumber($totalPenjualanDicatat),
+                'suffix' => 'butir',
+                'meta' => $totalPendapatan > 0 ? 'Pendapatan Rp ' . $formatNumber($totalPendapatan, 0) : null,
+            ],
+        ];
+
+        $telurAnalysisNotes = [
+            [
+                'icon' => 'fa-egg',
+                'title' => 'Produksi Telur',
+                'text' => $totalTelurDicatat > 0
+                    ? 'Rata-rata ' . $formatNumber($avgTelurDicatat, 0) . ' butir/hari; puncak '
+                        . $formatNumber($peakTelurValue, 0) . ' butir (' . $peakTelurLabel . ').'
+                    : 'Belum ada pencatatan telur yang dapat dianalisis.',
+            ],
+            [
+                'icon' => 'fa-layer-group',
+                'title' => 'Konversi Tray',
+                'text' => $totalTrayDicatat > 0
+                    ? 'Estimasi ' . $formatNumber($totalTrayDicatat, 2) . ' tray terbentuk; puncak '
+                        . $formatNumber($peakTrayValue, 2) . ' tray (' . $peakTrayLabel . ').'
+                    : 'Belum ada data tray yang dapat dianalisis.',
+            ],
+            [
+                'icon' => 'fa-cash-register',
+                'title' => 'Penjualan Telur',
+                'text' => $totalPenjualanDicatat > 0
+                    ? 'Rata-rata ' . $formatNumber($avgPenjualanDicatat, 0) . ' butir terjual/hari; puncak '
+                        . $formatNumber($peakPenjualanValue, 0) . ' butir (' . $peakPenjualanLabel . ').'
+                    : 'Belum ada catatan penjualan telur.',
+            ],
+        ];
+
+        if ($totalTelurRusak > 0) {
+            $telurAnalysisNotes[] = [
+                'icon' => 'fa-triangle-exclamation',
+                'title' => 'Telur Rusak',
+                'text' => 'Total ' . $formatNumber($totalTelurRusak) . ' butir perlu dipilah sebelum penjualan.',
+            ];
+        }
+
+        $firstTelurAnalyticsPoint = $telurAnalyticsSeries->first();
+        $lastTelurAnalyticsPoint = $telurAnalyticsSeries->last();
+        $telurAnalyticsRange = [
+            'start' => is_array($firstTelurAnalyticsPoint) ? ($firstTelurAnalyticsPoint['display'] ?? null) : null,
+            'end' => is_array($lastTelurAnalyticsPoint) ? ($lastTelurAnalyticsPoint['display'] ?? null) : null,
+        ];
     @endphp
 
     <div class="container">
@@ -217,6 +319,21 @@
                 'tabVariant' => 'telur',
                 'feedOptions' => $feedOptions,
                 'vitaminOptions' => $vitaminOptions,
+                'analyticsConfig' => [
+                    'analyticsKey' => 'telur',
+                    'title' => 'Grafik & Analisis Produksi Telur',
+                    'subtitle' => 'Pantau Telur, Tray, dan Penjualan per hari',
+                    'dataset' => $telurAnalyticsSeries,
+                    'stats' => $telurAnalyticsStats,
+                    'analysis' => $telurAnalysisNotes,
+                    'dateRange' => $telurAnalyticsRange,
+                    'seriesDefinitions' => [
+                        ['key' => 'telur', 'field' => 'telur', 'label' => 'Telur (butir)', 'color' => '#2563eb'],
+                        ['key' => 'tray', 'field' => 'tray', 'label' => 'Tray (est.)', 'color' => '#14b8a6'],
+                        ['key' => 'penjualan', 'field' => 'penjualan', 'label' => 'Penjualan Telur (butir)', 'color' => '#f97316'],
+                    ],
+                    'activeSeries' => ['telur', 'tray', 'penjualan'],
+                ],
             ])
 
             <div class="card mb-4" id="history-card">
@@ -625,6 +742,7 @@
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 @endsection
@@ -892,7 +1010,8 @@
                     'pakan': 'Pakan',
                     'vitamin': 'Vitamin',
                     'kematian': 'Kematian',
-                    'laporan': 'Laporan'
+                    'laporan': 'Laporan',
+                    'analytics': 'Grafik & Analisis'
                 };
 
                 const tabColors = {
@@ -902,7 +1021,8 @@
                     'pakan': 'text-pakan',
                     'vitamin': 'text-vitamin',
                     'kematian': 'text-kematian',
-                    'laporan': 'text-laporan'
+                    'laporan': 'text-laporan',
+                    'analytics': 'text-primary'
                 };
 
                 if (activeTabId && tabTitles[activeTabId]) {
@@ -913,7 +1033,7 @@
 
                 historyEntries.forEach(entry => {
                     const entryType = entry.dataset.entryType || '';
-                    const shouldShow = !activeTabId || entryType === activeTabId;
+                    const shouldShow = !activeTabId || activeTabId === 'analytics' || entryType === activeTabId;
                     entry.style.display = shouldShow ? 'flex' : 'none';
                 });
             }

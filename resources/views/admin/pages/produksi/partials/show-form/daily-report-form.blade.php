@@ -1,6 +1,12 @@
 @php
     $tabVariant = $tabVariant ?? 'puyuh';
     $isTelurVariant = $tabVariant === 'telur';
+    $analyticsConfig = $analyticsConfig ?? null;
+    $hasAnalyticsTab = is_array($analyticsConfig) || $analyticsConfig instanceof \Illuminate\Support\Collection;
+    $analyticsTabPayload = $hasAnalyticsTab
+        ? ($analyticsConfig instanceof \Illuminate\Support\Collection ? $analyticsConfig->toArray() : $analyticsConfig)
+        : [];
+
     $tabs = $isTelurVariant
         ? [
             ['id' => 'telur', 'label' => 'Telur'],
@@ -16,6 +22,10 @@
             ['id' => 'penjualan', 'label' => 'Penjualan'],
             ['id' => 'laporan', 'label' => 'Laporan'],
         ];
+
+    if ($hasAnalyticsTab) {
+        $tabs[] = ['id' => 'analytics', 'label' => 'Grafik & Analisis', 'icon' => 'fa-solid fa-chart-line'];
+    }
 
     $trayEntries = collect($trayEntries ?? []);
     $trayEggsPerTray = $eggsPerTray ?? 30;
@@ -54,6 +64,9 @@
                             aria-controls="{{ $tab['id'] }}"
                             aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
                         >
+                            @if (!empty($tab['icon']))
+                                <i class="{{ $tab['icon'] }} me-1"></i>
+                            @endif
                             {{ $tab['label'] }}
                         </button>
                     </li>
@@ -519,6 +532,12 @@
                         </div>
                     </div>
                 </div>
+
+                @if ($hasAnalyticsTab)
+                    <div class="tab-pane fade" id="analytics" role="tabpanel" aria-labelledby="analytics-tab">
+                        @include('admin.pages.produksi.partials.analytics-tab', $analyticsTabPayload)
+                    </div>
+                @endif
             </div>
 
             <div class="d-flex align-items-center justify-content-end gap-2 mt-3">

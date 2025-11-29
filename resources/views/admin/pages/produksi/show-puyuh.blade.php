@@ -51,6 +51,9 @@
         $totalBiayaPakan = $laporanHarian->sum('biaya_pakan_harian');
         $totalBiayaVitamin = $laporanHarian->sum('biaya_vitamin_harian');
         $totalPengeluaran = $totalBiayaPakan + $totalBiayaVitamin;
+        $fcrValue = ($totalTelur > 0 && $totalPakanKg > 0)
+            ? $totalPakanKg / max($totalTelur, 1)
+            : null;
         $latestPakanPrice = optional($laporanHarian->first(fn ($laporan) => $laporan->harga_pakan_per_kg !== null))->harga_pakan_per_kg;
         $latestVitaminPrice = optional($laporanHarian->first(fn ($laporan) => $laporan->harga_vitamin_per_liter !== null))->harga_vitamin_per_liter;
         $totalKematian = $summary['total_kematian'] ?? 0;
@@ -73,6 +76,144 @@
         $ratioLabel = $jumlahJantan + $jumlahBetina > 0
             ? $formatNumber($jumlahJantan) . ' Jantan | ' . $formatNumber($jumlahBetina) . ' Betina'
             : 'Data rasio belum tersedia';
+
+        $puyuhAnalyticsSeries = collect($laporanHarian ?? [])
+            ->filter(fn ($laporan) => $laporan->tanggal)
+            ->sortBy('tanggal')
+            ->groupBy(fn ($laporan) => $laporan->tanggal->format('Y-m-d'))
+            ->map(function ($items) {
+                $first = $items->first();
+                $dateValue = optional($first)->tanggal;
+                $displayDate = $dateValue ? $dateValue->locale('id')->translatedFormat('d M Y') : '-';
+
+                return [
+                    'date' => $dateValue ? $dateValue->format('Y-m-d') : null,
+                    'display' => $displayDate,
+                    'telur' => (float) $items->sum('produksi_telur'),
+                    'pakan' => (float) $items->sum('konsumsi_pakan_kg'),
+                    'vitamin' => (float) $items->sum('vitamin_terpakai'),
+                    'kematian' => (float) $items->sum('jumlah_kematian'),
+                    'penjualan' => (float) $items->sum('penjualan_puyuh_ekor'),
+                ];
+            })
+            ->filter(fn ($row) => $row['date'])
+            ->values();
+
+        $totalTelurDicatat = $puyuhAnalyticsSeries->sum('telur');
+        $totalPakanDicatat = $puyuhAnalyticsSeries->sum('pakan');
+        $totalVitaminDicatat = $puyuhAnalyticsSeries->sum('vitamin');
+        $totalKematianDicatat = $puyuhAnalyticsSeries->sum('kematian');
+        $totalPenjualanDicatat = $puyuhAnalyticsSeries->sum('penjualan');
+        $avgTelurDicatat = $puyuhAnalyticsSeries->avg('telur') ?? 0;
+        $avgPakanDicatat = $puyuhAnalyticsSeries->avg('pakan') ?? 0;
+        $avgVitaminDicatat = $puyuhAnalyticsSeries->avg('vitamin') ?? 0;
+        $peakTelurPoint = $puyuhAnalyticsSeries->sortByDesc('telur')->first();
+        $peakPakanPoint = $puyuhAnalyticsSeries->sortByDesc('pakan')->first();
+        $peakVitaminPoint = $puyuhAnalyticsSeries->sortByDesc('vitamin')->first();
+        $peakKematianPoint = $puyuhAnalyticsSeries->sortByDesc('kematian')->first();
+        $peakPenjualanPoint = $puyuhAnalyticsSeries->sortByDesc('penjualan')->first();
+        $peakTelurValue = is_array($peakTelurPoint) ? ($peakTelurPoint['telur'] ?? 0) : 0;
+        $peakTelurLabel = is_array($peakTelurPoint) ? ($peakTelurPoint['display'] ?? '-') : '-';
+        $peakPakanValue = is_array($peakPakanPoint) ? ($peakPakanPoint['pakan'] ?? 0) : 0;
+        $peakPakanLabel = is_array($peakPakanPoint) ? ($peakPakanPoint['display'] ?? '-') : '-';
+        $peakVitaminValue = is_array($peakVitaminPoint) ? ($peakVitaminPoint['vitamin'] ?? 0) : 0;
+        $peakVitaminLabel = is_array($peakVitaminPoint) ? ($peakVitaminPoint['display'] ?? '-') : '-';
+        $peakKematianValue = is_array($peakKematianPoint) ? ($peakKematianPoint['kematian'] ?? 0) : 0;
+        $peakKematianLabel = is_array($peakKematianPoint) ? ($peakKematianPoint['display'] ?? '-') : '-';
+        $peakPenjualanValue = is_array($peakPenjualanPoint) ? ($peakPenjualanPoint['penjualan'] ?? 0) : 0;
+        $peakPenjualanLabel = is_array($peakPenjualanPoint) ? ($peakPenjualanPoint['display'] ?? '-') : '-';
+        $feedPerEgg = $totalTelurDicatat > 0 && $totalPakanDicatat > 0
+            ? $totalPakanDicatat / $totalTelurDicatat
+            : null;
+        $mortalitasPercentAnalytics = ($initialPopulation ?? 0) > 0
+            ? ($totalKematianDicatat / max($initialPopulation, 1)) * 100
+            : 0;
+
+        $puyuhAnalyticsStats = [
+            [
+                'label' => 'Total Telur',
+                'value' => $formatNumber($totalTelurDicatat),
+                'suffix' => 'butir',
+                'meta' => $puyuhAnalyticsSeries->count() ? 'Rata-rata ' . $formatNumber($avgTelurDicatat, 0) . ' butir/hari' : null,
+            ],
+            [
+                'label' => 'Total Pakan',
+                'value' => $formatNumber($totalPakanDicatat, 2),
+                'suffix' => 'kg',
+                'meta' => $puyuhAnalyticsSeries->count() ? 'Rata-rata ' . $formatNumber($avgPakanDicatat, 2) . ' kg/hari' : null,
+            ],
+            [
+                'label' => 'Total Vitamin',
+                'value' => $formatNumber($totalVitaminDicatat, 2),
+                'suffix' => 'L',
+                'meta' => $puyuhAnalyticsSeries->count() ? 'Rata-rata ' . $formatNumber($avgVitaminDicatat, 2) . ' L/hari' : null,
+            ],
+            [
+                'label' => 'Total Kematian',
+                'value' => $formatNumber($totalKematianDicatat),
+                'suffix' => 'ekor',
+                'meta' => $initialPopulation > 0
+                    ? 'Mortalitas ' . number_format($mortalitasPercentAnalytics, 2, ',', '.') . '%'
+                    : null,
+            ],
+            [
+                'label' => 'Penjualan Puyuh',
+                'value' => $formatNumber($totalPenjualanDicatat),
+                'suffix' => 'ekor',
+                'meta' => $totalPendapatan > 0 ? 'Total pendapatan Rp ' . strip_tags($formatLargeNumber($totalPendapatan, false)) : null,
+            ],
+        ];
+
+        $puyuhAnalysisNotes = [
+            [
+                'icon' => 'fa-egg',
+                'title' => 'Produksi Telur',
+                'text' => $totalTelurDicatat > 0
+                    ? 'Rata-rata ' . $formatNumber($avgTelurDicatat, 0) . ' butir/hari; puncak '
+                        . $formatNumber($peakTelurValue, 0) . ' butir (' . $peakTelurLabel . ').'
+                    : 'Belum ada pencatatan telur yang dapat dianalisis.',
+            ],
+            [
+                'icon' => 'fa-bowl-food',
+                'title' => 'Konsumsi Pakan',
+                'text' => $totalPakanDicatat > 0
+                    ? 'Rata-rata ' . $formatNumber($avgPakanDicatat, 2) . ' kg/hari; tertinggi '
+                        . $formatNumber($peakPakanValue, 2) . ' kg (' . $peakPakanLabel . ').'
+                        . ($feedPerEgg ? ' Rasio pakan/telur ~' . number_format($feedPerEgg, 3, ',', '.') . ' kg per butir.' : '')
+                    : 'Belum ada catatan pakan.',
+            ],
+            [
+                'icon' => 'fa-capsules',
+                'title' => 'Pemakaian Vitamin',
+                'text' => $totalVitaminDicatat > 0
+                    ? 'Rata-rata ' . $formatNumber($avgVitaminDicatat, 2) . ' L/hari; tertinggi '
+                        . $formatNumber($peakVitaminValue, 2) . ' L (' . $peakVitaminLabel . ').'
+                    : 'Belum ada catatan vitamin.',
+            ],
+            [
+                'icon' => 'fa-skull-crossbones',
+                'title' => 'Kematian',
+                'text' => $totalKematianDicatat > 0
+                    ? 'Total ' . $formatNumber($totalKematianDicatat) . ' ekor; puncak '
+                        . $formatNumber($peakKematianValue) . ' ekor (' . $peakKematianLabel . ').'
+                    : 'Tidak ada kematian yang tercatat.',
+            ],
+            [
+                'icon' => 'fa-cash-register',
+                'title' => 'Penjualan Puyuh',
+                'text' => $totalPenjualanDicatat > 0
+                    ? $formatNumber($totalPenjualanDicatat) . ' ekor terjual; aktivitas tertinggi '
+                        . $formatNumber($peakPenjualanValue) . ' ekor (' . $peakPenjualanLabel . ').'
+                    : 'Belum ada catatan penjualan puyuh.',
+            ],
+        ];
+
+        $firstAnalyticsPoint = $puyuhAnalyticsSeries->first();
+        $lastAnalyticsPoint = $puyuhAnalyticsSeries->last();
+        $puyuhAnalyticsRange = [
+            'start' => is_array($firstAnalyticsPoint) ? ($firstAnalyticsPoint['display'] ?? null) : null,
+            'end' => is_array($lastAnalyticsPoint) ? ($lastAnalyticsPoint['display'] ?? null) : null,
+        ];
     @endphp
 
     <div class="container">
@@ -126,16 +267,12 @@
             <div class="kai-cards mb-4">
                 <div class="row g-3">
                     <div class="col-lg-3 col-md-6 col-6">
-                        <div class="card-kai kai-red" id="kai-mortalitas-card">
+                        <div class="card-kai kai-indigo" id="kai-telur-card">
                             <div>
-                                <div class="value" id="kai-mortalitas-value">
-                                    {{ $mortalitasDisplay }}<small style="font-size:0.45em;">%</small>
-                                </div>
-                                <div class="label" id="kai-mortalitas-label">
-                                    Mortalitas ({{ $formatNumber($totalKematian) }} ekor)
-                                </div>
+                                <div class="value" id="kai-telur-value">{{ $formatNumber($totalTelur) }}</div>
+                                <div class="label" id="kai-telur-label">Total Telur (butir)</div>
                             </div>
-                            <i class="fa-solid fa-skull-crossbones icon-faint"></i>
+                            <i class="fa-solid fa-egg icon-faint"></i>
                         </div>
                     </div>
 
@@ -155,12 +292,26 @@
                     </div>
 
                     <div class="col-lg-3 col-md-6 col-6">
-                        <div class="card-kai kai-indigo" id="kai-telur-card">
+                        <div class="card-kai kai-red" id="kai-mortalitas-card">
                             <div>
-                                <div class="value" id="kai-telur-value">{{ $formatNumber($totalTelur) }}</div>
-                                <div class="label" id="kai-telur-label">Total Telur (butir)</div>
+                                <div class="value" id="kai-mortalitas-value">
+                                    {{ $mortalitasDisplay }}<small style="font-size:0.45em;">%</small>
+                                </div>
+                                <div class="label" id="kai-mortalitas-label">
+                                    Mortalitas ({{ $formatNumber($totalKematian) }} ekor)
+                                </div>
                             </div>
-                            <i class="fa-solid fa-chart-line icon-faint"></i>
+                            <i class="fa-solid fa-skull-crossbones icon-faint"></i>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 col-md-6 col-6">
+                        <div class="card-kai kai-green" id="kai-penjualan-card">
+                            <div>
+                                <div class="value" id="kai-penjualan-value">Rp {!! $formatLargeNumber($totalPendapatan, false) !!}</div>
+                                <div class="label" id="kai-penjualan-label">Total Pendapatan</div>
+                            </div>
+                            <i class="fa-solid fa-money-bill-wave icon-faint"></i>
                         </div>
                     </div>
 
@@ -197,17 +348,20 @@
                     </div>
 
                     <div class="col-lg-3 col-md-6 col-6">
-                        <div class="card-kai kai-green" id="kai-penjualan-card">
+                        <div class="card-kai kai-cyan" id="kai-fcr-card">
                             <div>
-                                <div class="value" id="kai-penjualan-value">Rp {!! $formatLargeNumber($totalPendapatan, false) !!}</div>
-                                <div class="label" id="kai-penjualan-label">Total Pendapatan</div>
+                                <div class="value" id="kai-fcr-value">
+                                    {{ $fcrValue !== null ? $formatNumber($fcrValue, 2) : '—' }}<small style="font-size:0.45em;"> FCR</small>
+                                </div>
+                                <div class="label" id="kai-fcr-label"> </div>
+                                <div class="footnote">{{ $formatNumber($totalPakanKg, 2) }} kg / {{ $formatNumber($totalTelur) }} butir</div>
                             </div>
-                            <i class="fa-solid fa-coins icon-faint"></i>
+                            <i class="fa-solid fa-balance-scale icon-faint"></i>
                         </div>
                     </div>
 
                     <div class="col-lg-3 col-md-6 col-6">
-                        <div class="card-kai kai-orange" id="kai-pengeluaran-card">
+                        <div class="card-kai kai-brown" id="kai-pengeluaran-card">
                             <div>
                                 <div class="value" id="kai-pengeluaran-value">Rp {!! $formatLargeNumber($totalPengeluaran, false) !!}</div>
                                 <div class="label" id="kai-pengeluaran-label">Total Pengeluaran</div>
@@ -225,7 +379,7 @@
                                     </div>
                                 @endif
                             </div>
-                            <i class="fa-solid fa-wallet icon-faint"></i>
+                            <i class="fa-solid fa-credit-card icon-faint"></i>
                         </div>
                     </div>
                 </div>
@@ -259,6 +413,23 @@
                 'tabVariant' => 'puyuh',
                 'feedOptions' => $feedOptions,
                 'vitaminOptions' => $vitaminOptions,
+                'analyticsConfig' => [
+                    'analyticsKey' => 'puyuh',
+                    'title' => 'Grafik & Analisis Produksi Puyuh',
+                    'subtitle' => 'Monitor Telur, Pakan, dan Kematian per hari',
+                    'dataset' => $puyuhAnalyticsSeries,
+                    'stats' => $puyuhAnalyticsStats,
+                    'analysis' => $puyuhAnalysisNotes,
+                    'dateRange' => $puyuhAnalyticsRange,
+                    'seriesDefinitions' => [
+                        ['key' => 'telur', 'field' => 'telur', 'label' => 'Telur (butir)', 'color' => '#2563eb'],
+                        ['key' => 'pakan', 'field' => 'pakan', 'label' => 'Pakan (kg)', 'color' => '#22c55e'],
+                        ['key' => 'vitamin', 'field' => 'vitamin', 'label' => 'Vitamin (L)', 'color' => '#a855f7'],
+                        ['key' => 'kematian', 'field' => 'kematian', 'label' => 'Kematian (ekor)', 'color' => '#ef4444'],
+                        ['key' => 'penjualan', 'field' => 'penjualan', 'label' => 'Penjualan Puyuh (ekor)', 'color' => '#f97316'],
+                    ],
+                    'activeSeries' => ['telur', 'pakan', 'kematian'],
+                ],
             ])
 
             <div class="card mb-4" id="history-card">
@@ -728,7 +899,8 @@
                     'pakan': 'Pakan',
                     'vitamin': 'Vitamin',
                     'kematian': 'Kematian',
-                    'laporan': 'Laporan'
+                    'laporan': 'Laporan',
+                    'analytics': 'Grafik & Analisis'
                 };
 
                 const tabColors = {
@@ -737,7 +909,8 @@
                     'pakan': 'text-pakan',
                     'vitamin': 'text-vitamin',
                     'kematian': 'text-kematian',
-                    'laporan': 'text-laporan'
+                    'laporan': 'text-laporan',
+                    'analytics': 'text-primary'
                 };
 
                 // Update title
@@ -776,6 +949,9 @@
                                 break;
                             case 'laporan':
                                 shouldShow = entry.querySelector('.badge') !== null || entry.classList.contains('entry-laporan');
+                                break;
+                            case 'analytics':
+                                shouldShow = true;
                                 break;
                         }
                     }

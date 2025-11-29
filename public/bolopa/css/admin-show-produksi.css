@@ -236,6 +236,14 @@ h5 small {
 	background: linear-gradient(180deg, #0ea5a4, #0b8b87);
 }
 
+.kai-cyan {
+	background: linear-gradient(180deg, #0891b2, #0e7490);
+}
+
+.kai-brown {
+	background: linear-gradient(180deg, #a16207, #78350f);
+}
+
 .kai-green {
 	background: linear-gradient(180deg, #10b981, #0f9a6f);
 }
