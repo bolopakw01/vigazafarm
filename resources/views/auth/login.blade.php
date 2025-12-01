@@ -252,6 +252,19 @@
 	</script>
 	@endverbatim
 
+	@if (session('status'))
+		<script>
+			document.addEventListener('DOMContentLoaded', function () {
+				Swal.fire({
+					title: 'Berhasil Ganti Username',
+					text: @json(session('status')),
+					icon: 'info',
+					confirmButtonText: 'Login Sekarang'
+				});
+			});
+		</script>
+	@endif
+
 </body>
 </html>
 

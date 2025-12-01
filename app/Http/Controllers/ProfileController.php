@@ -46,6 +46,7 @@ class ProfileController extends Controller
         $user = $request->user();
         $photoDirectory = public_path('foto_profil');
         $removePhoto = $request->boolean('remove_profile_picture');
+        $usernameChanged = false;
 
         // Tangani unggah foto profil
         if ($request->hasFile('profile_picture')) {
@@ -74,10 +75,12 @@ class ProfileController extends Controller
 
         // Perbarui data pengguna
         $user->nama = $request->nama;
-        if (Auth::user()->peran === 'owner') {
+        if ($user->peran === 'owner') {
+            $usernameChanged = $user->nama_pengguna !== $request->username;
             $user->nama_pengguna = $request->username;
         }
         $user->surel = $request->email;
+        $user->nomor_telepon = $request->nomor_telepon;
         $user->alamat = $request->alamat;
 
         // Tangani pembaruan kata sandi
@@ -86,6 +89,14 @@ class ProfileController extends Controller
         }
 
         $user->save();
+
+        if ($usernameChanged) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return Redirect::route('login')->with('status', 'Username berhasil diperbarui. Silakan login ulang menggunakan kredensial baru.');
+        }
 
         return Redirect::route('profile.edit')->with('success', 'Profile berhasil diperbarui');
     }

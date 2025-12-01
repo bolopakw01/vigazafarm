@@ -3,7 +3,7 @@
 @section('title', 'Edit Profile')
 
 @push('styles')
-<link rel="stylesheet" href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css">
+<link rel="stylesheet" href="{{ asset('bolopa/plugin/cropperjs/cropper.min.css') }}">
 <style>
   :root {
     --profile-card-bg: #ffffff;
@@ -14,13 +14,13 @@
   .profile-edit-wrapper {
     display: flex;
     align-items: flex-start;
-    justify-content: center;
-    padding: 16px 16px;
+    justify-content: stretch;
+    padding: 20px 28px;
   }
 
   .profile-edit-card {
     width: 100%;
-    max-width: 960px;
+    max-width: none;
     border-radius: 14px;
     background: var(--profile-card-bg);
     box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
@@ -30,8 +30,8 @@
   }
 
   .profile-card-left {
-    width: 300px;
-    padding: 28px 22px;
+    width: 340px;
+    padding: 32px 28px;
     background: linear-gradient(180deg, rgba(13, 110, 253, 0.06), rgba(13, 110, 253, 0.02));
     display: flex;
     flex-direction: column;
@@ -42,7 +42,7 @@
 
   .profile-card-right {
     flex: 1 1 auto;
-    padding: 32px 32px 36px;
+    padding: 36px 40px 44px;
   }
 
   .profile-edit-wrapper .profile-edit-card .profile-avatar {
@@ -307,7 +307,8 @@
 @section('content')
 @php
   $profilePhotoUrl = $user->foto_profil ? asset('foto_profil/' . $user->foto_profil) : '';
-  $lastUpdatedHuman = $user->diperbarui_pada ? \Carbon\Carbon::parse($user->diperbarui_pada)->diffForHumans() : 'Belum pernah diperbarui';
+  $lastUpdatedAt = $user->diperbarui_pada ?? $user->updated_at;
+  $lastUpdatedHuman = $lastUpdatedAt ? \Carbon\Carbon::parse($lastUpdatedAt)->locale('id')->diffForHumans() : 'Belum pernah diperbarui';
   $peranLabel = match ($user->peran) {
     'owner' => 'Owner',
     'super_admin' => 'Super Admin',
@@ -367,6 +368,7 @@
           @error('nama')
             <div class="invalid-feedback d-block">{{ $message }}</div>
           @enderror
+          <div class="profile-helper-text">Masukkan nama lengkap sesuai identitas resmi.</div>
         </div>
 
         <div class="col-12 col-lg-6">
@@ -380,6 +382,7 @@
           @error('username')
             <div class="invalid-feedback d-block">{{ $message }}</div>
           @enderror
+          <div class="profile-helper-text">Username hanya bisa diubah oleh Owner.</div>
         </div>
 
         <div class="col-12 col-lg-6">
@@ -393,6 +396,7 @@
           @error('email')
             <div class="invalid-feedback d-block">{{ $message }}</div>
           @enderror
+          <div class="profile-helper-text">Email aktif untuk notifikasi dan pemulihan akun.</div>
         </div>
 
         <div class="col-12 col-lg-6">
@@ -402,7 +406,21 @@
             <span class="input-group-text"><i class="fa-solid fa-shield"></i></span>
             <input type="text" id="peran" class="form-control" value="{{ $peranLabel }}" readonly style="cursor: not-allowed; opacity: 0.6; background-color: #e9ecef;">
           </div>
-          <div class="profile-helper-text">Peran tidak dapat diubah melalui halaman ini.</div>
+          <div class="profile-helper-text">Hak akses tidak dapat diubah melalui halaman ini.</div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+          <label class="form-label" for="nomor_telepon">
+            Nomor Telepon
+          </label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fa-solid fa-phone"></i></span>
+            <input type="text" id="nomor_telepon" name="nomor_telepon" class="form-control @error('nomor_telepon') is-invalid @enderror" placeholder="Contoh: 081234567890" value="{{ old('nomor_telepon', $user->nomor_telepon) }}">
+          </div>
+          @error('nomor_telepon')
+            <div class="invalid-feedback d-block">{{ $message }}</div>
+          @enderror
+          <div class="profile-helper-text">Nomor telepon aktif untuk komunikasi penting.</div>
         </div>
 
         <div class="col-12 col-lg-6">
@@ -414,7 +432,7 @@
             <input type="password" id="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="Isi jika ingin mengganti password" aria-describedby="togglePassword">
             <button class="btn btn-outline-secondary" type="button" id="togglePassword" title="Tampilkan kata sandi"><i class="fa-regular fa-eye"></i></button>
           </div>
-          <div class="profile-helper-text">Gunakan kombinasi huruf dan angka minimal 8 karakter.</div>
+          <div class="profile-helper-text">Biarkan kosong jika tidak ingin mengubah password.</div>
           @error('password')
             <div class="invalid-feedback d-block">{{ $message }}</div>
           @enderror
@@ -428,6 +446,7 @@
           @error('alamat')
             <div class="invalid-feedback d-block">{{ $message }}</div>
           @enderror
+          <div class="profile-helper-text">Alamat lengkap untuk keperluan administrasi.</div>
         </div>
       </div>
 

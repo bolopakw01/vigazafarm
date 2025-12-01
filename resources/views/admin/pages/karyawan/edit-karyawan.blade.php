@@ -3,64 +3,174 @@
 @section('title', 'Edit Karyawan')
 
 @push('styles')
-<link rel="stylesheet" href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css">
+<link rel="stylesheet" href="{{ asset('bolopa/plugin/cropperjs/cropper.min.css') }}">
 <style>
-  .employee-photo-card {
+  .employee-form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) minmax(270px, 1fr);
+    gap: 1.5rem;
+  }
+
+  .employee-form-primary {
     display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-    padding: 16px 18px;
-    border: 1px dashed #cbd5f5;
-    border-radius: 14px;
-    background: #f8fafc;
+    flex-direction: column;
+    gap: 1.25rem;
   }
 
-  .employee-avatar {
-    width: 112px;
-    height: 112px;
-    border-radius: 50%;
-    border: 4px solid #ffffff;
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.16);
-    background: #e2e8f0;
+  .employee-panel {
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.04);
   }
 
-  img.employee-avatar {
-    object-fit: cover;
-  }
-
-  .employee-avatar-initial {
+  .employee-panel-head {
     display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1.25rem 1.5rem 0;
+    gap: 0.75rem;
+  }
+
+  .employee-panel-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  .employee-panel-subtitle {
+    font-size: 0.88rem;
+    color: #64748b;
+  }
+
+  .employee-panel-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(79, 70, 229, 0.12);
+    color: #4f46e5;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 38px;
-    font-weight: 600;
-    color: #ffffff;
-    background: linear-gradient(135deg, #6478ff, #00c6a7);
+  }
+
+  .employee-panel-body {
+    padding: 1.25rem 1.5rem 1.5rem;
+  }
+
+  .employee-panel-body .form-label {
+    font-size: 0.9rem;
+    color: #0f172a;
+  }
+
+  .employee-panel-body .form-control,
+  .employee-panel-body .form-select,
+  textarea.form-control {
+    border-radius: 12px;
+    border: 1px solid #dfe3ec;
+    padding: 0.65rem 0.9rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .employee-panel-body .form-control:focus,
+  .employee-panel-body .form-select:focus,
+  textarea.form-control:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+  }
+
+  .employee-panel-body textarea {
+    min-height: 120px;
+  }
+
+  .employee-side-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .employee-photo-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border: 1px dashed #cbd5f5;
+    border-radius: 16px;
+    background: #f8fafc;
+    padding: 1.25rem;
   }
 
   .employee-avatar-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 0.5rem;
+  }
+
+  .employee-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 4px solid #ffffff;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.16);
+    background: #e2e8f0;
+    object-fit: cover;
+  }
+
+  .employee-avatar-initial {
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: #ffffff;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6478ff, #00c6a7);
   }
 
   .employee-photo-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 0.5rem;
+    width: 100%;
   }
 
   .employee-photo-actions .btn {
+    flex: 1;
+    min-width: 140px;
+    border-radius: 999px;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 0.35rem;
   }
 
   .employee-helper-text {
     font-size: 0.85rem;
     color: #64748b;
+    text-align: center;
+  }
+
+  .employee-info-tip {
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(250, 204, 21, 0.16), rgba(59, 130, 246, 0.12));
+    padding: 1.2rem;
+    font-size: 0.9rem;
+    color: #0f172a;
+    border: 1px solid rgba(251, 191, 36, 0.4);
+  }
+
+  .employee-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: flex-end;
+  }
+
+  .employee-actions .btn {
+    min-width: 130px;
+    border-radius: 999px;
   }
 
   .employee-crop-modal {
@@ -175,30 +285,31 @@
     overflow: hidden;
   }
 
+  @media (max-width: 1199.98px) {
+    .employee-form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .employee-panel-icon {
+      display: none;
+    }
+  }
+
   @media (max-width: 576px) {
-    .employee-photo-card {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .employee-avatar {
-      width: 96px;
-      height: 96px;
-      font-size: 32px;
-    }
-
-    .employee-crop-canvas {
-      height: clamp(260px, 65vh, 380px);
+    .employee-panel-body {
+      padding: 1rem;
     }
 
     .employee-photo-actions {
-      width: 100%;
       flex-direction: column;
     }
 
     .employee-photo-actions .btn {
       width: 100%;
-      justify-content: center;
+    }
+
+    .employee-crop-canvas {
+      height: clamp(260px, 65vh, 380px);
     }
   }
 </style>
@@ -226,124 +337,174 @@
       <form action="{{ route('admin.karyawan.update', $karyawan->id) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PATCH')
-        <div class="row g-3">
+        @php
+          $employeeInitialName = old('nama', $karyawan->nama);
+          $employeeInitialLetter = $employeeInitialName !== '' ? mb_strtoupper(mb_substr($employeeInitialName, 0, 1)) : 'A';
+          $employeePhotoUrl = $karyawan->foto_profil ? asset('foto_profil/' . $karyawan->foto_profil) : '';
+        @endphp
 
-          <!-- Nama Lengkap -->
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">
-              <i class="fa-solid fa-user text-primary me-1"></i>Nama Lengkap
-            </label>
-            <input type="text" name="nama" class="form-control @error('nama') is-invalid @enderror" placeholder="Contoh: John Doe" value="{{ old('nama', $karyawan->nama) }}" required>
-            @error('nama')
-              <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-          </div>
-
-          <!-- Username -->
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">
-              <i class="fa-solid fa-at text-primary me-1"></i>Username
-            </label>
-            <input type="text" name="nama_pengguna" class="form-control @error('nama_pengguna') is-invalid @enderror" placeholder="Contoh: johndoe" value="{{ old('nama_pengguna', $karyawan->nama_pengguna) }}" required>
-            @error('nama_pengguna')
-              <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-          </div>
-
-          <!-- Email -->
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">
-              <i class="fa-solid fa-envelope text-info me-1"></i>Email
-            </label>
-            <input type="email" name="surel" class="form-control @error('surel') is-invalid @enderror" placeholder="Contoh: john@example.com" value="{{ old('surel', $karyawan->surel) }}" required>
-            @error('surel')
-              <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-          </div>
-
-          <!-- Password -->
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">
-              <i class="fa-solid fa-lock text-success me-1"></i>Password Baru
-            </label>
-            <input type="password" name="kata_sandi" class="form-control @error('kata_sandi') is-invalid @enderror" placeholder="Kosongkan jika tidak diubah">
-            <small class="text-muted">Minimal 8 karakter. Kosongkan jika tidak ingin mengubah password</small>
-            @error('kata_sandi')
-              <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-          </div>
-
-          <!-- Peran -->
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">
-              <i class="fa-solid fa-user-shield text-warning me-1"></i>Peran
-            </label>
-            <select name="peran" class="form-select @error('peran') is-invalid @enderror" required>
-              <option value="" disabled>Pilih peran</option>
-              <option value="operator" {{ old('peran', $karyawan->peran) == 'operator' ? 'selected' : '' }}>Operator</option>
-              <option value="owner" {{ old('peran', $karyawan->peran) == 'owner' ? 'selected' : '' }}>Owner</option>
-            </select>
-            @error('peran')
-              <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-          </div>
-
-          <!-- Foto Profil -->
-          @php
-            $employeeInitialName = old('nama', $karyawan->nama);
-            $employeeInitialLetter = $employeeInitialName !== '' ? mb_strtoupper(mb_substr($employeeInitialName, 0, 1)) : 'A';
-            $employeePhotoUrl = $karyawan->foto_profil ? asset('foto_profil/' . $karyawan->foto_profil) : '';
-          @endphp
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">
-              <i class="fa-solid fa-camera text-secondary me-1"></i>Foto Profil
-            </label>
-            <div class="employee-photo-card" data-employee-photo data-initial-photo="{{ $employeePhotoUrl }}">
-              <div class="employee-avatar-wrapper">
-                <img src="{{ $employeePhotoUrl }}" alt="Pratinjau Foto Karyawan" class="employee-avatar {{ $employeePhotoUrl ? '' : 'd-none' }}" data-avatar-preview data-initial-src="{{ $employeePhotoUrl }}">
-                <div class="employee-avatar employee-avatar-initial {{ $employeePhotoUrl ? 'd-none' : '' }}" data-avatar-initial>{{ $employeeInitialLetter }}</div>
-              </div>
-              <div class="d-flex flex-column gap-2 flex-grow-1">
-                <div class="employee-photo-actions">
-                  <label for="employeePhotoInput" class="btn btn-sm btn-outline-primary">
-                    <i class="fa-solid fa-camera me-1"></i> Ganti Foto
-                  </label>
-                  <button type="button" class="btn btn-sm btn-outline-danger" data-remove-button {{ $employeePhotoUrl ? '' : 'disabled' }}>
-                    <i class="fa-solid fa-trash-can me-1"></i> Hapus Foto
-                  </button>
+        <div class="employee-form-grid">
+          <div class="employee-form-primary">
+            <section class="employee-panel">
+              <div class="employee-panel-head">
+                <div>
+                  <div class="employee-panel-title">Data Personal</div>
+                  <div class="employee-panel-subtitle">Perbarui identitas dan kontak karyawan.</div>
                 </div>
-                <input type="hidden" name="remove_profile_picture" value="0" data-remove-flag>
-                <input type="file" id="employeePhotoInput" name="foto_profil" class="form-control d-none @error('foto_profil') is-invalid @enderror" accept="image/*" data-photo-input>
-                <div class="employee-helper-text">PNG, JPG atau GIF. Maks 2MB.</div>
-                @error('foto_profil')
-                  <div class="invalid-feedback d-block">{{ $message }}</div>
+                <div class="employee-panel-icon">
+                  <i class="fa-solid fa-id-card"></i>
+                </div>
+              </div>
+              <div class="employee-panel-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                      <i class="fa-solid fa-user text-primary me-1"></i>Nama Lengkap
+                    </label>
+                    <input type="text" name="nama" class="form-control @error('nama') is-invalid @enderror" placeholder="Contoh: John Doe" value="{{ old('nama', $karyawan->nama) }}" required>
+                    @error('nama')
+                      <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                      <i class="fa-solid fa-at text-primary me-1"></i>Username
+                    </label>
+                    <input type="text" name="nama_pengguna" class="form-control @error('nama_pengguna') is-invalid @enderror" placeholder="Contoh: johndoe" value="{{ old('nama_pengguna', $karyawan->nama_pengguna) }}" required>
+                    @error('nama_pengguna')
+                      <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                      <i class="fa-solid fa-envelope text-info me-1"></i>Email
+                    </label>
+                    <input type="email" name="surel" class="form-control @error('surel') is-invalid @enderror" placeholder="Contoh: john@example.com" value="{{ old('surel', $karyawan->surel) }}" required>
+                    @error('surel')
+                      <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                      <i class="fa-solid fa-phone text-secondary me-1"></i>Nomor Telepon
+                    </label>
+                    <input type="text" name="nomor_telepon" class="form-control @error('nomor_telepon') is-invalid @enderror" placeholder="Contoh: 081234567890" value="{{ old('nomor_telepon', $karyawan->nomor_telepon) }}">
+                    @error('nomor_telepon')
+                      <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="employee-panel">
+              <div class="employee-panel-head">
+                <div>
+                  <div class="employee-panel-title">Akun & Hak Akses</div>
+                  <div class="employee-panel-subtitle">Atur ulang kata sandi bila diperlukan dan tetapkan peran.</div>
+                </div>
+                <div class="employee-panel-icon">
+                  <i class="fa-solid fa-lock"></i>
+                </div>
+              </div>
+              <div class="employee-panel-body">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                      <i class="fa-solid fa-lock text-success me-1"></i>Password Baru
+                    </label>
+                    <input type="password" name="kata_sandi" class="form-control @error('kata_sandi') is-invalid @enderror" placeholder="Kosongkan jika tidak diubah">
+                    <small class="text-muted d-block mt-1">Minimal 8 karakter. Kosongkan jika tidak ingin mengubah.</small>
+                    @error('kata_sandi')
+                      <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                      <i class="fa-solid fa-user-shield text-warning me-1"></i>Peran
+                    </label>
+                    <select name="peran" class="form-select @error('peran') is-invalid @enderror" required>
+                      <option value="" disabled>Pilih peran</option>
+                      <option value="operator" {{ old('peran', $karyawan->peran) == 'operator' ? 'selected' : '' }}>Operator</option>
+                      <option value="owner" {{ old('peran', $karyawan->peran) == 'owner' ? 'selected' : '' }}>Owner</option>
+                    </select>
+                    @error('peran')
+                      <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="employee-panel">
+              <div class="employee-panel-head">
+                <div>
+                  <div class="employee-panel-title">Alamat Domisili</div>
+                  <div class="employee-panel-subtitle">Selalu perbarui alamat untuk kebutuhan administrasi.</div>
+                </div>
+                <div class="employee-panel-icon">
+                  <i class="fa-solid fa-map-location-dot"></i>
+                </div>
+              </div>
+              <div class="employee-panel-body">
+                <label class="form-label fw-semibold">
+                  <i class="fa-solid fa-map-marker-alt text-danger me-1"></i>Alamat Lengkap
+                </label>
+                <textarea name="alamat" class="form-control @error('alamat') is-invalid @enderror" rows="4" placeholder="Masukkan alamat lengkap">{{ old('alamat', $karyawan->alamat) }}</textarea>
+                @error('alamat')
+                  <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
               </div>
+            </section>
+          </div>
+
+          <div class="employee-side-column">
+            <section class="employee-panel">
+              <div class="employee-panel-head">
+                <div>
+                  <div class="employee-panel-title">Foto Profil</div>
+                  <div class="employee-panel-subtitle">Gunakan foto terbaru agar absensi lebih mudah.</div>
+                </div>
+              </div>
+              <div class="employee-panel-body">
+                <div class="employee-photo-card" data-employee-photo data-initial-photo="{{ $employeePhotoUrl }}">
+                  <div class="employee-avatar-wrapper">
+                    <img src="{{ $employeePhotoUrl }}" alt="Pratinjau Foto Karyawan" class="employee-avatar {{ $employeePhotoUrl ? '' : 'd-none' }}" data-avatar-preview data-initial-src="{{ $employeePhotoUrl }}">
+                    <div class="employee-avatar-initial {{ $employeePhotoUrl ? 'd-none' : '' }}" data-avatar-initial>{{ $employeeInitialLetter }}</div>
+                  </div>
+                  <div class="employee-photo-actions">
+                    <label for="employeePhotoInput" class="btn btn-outline-primary">
+                      <i class="fa-solid fa-camera"></i> Ganti Foto
+                    </label>
+                    <button type="button" class="btn btn-outline-danger" data-remove-button {{ $employeePhotoUrl ? '' : 'disabled' }}>
+                      <i class="fa-solid fa-trash-can"></i> Hapus Foto
+                    </button>
+                  </div>
+                  <input type="hidden" name="remove_profile_picture" value="0" data-remove-flag>
+                  <input type="file" id="employeePhotoInput" name="foto_profil" class="form-control d-none @error('foto_profil') is-invalid @enderror" accept="image/*" data-photo-input>
+                  <div class="employee-helper-text">PNG, JPG atau GIF. Maks 2MB.</div>
+                  @error('foto_profil')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                  @enderror
+                </div>
+              </div>
+            </section>
+
+            <div class="employee-info-tip">
+              <div class="fw-semibold mb-1"><i class="fa-solid fa-lightbulb me-2 text-warning"></i>Tips Keamanan</div>
+              Gunakan kombinasi huruf, angka, dan simbol saat memperbarui password agar akun tetap aman.
             </div>
           </div>
-
-          <!-- Alamat -->
-          <div class="col-12">
-            <label class="form-label fw-semibold">
-              <i class="fa-solid fa-map-marker-alt text-danger me-1"></i>Alamat
-            </label>
-            <textarea name="alamat" class="form-control @error('alamat') is-invalid @enderror" rows="3" placeholder="Masukkan alamat lengkap">{{ old('alamat', $karyawan->alamat) }}</textarea>
-            @error('alamat')
-              <div class="invalid-feedback">{{ $message }}</div>
-            @enderror
-          </div>
-
         </div>
 
-        <!-- Tombol Aksi -->
-        <div class="mt-4 d-flex justify-content-end gap-2">
-          <a href="{{ route('admin.karyawan') }}" class="btn btn-secondary px-4">
+        <div class="mt-4 employee-actions">
+          <a href="{{ route('admin.karyawan') }}" class="btn btn-light border">
             <i class="fa-solid fa-arrow-left me-1"></i>Batal
           </a>
-          <button type="reset" class="btn btn-outline-secondary px-4">
+          <button type="reset" class="btn btn-outline-secondary">
             <i class="fa-solid fa-rotate-left me-1"></i>Reset
           </button>
-          <button type="submit" class="btn btn-warning px-4">
+          <button type="submit" class="btn btn-warning text-dark">
             <i class="fa-solid fa-save me-1"></i>Update
           </button>
         </div>
@@ -381,7 +542,7 @@
 @endsection
 
 @push('scripts')
-  <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"></script>
+  <script src="{{ asset('bolopa/plugin/cropperjs/cropper.min.js') }}"></script>
   <script src="{{ asset('bolopa/plugin/sweetalert2/sweetalert2.all.min.js') }}"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function () {

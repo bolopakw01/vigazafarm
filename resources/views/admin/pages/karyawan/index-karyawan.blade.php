@@ -6,6 +6,209 @@
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-karyawan.css') }}">
 <!-- Bootstrap for SweetAlert form styling -->
 <link href="{{ asset('bolopa/css/bootstrap.min.css') }}" rel="stylesheet">
+<style>
+	body.bolopa-ktp-popup-open { overflow: hidden; }
+
+	.bolopa-ktp-card,
+	.bolopa-ktp-card * {
+		box-sizing: border-box;
+	}
+
+	.bolopa-ktp-popup-overlay {
+		position: fixed;
+		inset: 0;
+		background: rgba(7, 16, 29, 0.6);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 24px;
+		visibility: hidden;
+		opacity: 0;
+		transition: opacity 0.25s ease, visibility 0.25s ease;
+		z-index: 1050;
+	}
+
+	.bolopa-ktp-popup-overlay.active {
+		visibility: visible;
+		opacity: 1;
+	}
+
+	.bolopa-ktp-popup-container {
+		position: relative;
+		max-width: 520px;
+		width: 100%;
+	}
+
+	.bolopa-ktp-card {
+		width: 100%;
+		border-radius: 8px;
+		background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(238,247,255,0.95));
+		border: 2px solid rgba(45, 116, 179, 0.5);
+		box-shadow: 0 20px 60px rgba(15, 54, 87, 0.25);
+		padding: 18px 22px 20px;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.bolopa-ktp-card::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		background-image: linear-gradient(120deg, rgba(45,116,179,0.15) 25%, transparent 25%, transparent 50%, rgba(45,116,179,0.15) 50%, rgba(45,116,179,0.15) 75%, transparent 75%);
+		background-size: 18px 18px;
+		opacity: 0.3;
+		pointer-events: none;
+	}
+
+	.bolopa-ktp-close-btn {
+		position: absolute;
+		top: 14px;
+		right: 14px;
+		border: none;
+		background: rgba(31, 64, 104, 0.1);
+		color: #1f4068;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		font-size: 18px;
+		cursor: pointer;
+		z-index: 2;
+		transition: background 0.2s ease;
+	}
+
+	.bolopa-ktp-close-btn:hover {
+		background: rgba(31, 64, 104, 0.2);
+	}
+
+	.bolopa-ktp-close-btn img {
+		width: 18px;
+		height: 18px;
+		display: block;
+		margin: 0 auto;
+		filter: invert(19%) sepia(14%) saturate(23%) hue-rotate(334deg) brightness(93%) contrast(91%);
+	}
+
+	.bolopa-ktp-header {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-bottom: 1px solid rgba(0,0,0,0.15);
+		padding-bottom: 10px;
+		margin-bottom: 12px;
+		position: relative;
+		z-index: 1;
+	}
+
+	.bolopa-ktp-header-text {
+		font-size: 18px;
+		line-height: 1.4;
+		font-weight: bold;
+		letter-spacing: 0.4px;
+		text-align: center;
+	}
+
+	.bolopa-ktp-content {
+		display: flex;
+		gap: 18px;
+		position: relative;
+		z-index: 1;
+	}
+
+	.bolopa-ktp-photo {
+		width: 120px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.bolopa-ktp-photo-frame {
+		width: 100%;
+		height: 150px;
+		border: 2px solid rgba(45,116,179,0.6);
+		border-radius: 10px;
+		overflow: hidden;
+		box-shadow: 0 8px 18px rgba(15, 54, 87, 0.25);
+		background: #d8e9ff;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.bolopa-ktp-photo-frame img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.bolopa-ktp-initial {
+		font-size: 48px;
+		font-weight: bold;
+		color: #1f4068;
+		width: 100%;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.bolopa-ktp-join-date {
+		font-size: 10px;
+		font-weight: bold;
+		color: #1f4068;
+		text-align: center;
+		border-top: 1px solid #7eacd7;
+		padding-top: 4px;
+		width: 100%;
+	}
+
+	.bolopa-ktp-last-updated {
+		font-size: 9px;
+		color: #666;
+		text-align: center;
+		width: 100%;
+	}
+
+	.bolopa-ktp-info {
+		flex: 1;
+	}
+
+	.bolopa-ktp-info-grid {
+		display: grid;
+		grid-template-columns: 70px 4px 1fr;
+		gap: 6px 10px;
+		font-size: 13px;
+		align-items: start;
+	}
+
+	.bolopa-ktp-info-grid span {
+		font-weight: bold;
+		color: #1f4068;
+	}
+
+	.bolopa-ktp-colon {
+		font-weight: bold;
+		text-align: center;
+		color: #1f4068;
+	}
+
+	.bolopa-ktp-address {
+		max-height: 60px;
+		overflow-y: auto;
+		white-space: normal;
+		border: 1px solid #ccc;
+		padding: 4px;
+		background: #f9f9f9;
+		border-radius: 4px;
+		grid-column: 1 / -1;
+	}
+
+	@media (max-width: 576px) {
+		.bolopa-ktp-content { flex-direction: column; }
+		.bolopa-ktp-photo { margin: 0 auto; }
+		.bolopa-ktp-info-grid { grid-template-columns: 90px 6px 1fr; }
+	}
+</style>
 @endpush
 
 @section('content')
@@ -84,8 +287,15 @@
 								<img class="bolopa-tabel-sort-icon bolopa-tabel-sort-down" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down" width="10" height="9">
 							</span>
 						</th>
-						<th data-sort="email" style="width: 20%; min-width: 150px;" class="bolopa-tabel-text-left">
+						<th data-sort="email" style="width: 18%; min-width: 150px;" class="bolopa-tabel-text-left">
 							Email
+							<span class="bolopa-tabel-sort-wrap">
+								<img class="bolopa-tabel-sort-icon bolopa-tabel-sort-up" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up" width="10" height="9">
+								<img class="bolopa-tabel-sort-icon bolopa-tabel-sort-down" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down" width="10" height="9">
+							</span>
+						</th>
+						<th data-sort="telepon" style="width: 15%; min-width: 130px;" class="bolopa-tabel-text-left">
+							Telepon
 							<span class="bolopa-tabel-sort-wrap">
 								<img class="bolopa-tabel-sort-icon bolopa-tabel-sort-up" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-up.svg') }}" alt="Sort Up" width="10" height="9">
 								<img class="bolopa-tabel-sort-icon bolopa-tabel-sort-down" src="{{ asset('bolopa/img/icon/typcn--arrow-sorted-down.svg') }}" alt="Sort Down" width="10" height="9">
@@ -115,6 +325,10 @@
 						@php
 							$employeeNameSource = $user->nama ?: $user->nama_pengguna ?: 'A';
 							$employeeInitial = mb_strtoupper(mb_substr($employeeNameSource, 0, 1));
+							$employeeJoinedAt = $user->dibuat_pada ?? $user->created_at;
+							$employeeJoinedDate = $employeeJoinedAt ? \Carbon\Carbon::parse($employeeJoinedAt)->format('d/m/Y') : '-';
+							$employeeUpdatedAt = $user->diperbarui_pada ?? $user->updated_at;
+							$employeeUpdatedHuman = $employeeUpdatedAt ? \Carbon\Carbon::parse($employeeUpdatedAt)->locale('id')->diffForHumans() : 'Belum diperbarui';
 						@endphp
 						<td class="bolopa-tabel-text-center" style="text-align: center;">
 							<div class="employee-table-avatar">
@@ -130,6 +344,7 @@
 						<td class="bolopa-tabel-text-left" style="text-align: left;">{{ $user->nama }}</td>
 						<td class="bolopa-tabel-text-left" style="text-align: left;">{{ $user->nama_pengguna }}</td>
 						<td class="bolopa-tabel-text-left" style="text-align: left;">{{ $user->surel }}</td>
+						<td class="bolopa-tabel-text-left" style="text-align: left;">{{ $user->nomor_telepon ?? '-' }}</td>
 						<td class="bolopa-tabel-text-center" style="text-align: center;">
 							@if($user->peran === 'owner')
 								<span class="bolopa-tabel-badge bolopa-tabel-badge-info">Owner</span>
@@ -139,7 +354,7 @@
 						</td>
 						<td class="bolopa-tabel-text-left" style="text-align: left;">{{ $user->alamat ?: '-' }}</td>
 						<td class="bolopa-tabel-text-center" style="text-align: center;">
-								<button type="button" data-id="{{ $user->id }}" data-nama="{{ $user->nama }}" data-username="{{ $user->nama_pengguna }}" data-email="{{ $user->surel }}" data-peran="{{ $user->peran }}" data-alamat="{{ $user->alamat }}" data-foto="{{ $user->foto_profil }}" class="bolopa-tabel-btn bolopa-tabel-btn-action bolopa-tabel-btn-info btn-view" title="Lihat">
+								<button type="button" data-id="{{ $user->id }}" data-nama="{{ $user->nama }}" data-username="{{ $user->nama_pengguna }}" data-email="{{ $user->surel }}" data-telepon="{{ $user->nomor_telepon }}" data-peran="{{ $user->peran }}" data-alamat="{{ $user->alamat }}" data-foto="{{ $user->foto_profil }}" data-bergabung="{{ $employeeJoinedDate }}" data-diperbarui="{{ $employeeUpdatedHuman }}" class="bolopa-tabel-btn bolopa-tabel-btn-action bolopa-tabel-btn-info btn-view" title="Lihat">
 									<img src="{{ asset('bolopa/img/icon/el--eye-open.svg') }}" alt="View">
 								</button>
 								<a href="{{ route('admin.karyawan.edit', $user->id) }}" class="bolopa-tabel-btn bolopa-tabel-btn-action bolopa-tabel-btn-warning" title="Edit">
@@ -188,6 +403,53 @@
 	</div>
 
 	<div class="bolopa-tabel-toast" id="toast"></div>
+</div>
+
+<div class="bolopa-ktp-popup-overlay" id="ktpPopup" role="dialog" aria-modal="true" aria-hidden="true">
+	<div class="bolopa-ktp-popup-container">
+		<div class="bolopa-ktp-card" aria-label="Kartu identitas karyawan">
+			<button type="button" class="bolopa-ktp-close-btn" id="ktpCloseBtn" aria-label="Tutup popup">
+				<img src="{{ asset('bolopa/img/icon/line-md--close.svg') }}" alt="Tutup">
+			</button>
+			<div class="bolopa-ktp-header">
+				<div class="bolopa-ktp-header-text">
+					IDENTITAS KARYAWAN<br>
+				</div>
+			</div>
+			<div class="bolopa-ktp-content">
+				<div class="bolopa-ktp-photo">
+					<div class="bolopa-ktp-photo-frame">
+						<img id="ktpPhoto" alt="Foto karyawan" style="display:none;">
+						<div class="bolopa-ktp-initial" id="ktpInitial">A</div>
+					</div>
+					<div class="bolopa-ktp-join-date" id="ktpJoin">Bergabung: -</div>
+					<div class="bolopa-ktp-last-updated" id="ktpUpdated">Terakhir Diperbarui: -</div>
+				</div>
+				<div class="bolopa-ktp-info">
+					<div class="bolopa-ktp-info-grid">
+						<span>Nama</span>
+						<div class="bolopa-ktp-colon">:</div>
+						<div id="ktpName">-</div>
+						<span>Username</span>
+						<div class="bolopa-ktp-colon">:</div>
+						<div id="ktpUsername">-</div>
+						<span>Email</span>
+						<div class="bolopa-ktp-colon">:</div>
+						<div id="ktpEmail">-</div>
+						<span>Telepon</span>
+						<div class="bolopa-ktp-colon">:</div>
+						<div id="ktpPhone">-</div>
+						<span>Peran</span>
+						<div class="bolopa-ktp-colon">:</div>
+						<div id="ktpRole">-</div>
+						<span>Alamat</span>
+						<div class="bolopa-ktp-colon">:</div>
+						<div class="bolopa-ktp-address" id="ktpAddress">-</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
 @endsection
 
@@ -525,129 +787,102 @@
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+	const body = document.body;
+	const overlay = document.getElementById('ktpPopup');
+	const closeBtn = document.getElementById('ktpCloseBtn');
+	const ktpName = document.getElementById('ktpName');
+	const ktpUsername = document.getElementById('ktpUsername');
+	const ktpEmail = document.getElementById('ktpEmail');
+	const ktpPhone = document.getElementById('ktpPhone');
+	const ktpRole = document.getElementById('ktpRole');
+	const ktpAddress = document.getElementById('ktpAddress');
+	const ktpJoin = document.getElementById('ktpJoin');
+	const ktpUpdated = document.getElementById('ktpUpdated');
+	const ktpPhoto = document.getElementById('ktpPhoto');
+	const ktpInitial = document.getElementById('ktpInitial');
+	const fotoBasePath = "{{ asset('foto_profil') }}";
+
+	const toggleBodyScroll = (enable) => {
+		if (enable) {
+			body.classList.add('bolopa-ktp-popup-open');
+		} else {
+			body.classList.remove('bolopa-ktp-popup-open');
+		}
+	};
+
+	const closePopup = () => {
+		if (overlay) {
+			overlay.classList.remove('active');
+			overlay.setAttribute('aria-hidden', 'true');
+		}
+		toggleBodyScroll(false);
+	};
+
+	const showPhoto = (foto, nama) => {
+		if (foto) {
+			ktpPhoto.src = `${fotoBasePath}/${foto}`;
+			ktpPhoto.style.display = 'block';
+			ktpInitial.style.display = 'none';
+		} else {
+			ktpPhoto.removeAttribute('src');
+			ktpPhoto.style.display = 'none';
+			ktpInitial.textContent = (nama?.charAt(0) || 'A').toUpperCase();
+			ktpInitial.style.display = 'flex';
+		}
+	};
+
+	const openPopup = (data) => {
+		const usernameValue = data.username && data.username !== '-' ? data.username : '';
+		ktpName.textContent = data.nama || '-';
+		ktpUsername.textContent = usernameValue ? `@${usernameValue}` : '-';
+		ktpEmail.textContent = data.email || '-';
+		ktpPhone.textContent = data.telepon || '-';
+		ktpRole.textContent = data.peran === 'owner' ? 'Owner' : 'Operator';
+		ktpAddress.textContent = data.alamat || '-';
+		ktpJoin.textContent = `Bergabung: ${data.bergabung || '-'}`;
+		ktpUpdated.textContent = `Terakhir Diperbarui: ${data.diperbarui || 'Belum diperbarui'}`;
+		showPhoto(data.foto, data.nama);
+
+		if (overlay) {
+			overlay.classList.add('active');
+			overlay.setAttribute('aria-hidden', 'false');
+		}
+		toggleBodyScroll(true);
+	};
+
 	document.querySelectorAll('.btn-view').forEach(btn => {
 		btn.addEventListener('click', function() {
-			const id = this.getAttribute('data-id');
-			const nama = this.getAttribute('data-nama') || '-';
-			const username = this.getAttribute('data-username') || '-';
-			const email = this.getAttribute('data-email') || '-';
-			const peran = this.getAttribute('data-peran') || '-';
-			const alamat = this.getAttribute('data-alamat') || '-';
-			const foto = this.getAttribute('data-foto');
-
-			const peranBadge = (() => {
-				if (peran === 'owner') return `<span class="badge bg-info px-3 py-2"><i class="fa-solid fa-crown me-1"></i>Owner</span>`;
-				if (peran === 'operator') return `<span class="badge bg-success px-3 py-2"><i class="fa-solid fa-user-gear me-1"></i>Operator</span>`;
-				return `<span class="badge bg-secondary px-3 py-2"><i class="fa-solid fa-question me-1"></i>${escapeHtml(peran)}</span>`;
-			})();
-
-			const fotoHtml = foto ?
-				`<img src="{{ asset('foto_profil/') }}/${foto}" alt="Foto ${nama}" class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #e9ecef;">` :
-				`<div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 32px; font-weight: bold; color: white;">${nama.charAt(0).toUpperCase()}</div>`;
-
-			Swal.fire({
-				title: `
-					<div class="d-flex align-items-center justify-content-center gap-2 mb-2">
-						<img src="{{ asset('bolopa/img/icon/fluent--person-note-20-filled.svg') }}" alt="Karyawan" style="width:32px;height:32px;">
-						<h5 class="fw-semibold mb-0 text-dark">Detail Karyawan</h5>
-					</div>
-				`,
-				html: `
-					<div class="card shadow-sm border-0 p-3 text-start" style="border-radius: 1rem; max-width: 650px;">
-						<div class="card-body">
-
-							<!-- Header -->
-							<div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-								<div class="d-flex align-items-center gap-3">
-									${fotoHtml}
-									<div>
-										<h5 class="fw-semibold mb-0">${nama}</h5>
-										<small class="text-muted">@${username}</small>
-									</div>
-								</div>
-								${peranBadge}
-							</div>
-
-							<!-- Grid Info -->
-							<div class="row g-3 mb-3">
-								<!-- Username -->
-								<div class="col-md-6">
-									<div class="d-flex align-items-center bg-light rounded p-3 h-100">
-										<i class="fa-solid fa-at text-primary fa-lg me-3"></i>
-										<div>
-											<small class="text-muted d-block">Username</small>
-											<span class="fw-semibold">${username}</span>
-										</div>
-									</div>
-								</div>
-
-								<!-- Email -->
-								<div class="col-md-6">
-									<div class="d-flex align-items-center bg-light rounded p-3 h-100">
-										<i class="fa-solid fa-envelope text-info fa-lg me-3"></i>
-										<div>
-											<small class="text-muted d-block">Email</small>
-											<span class="fw-semibold">${email}</span>
-										</div>
-									</div>
-								</div>
-
-								<!-- Peran -->
-								<div class="col-md-6">
-									<div class="d-flex align-items-center bg-light rounded p-3 h-100">
-										<i class="fa-solid fa-user-shield text-success fa-lg me-3"></i>
-										<div>
-											<small class="text-muted d-block">Peran</small>
-											<span class="fw-semibold">${peran === 'owner' ? 'Owner' : 'Operator'}</span>
-										</div>
-									</div>
-								</div>
-
-								<!-- Tanggal Dibuat -->
-								<div class="col-md-6">
-									<div class="d-flex align-items-center bg-light rounded p-3 h-100">
-										<i class="fa-solid fa-calendar-plus text-warning fa-lg me-3"></i>
-										<div>
-											<small class="text-muted d-block">Bergabung</small>
-											<span class="fw-semibold">{{ \Carbon\Carbon::parse($user->dibuat_pada ?? now())->format('d/m/Y') }}</span>
-										</div>
-									</div>
-								</div>
-
-								<!-- Alamat -->
-								<div class="col-12">
-									<div class="d-flex align-items-start bg-light rounded p-3 h-100">
-										<i class="fa-solid fa-map-marker-alt text-danger fa-lg me-3 mt-1"></i>
-										<div class="flex-grow-1">
-											<small class="text-muted d-block">Alamat</small>
-											<span class="fw-semibold">${alamat}</span>
-										</div>
-									</div>
-								</div>
-							</div>
-
-						</div>
-					</div>
-				`,
-				showConfirmButton: false,
-				showCloseButton: true,
-				width: 700,
-				background: '#ffffff',
-				customClass: {
-					popup: 'p-0',
-				},
+			openPopup({
+				nama: this.getAttribute('data-nama') || '-',
+				username: this.getAttribute('data-username') || '-',
+				email: this.getAttribute('data-email') || '-',
+				telepon: this.getAttribute('data-telepon') || '-',
+				peran: this.getAttribute('data-peran') || '-',
+				alamat: this.getAttribute('data-alamat') || '-',
+				foto: this.getAttribute('data-foto') || '',
+				bergabung: this.getAttribute('data-bergabung') || '-',
+				diperbarui: this.getAttribute('data-diperbarui') || '-',
 			});
 		});
 	});
 
-	function escapeHtml(unsafe) {
-		return String(unsafe)
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;')
-			.replace(/"/g, '&quot;')
-			.replace(/'/g, '&#039;');
+	if (closeBtn) {
+		closeBtn.addEventListener('click', closePopup);
 	}
+
+	if (overlay) {
+		overlay.addEventListener('click', function(event) {
+			if (event.target === overlay) {
+				closePopup();
+			}
+		});
+	}
+
+	document.addEventListener('keydown', function(event) {
+		if (event.key === 'Escape' && overlay?.classList.contains('active')) {
+			closePopup();
+		}
+	});
 });
 </script>
 @endpush

@@ -37,6 +37,7 @@ class KaryawanController extends Controller
                 $q->where('nama', 'like', "%{$search}%")
                   ->orWhere('nama_pengguna', 'like', "%{$search}%")
                   ->orWhere('surel', 'like', "%{$search}%")
+                  ->orWhere('nomor_telepon', 'like', "%{$search}%")
                   ->orWhere('peran', 'like', "%{$search}%");
             });
         }
@@ -65,6 +66,7 @@ class KaryawanController extends Controller
             'nama' => 'required|string|max:255',
             'nama_pengguna' => 'required|string|max:255|unique:vf_pengguna,nama_pengguna',
             'surel' => 'required|email|max:255|unique:vf_pengguna,surel',
+            'nomor_telepon' => 'nullable|string|max:30',
             'kata_sandi' => 'required|string|min:8',
             'peran' => 'required|string|in:owner,operator',
             'alamat' => 'nullable|string|max:500',
@@ -116,6 +118,7 @@ class KaryawanController extends Controller
             'nama' => 'required|string|max:255',
             'nama_pengguna' => 'required|string|max:255|unique:vf_pengguna,nama_pengguna,' . $karyawan->id,
             'surel' => 'required|email|max:255|unique:vf_pengguna,surel,' . $karyawan->id,
+            'nomor_telepon' => 'nullable|string|max:30',
             'peran' => 'required|string|in:owner,operator',
             'alamat' => 'nullable|string|max:500',
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',

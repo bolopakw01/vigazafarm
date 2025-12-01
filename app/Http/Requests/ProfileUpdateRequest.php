@@ -29,6 +29,7 @@ class ProfileUpdateRequest extends FormRequest
         $rules = [
             'nama' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('vf_pengguna', 'surel')->ignore($this->user()->id)],
+            'nomor_telepon' => ['nullable', 'string', 'max:30'],
             'password' => $passwordRules,
             'alamat' => ['nullable', 'string', 'max:500'],
             'profile_picture' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
@@ -57,6 +58,7 @@ class ProfileUpdateRequest extends FormRequest
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
             'email.unique' => 'Email sudah digunakan.',
+            'nomor_telepon.max' => 'Nomor telepon maksimal 30 karakter.',
             'alamat.max' => 'Alamat maksimal 500 karakter.',
             'password.min' => 'Password minimal 8 karakter.',
             'profile_picture.image' => 'File harus berupa gambar.',

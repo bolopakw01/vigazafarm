@@ -26,6 +26,7 @@ class User extends Authenticatable
         'nama',
         'nama_pengguna',
         'surel',
+        'nomor_telepon',
         'kata_sandi',
         'peran',
         'foto_profil',

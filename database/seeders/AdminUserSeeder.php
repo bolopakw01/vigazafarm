@@ -26,6 +26,7 @@ class AdminUserSeeder extends Seeder
                 'kata_sandi' => Hash::make($ownerPassword),
                 'nama' => 'Bolopa Kakungnge Walinono',
                 'surel' => 'bolopa@gmail.com',
+                'nomor_telepon' => '081234567890',
                 'peran' => 'owner',
             ]);
         } else {
@@ -33,6 +34,7 @@ class AdminUserSeeder extends Seeder
                 'nama' => 'Bolopa Kakungnge Walinono',
                 'nama_pengguna' => $ownerUsername,
                 'surel' => 'bolopa@gmail.com',
+                'nomor_telepon' => '081234567890',
                 'kata_sandi' => Hash::make($ownerPassword),
                 'peran' => 'owner',
                 'surel_terverifikasi_pada' => now(),
@@ -52,6 +54,7 @@ class AdminUserSeeder extends Seeder
                 'nama_pengguna' => $operatorUsername,
                 'kata_sandi' => Hash::make($operatorPassword),
                 'nama' => 'Operator',
+                'nomor_telepon' => '081111111111',
                 'peran' => 'operator',
             ]);
         } else {
@@ -59,6 +62,7 @@ class AdminUserSeeder extends Seeder
                 'nama' => 'Operator',
                 'nama_pengguna' => $operatorUsername,
                 'surel' => $operatorUsername . '@local',
+                'nomor_telepon' => '081111111111',
                 'kata_sandi' => Hash::make($operatorPassword),
                 'peran' => 'operator',
                 'surel_terverifikasi_pada' => now(),
