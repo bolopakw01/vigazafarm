@@ -490,19 +490,44 @@
 
 			const rawDatasets = @json($activityDatasets ?? []);
 			const performanceConfig = @json($performanceChart ?? []);
-			
-			// Default fallback data for main chart
-			const defaultMainSeries = [
-				{ name: 'Penetasan', data: [12, 19, 15, 25, 22, 30, 28] },
-				{ name: 'Pembesaran', data: [8, 12, 18, 20, 25, 22, 28] },
-				{ name: 'Produksi', data: [5, 10, 8, 15, 12, 18, 20] }
+
+			const buildMonthLabels = () => {
+				const formatter = new Intl.DateTimeFormat('id-ID', { month: 'short' });
+				return Array.from({ length: 12 }, (_, idx) => formatter.format(new Date(2000, idx, 1)));
+			};
+
+			const buildYearLabels = (count = 5) => {
+				const currentYear = new Date().getFullYear();
+				const startYear = currentYear - (count - 1);
+				return Array.from({ length: count }, (_, idx) => String(startYear + idx));
+			};
+
+			const buildDayLabels = (days = 7) => {
+				const formatter = new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short' });
+				const today = new Date();
+				return Array.from({ length: days }, (_, idx) => {
+					const date = new Date(today);
+					date.setDate(date.getDate() - (days - 1 - idx));
+					return formatter.format(date);
+				});
+			};
+
+			const buildEmptySeries = (length) => [
+				{ name: 'Produksi', type: 'column', data: Array(length).fill(0) },
+				{ name: 'Penetasan', type: 'area', data: Array(length).fill(0) },
+				{ name: 'Pembesaran', type: 'line', data: Array(length).fill(0) }
 			];
-			const defaultMainLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-			
+
+			const fallbackLabels = {
+				bulan: buildMonthLabels(),
+				tahun: buildYearLabels(),
+				hari: buildDayLabels(),
+			};
+
 			const safeDataset = (key) => {
 				const source = rawDatasets && rawDatasets[key] ? rawDatasets[key] : {};
-				const labels = Array.isArray(source.labels) && source.labels.length ? source.labels : defaultMainLabels;
-				const series = Array.isArray(source.series) && source.series.length ? source.series : defaultMainSeries;
+				const labels = Array.isArray(source.labels) && source.labels.length ? source.labels : (fallbackLabels[key] ?? []);
+				const series = Array.isArray(source.series) && source.series.length ? source.series : buildEmptySeries(labels.length);
 				return { labels, series };
 			};
 			
