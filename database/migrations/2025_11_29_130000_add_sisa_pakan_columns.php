@@ -8,31 +8,52 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasColumn('vf_pakan', 'sisa_pakan_kg')) {
-            Schema::table('vf_pakan', function (Blueprint $table) {
+        $pakanTable = $this->resolveTable(['vf_pakan', 'pakan']);
+        $historyTable = $this->resolveTable(['vf_feed_histories', 'feed_histories']);
+
+        if ($pakanTable && !Schema::hasColumn($pakanTable, 'sisa_pakan_kg')) {
+            Schema::table($pakanTable, function (Blueprint $table) {
                 $table->decimal('sisa_pakan_kg', 10, 2)->nullable()->after('jumlah_karung');
             });
         }
 
-        if (!Schema::hasColumn('vf_feed_histories', 'sisa_pakan_kg')) {
-            Schema::table('vf_feed_histories', function (Blueprint $table) {
-                $table->decimal('sisa_pakan_kg', 10, 2)->nullable()->after('jumlah_karung_sisa');
+        if ($historyTable && !Schema::hasColumn($historyTable, 'sisa_pakan_kg')) {
+            Schema::table($historyTable, function (Blueprint $table) use ($historyTable) {
+                $column = $table->decimal('sisa_pakan_kg', 10, 2)->nullable();
+
+                if (Schema::hasColumn($historyTable, 'jumlah_karung_sisa')) {
+                    $column->after('jumlah_karung_sisa');
+                }
             });
         }
     }
 
     public function down(): void
     {
-        if (Schema::hasColumn('vf_feed_histories', 'sisa_pakan_kg')) {
-            Schema::table('vf_feed_histories', function (Blueprint $table) {
+        $pakanTable = $this->resolveTable(['vf_pakan', 'pakan']);
+        $historyTable = $this->resolveTable(['vf_feed_histories', 'feed_histories']);
+
+        if ($historyTable && Schema::hasColumn($historyTable, 'sisa_pakan_kg')) {
+            Schema::table($historyTable, function (Blueprint $table) {
                 $table->dropColumn('sisa_pakan_kg');
             });
         }
 
-        if (Schema::hasColumn('vf_pakan', 'sisa_pakan_kg')) {
-            Schema::table('vf_pakan', function (Blueprint $table) {
+        if ($pakanTable && Schema::hasColumn($pakanTable, 'sisa_pakan_kg')) {
+            Schema::table($pakanTable, function (Blueprint $table) {
                 $table->dropColumn('sisa_pakan_kg');
             });
         }
+    }
+
+    private function resolveTable(array $candidates): ?string
+    {
+        foreach ($candidates as $name) {
+            if (Schema::hasTable($name)) {
+                return $name;
+            }
+        }
+
+        return null;
     }
 };

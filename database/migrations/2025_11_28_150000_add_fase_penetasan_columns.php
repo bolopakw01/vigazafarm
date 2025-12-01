@@ -11,12 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('vf_penetasan', function (Blueprint $table) {
-            if (!Schema::hasColumn('vf_penetasan', 'tanggal_masuk_hatcher')) {
+        $tableName = $this->resolvePenetasanTable();
+
+        if (!$tableName) {
+            return;
+        }
+
+        Schema::table($tableName, function (Blueprint $table) use ($tableName) {
+            if (!Schema::hasColumn($tableName, 'tanggal_masuk_hatcher')) {
                 $table->date('tanggal_masuk_hatcher')->nullable()->after('estimasi_tanggal_menetas');
             }
 
-            if (!Schema::hasColumn('vf_penetasan', 'fase_penetasan')) {
+            if (!Schema::hasColumn($tableName, 'fase_penetasan')) {
                 $table->enum('fase_penetasan', ['setter', 'hatcher'])->default('setter')->after('status');
             }
         });
@@ -27,14 +33,33 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('vf_penetasan', function (Blueprint $table) {
-            if (Schema::hasColumn('vf_penetasan', 'fase_penetasan')) {
+        $tableName = $this->resolvePenetasanTable();
+
+        if (!$tableName) {
+            return;
+        }
+
+        Schema::table($tableName, function (Blueprint $table) use ($tableName) {
+            if (Schema::hasColumn($tableName, 'fase_penetasan')) {
                 $table->dropColumn('fase_penetasan');
             }
 
-            if (Schema::hasColumn('vf_penetasan', 'tanggal_masuk_hatcher')) {
+            if (Schema::hasColumn($tableName, 'tanggal_masuk_hatcher')) {
                 $table->dropColumn('tanggal_masuk_hatcher');
             }
         });
+    }
+
+    private function resolvePenetasanTable(): ?string
+    {
+        if (Schema::hasTable('vf_penetasan')) {
+            return 'vf_penetasan';
+        }
+
+        if (Schema::hasTable('penetasan')) {
+            return 'penetasan';
+        }
+
+        return null;
     }
 };
