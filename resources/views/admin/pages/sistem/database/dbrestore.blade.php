@@ -141,9 +141,9 @@
                 <p class="set-database-subtitle">Kembalikan data sistem dari file cadangan yang tersimpan atau file eksternal.</p>
             </div>
             <div class="header-right">
-                <button onclick="history.back()" class="btn btn-secondary">
+                <a href="{{ route('admin.sistem') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Kembali
-                </button>
+                </a>
             </div>
         </div>
 

@@ -298,9 +298,9 @@
                 <p>Kelola parameter rule-based dan Machine Learning agar halaman DSS tetap selaras dengan kebutuhan operasional.</p>
             </div>
             <div class="header-right">
-                <button onclick="history.back()" class="btn btn-secondary">
+                <a href="{{ route('admin.sistem') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Kembali
-                </button>
+                </a>
             </div>
         </div>
 

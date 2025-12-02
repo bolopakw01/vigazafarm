@@ -789,10 +789,13 @@
                                     @if ($isOwnerOrSuperAdmin || $targetTercapai || $operatorBolehSelesai)
                                         <div style="flex-shrink: 0;">
                                             <form action="{{ route('admin.pembesaran.selesaikan', $pembesaran) }}"
-                                                method="POST"
-                                                onsubmit="return confirm('Apakah Anda yakin ingin menyelesaikan batch ini? Status akan berubah menjadi Selesai.')">
+                                                method="POST" id="selesaikan-batch-form">
                                                 @csrf
-                                                <button type="submit" class="btn btn-success btn-sm"
+                                                <button type="button" class="btn btn-success btn-sm"
+                                                    id="selesaikan-batch-button"
+                                                    data-confirm-title="Selesaikan Batch?"
+                                                    data-confirm-text="Batch akan ditandai selesai dan pencatatan tidak dapat dilakukan lagi. Lanjutkan?"
+                                                    data-confirm-cta="Ya, Selesaikan"
                                                     style="white-space: nowrap;">
                                                     <i class="fa-solid fa-check-circle me-1"></i> Selesaikan Batch
                                                 </button>

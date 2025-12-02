@@ -1,6 +1,14 @@
 <?php
 
 return [
+    'eggs' => [
+        'max_batches' => 5,
+        'hatcher_warning_days' => 2,
+        'hatcher_critical_days' => 0,
+        'hatch_rate_warning' => 85,
+        'hatch_rate_critical' => 70,
+    ],
+
     'feed' => [
         'phases' => [
             [
@@ -31,34 +39,10 @@ return [
         'max_insights' => 5,
     ],
 
-    'stock' => [
-        'cover_warning_days' => 5,
-        'cover_critical_days' => 2,
-        'max_items' => 4,
-    ],
-
-    'health' => [
+    'mortality' => [
         'window_days' => 3,
         'warning_pct' => 3,
         'critical_pct' => 5,
         'max_items' => 4,
-    ],
-
-    'environment' => [
-        'max_items' => 4,
-        'fallback_standards' => [
-            'doq' => [
-                'suhu' => ['min' => 32, 'max' => 38],
-                'kelembaban' => ['min' => 60, 'max' => 70],
-            ],
-            'grower' => [
-                'suhu' => ['min' => 24, 'max' => 28],
-                'kelembaban' => ['min' => 55, 'max' => 65],
-            ],
-            'layer' => [
-                'suhu' => ['min' => 20, 'max' => 27],
-                'kelembaban' => ['min' => 50, 'max' => 70],
-            ],
-        ],
     ],
 ];

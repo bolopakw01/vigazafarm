@@ -163,9 +163,9 @@
                 <p class="set-database-subtitle">Lihat informasi lengkap tentang konfigurasi dan status database saat ini.</p>
             </div>
             <div class="header-right">
-                <button onclick="history.back()" class="btn btn-secondary">
+                <a href="{{ route('admin.sistem') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Kembali
-                </button>
+                </a>
             </div>
         </div>
 

@@ -263,6 +263,44 @@
 // This script is kept minimal to avoid conflicts
 console.log('✅ Pembesaran detail page loaded');
 
+document.addEventListener('DOMContentLoaded', () => {
+    const finishForm = document.getElementById('selesaikan-batch-form');
+    const finishButton = document.getElementById('selesaikan-batch-button');
+
+    if (!finishForm || !finishButton) {
+        return;
+    }
+
+    const confirmTitle = finishButton.dataset.confirmTitle || 'Selesaikan Batch?';
+    const confirmText = finishButton.dataset.confirmText || 'Status batch akan berubah menjadi selesai.';
+    const confirmCta = finishButton.dataset.confirmCta || 'Ya, Selesaikan';
+
+    finishButton.addEventListener('click', (event) => {
+        event.preventDefault();
+
+        if (window.Swal && typeof window.Swal.fire === 'function') {
+            window.Swal.fire({
+                title: confirmTitle,
+                html: confirmText,
+                icon: 'warning',
+                showCancelButton: true,
+                reverseButtons: true,
+                confirmButtonColor: '#198754',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: `<i class="fa-solid fa-check me-1"></i>${confirmCta}`,
+                cancelButtonText: '<i class="fa-solid fa-times me-1"></i>Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    finishForm.submit();
+                }
+            });
+        } else if (window.confirm(confirmText)) {
+            finishForm.submit();
+        }
+    });
+});
+
+</script>
 @endpush
 
 

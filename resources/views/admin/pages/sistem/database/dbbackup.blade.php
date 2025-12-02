@@ -148,9 +148,9 @@
                 <p class="set-database-subtitle">Simpan cadangan data sistem secara berkala untuk keamanan dan pemulihan data.</p>
             </div>
             <div class="header-right">
-                <button onclick="history.back()" class="btn btn-secondary">
+                <a href="{{ route('admin.sistem') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Kembali
-                </button>
+                </a>
             </div>
         </div>
 

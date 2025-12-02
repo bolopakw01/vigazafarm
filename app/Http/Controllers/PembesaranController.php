@@ -449,8 +449,24 @@ class PembesaranController extends Controller
         MonitoringLingkungan::where('batch_produksi_id', $batchId)->delete();
         Kesehatan::where('batch_produksi_id', $batchId)->delete();
         LaporanHarian::where('batch_produksi_id', $batchId)->delete();
-        FeedHistory::where('batch_produksi_id', $batchId)->delete();
+        if ($this->feedHistoryTableAvailable()) {
+            FeedHistory::where('batch_produksi_id', $batchId)->delete();
+        }
         BeratSampling::where('batch_produksi_id', $batchId)->delete();
+    }
+
+    /**
+     * Determine if optional feed history table exists before running queries.
+     */
+    private function feedHistoryTableAvailable(): bool
+    {
+        static $hasTable = null;
+
+        if ($hasTable === null) {
+            $hasTable = Schema::hasTable((new FeedHistory())->getTable());
+        }
+
+        return $hasTable;
     }
 
     /**

@@ -357,9 +357,9 @@
                 <p class="iot-subtitle">Kelola integrasi perangkat IoT untuk monitoring suhu dan kelembapan kandang secara real-time.</p>
             </div>
             <div class="header-right">
-                <button onclick="history.back()" class="btn btn-secondary">
+                <a href="{{ route('admin.sistem') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Kembali
-                </button>
+                </a>
             </div>
         </div>
 

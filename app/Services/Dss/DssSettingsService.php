@@ -73,25 +73,24 @@ class DssSettingsService
         return [
             'mode' => 'config',
             'config' => [
+                'eggs' => [
+                    'max_batches' => (int) config('dss.eggs.max_batches'),
+                    'hatcher_warning_days' => (int) config('dss.eggs.hatcher_warning_days'),
+                    'hatcher_critical_days' => (int) config('dss.eggs.hatcher_critical_days'),
+                    'hatch_rate_warning' => (float) config('dss.eggs.hatch_rate_warning'),
+                    'hatch_rate_critical' => (float) config('dss.eggs.hatch_rate_critical'),
+                ],
                 'feed' => [
                     'max_insights' => (int) config('dss.feed.max_insights'),
                     'history_days' => (int) config('dss.feed.history_days'),
                     'warning_ratio' => (float) config('dss.feed.warning_ratio'),
                     'critical_ratio' => (float) config('dss.feed.critical_ratio'),
                 ],
-                'stock' => [
-                    'max_items' => (int) config('dss.stock.max_items'),
-                    'cover_warning_days' => (float) config('dss.stock.cover_warning_days'),
-                    'cover_critical_days' => (float) config('dss.stock.cover_critical_days'),
-                ],
-                'environment' => [
-                    'max_items' => (int) config('dss.environment.max_items'),
-                ],
-                'health' => [
-                    'window_days' => (int) config('dss.health.window_days'),
-                    'max_items' => (int) config('dss.health.max_items'),
-                    'warning_pct' => (float) config('dss.health.warning_pct'),
-                    'critical_pct' => (float) config('dss.health.critical_pct'),
+                'mortality' => [
+                    'window_days' => (int) config('dss.mortality.window_days'),
+                    'max_items' => (int) config('dss.mortality.max_items'),
+                    'warning_pct' => (float) config('dss.mortality.warning_pct'),
+                    'critical_pct' => (float) config('dss.mortality.critical_pct'),
                 ],
             ],
             'ml' => [

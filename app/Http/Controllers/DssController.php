@@ -35,10 +35,9 @@ class DssController extends Controller
             $insights = $insightService->getInsights();
 
             $summary = [
+                'eggs' => $this->summarizeSection($insights['eggs'] ?? [], 'status.level'),
                 'feed' => $this->summarizeSection($insights['feed'] ?? [], 'status.level'),
-                'stock' => $this->summarizeSection($insights['stock'] ?? [], 'status'),
-                'environment' => $this->summarizeSection($insights['environment'] ?? [], 'status'),
-                'health' => $this->summarizeSection($insights['health'] ?? [], 'status'),
+                'mortality' => $this->summarizeSection($insights['mortality'] ?? [], 'status'),
             ];
         }
 
