@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use App\Services\Dss\DssSettingsService;
 
 /**
  * ==========================================
@@ -31,6 +32,12 @@ class SistemController extends Controller
     protected string $performanceStorage = 'dashboard_performance.json';
     protected string $iotSettingsStorage = 'iot_settings.json';
     protected float $matrixEqualityTolerance = 500;
+    protected DssSettingsService $dssSettings;
+
+    public function __construct(DssSettingsService $dssSettings)
+    {
+        $this->dssSettings = $dssSettings;
+    }
 
     public function index()
     {
@@ -77,6 +84,67 @@ class SistemController extends Controller
         return redirect()
             ->route('admin.sistem.iot')
             ->with('success', 'Pengaturan IoT berhasil diperbarui.');
+    }
+
+    public function dss()
+    {
+        $settings = $this->dssSettings->getSettings();
+
+        return view('admin.pages.sistem.plugin.dss', [
+            'settings' => $settings,
+            'mode' => $settings['mode'] ?? 'config',
+            'configSettings' => $settings['config'] ?? [],
+            'mlSettings' => $settings['ml'] ?? [],
+            'metricsJson' => json_encode($settings['ml']['metrics'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+        ]);
+    }
+
+    public function updateDss(Request $request)
+    {
+        $validated = $request->validate([
+            'mode' => ['required', Rule::in(['config', 'ml'])],
+            'config.feed.max_insights' => ['required', 'integer', 'min:1', 'max:20'],
+            'config.feed.history_days' => ['required', 'integer', 'min:1', 'max:30'],
+            'config.feed.warning_ratio' => ['required', 'numeric', 'min:0', 'max:1'],
+            'config.feed.critical_ratio' => ['required', 'numeric', 'min:0', 'max:1'],
+            'config.stock.max_items' => ['required', 'integer', 'min:1', 'max:10'],
+            'config.stock.cover_warning_days' => ['required', 'numeric', 'min:0', 'max:60'],
+            'config.stock.cover_critical_days' => ['required', 'numeric', 'min:0', 'max:60'],
+            'config.environment.max_items' => ['required', 'integer', 'min:1', 'max:10'],
+            'config.health.window_days' => ['required', 'integer', 'min:1', 'max:14'],
+            'config.health.max_items' => ['required', 'integer', 'min:1', 'max:10'],
+            'config.health.warning_pct' => ['required', 'numeric', 'min:0', 'max:100'],
+            'config.health.critical_pct' => ['required', 'numeric', 'min:0', 'max:100'],
+            'ml.default_phase' => ['nullable', 'string', 'max:60'],
+            'ml.artifact_label' => ['nullable', 'string', 'max:120'],
+            'ml.notes' => ['nullable', 'string', 'max:500'],
+            'ml.metrics_json' => ['nullable', 'string'],
+        ]);
+
+        $metricsJson = $request->input('ml.metrics_json');
+        $metrics = [];
+
+        if ($metricsJson) {
+            $decoded = json_decode($metricsJson, true);
+
+            if (!is_array($decoded)) {
+                return back()
+                    ->withErrors(['ml.metrics_json' => 'Format JSON metrics tidak valid.'])
+                    ->withInput();
+            }
+
+            $metrics = $decoded;
+        }
+
+        $validated['ml'] = $validated['ml'] ?? [];
+        $validated['ml']['metrics'] = $metrics;
+        unset($validated['ml']['metrics_json']);
+
+        $this->dssSettings->save($validated);
+
+        return redirect()
+            ->route('admin.sistem.dss')
+            ->with('success', 'Pengaturan DSS berhasil disimpan.');
     }
 
     public function dashboard()

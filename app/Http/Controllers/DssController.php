@@ -3,24 +3,52 @@
 namespace App\Http\Controllers;
 
 use App\Services\Dss\DssInsightService;
+use App\Services\Dss\DssSettingsService;
+use App\Services\Ml\DssModelService;
+use Illuminate\Support\Arr;
 
 class DssController extends Controller
 {
-    public function index(DssInsightService $insightService)
-    {
-        $insights = $insightService->getInsights();
+    public function index(
+        DssInsightService $insightService,
+        DssSettingsService $settingsService,
+        DssModelService $mlService
+    ) {
+        $settings = $settingsService->getSettings();
+        $mode = $settings['mode'] ?? 'config';
+        $insights = [];
+        $summary = [];
+        $mlResponse = null;
 
-        $summary = [
-            'feed' => $this->summarizeSection($insights['feed'] ?? [], 'status.level'),
-            'stock' => $this->summarizeSection($insights['stock'] ?? [], 'status'),
-            'environment' => $this->summarizeSection($insights['environment'] ?? [], 'status'),
-            'health' => $this->summarizeSection($insights['health'] ?? [], 'status'),
-        ];
+        if ($mode === 'ml') {
+            $payload = [
+                'phase' => Arr::get($settings, 'ml.default_phase', 'grower'),
+                'metrics' => Arr::get($settings, 'ml.metrics', []),
+                'metadata' => [
+                    'artifact_label' => Arr::get($settings, 'ml.artifact_label'),
+                    'notes' => Arr::get($settings, 'ml.notes'),
+                ],
+            ];
+
+            $mlResponse = $mlService->predict($payload);
+        } else {
+            $insights = $insightService->getInsights();
+
+            $summary = [
+                'feed' => $this->summarizeSection($insights['feed'] ?? [], 'status.level'),
+                'stock' => $this->summarizeSection($insights['stock'] ?? [], 'status'),
+                'environment' => $this->summarizeSection($insights['environment'] ?? [], 'status'),
+                'health' => $this->summarizeSection($insights['health'] ?? [], 'status'),
+            ];
+        }
 
         return view('admin.pages.dss.index', [
             'insights' => $insights,
             'summary' => $summary,
             'lastUpdated' => now(),
+            'dssMode' => $mode,
+            'settings' => $settings,
+            'mlResponse' => $mlResponse,
         ]);
     }
 

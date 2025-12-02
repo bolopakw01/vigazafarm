@@ -8,10 +8,15 @@
         ['label' => 'Decision Support'],
     ];
 
-    $feedInsights = $insights['feed'] ?? [];
-    $stockAlerts = $insights['stock'] ?? [];
-    $environmentAlerts = $insights['environment'] ?? [];
-    $healthAlerts = $insights['health'] ?? [];
+    $mode = $dssMode ?? 'config';
+    $feedInsights = $mode === 'config' ? ($insights['feed'] ?? []) : [];
+    $stockAlerts = $mode === 'config' ? ($insights['stock'] ?? []) : [];
+    $environmentAlerts = $mode === 'config' ? ($insights['environment'] ?? []) : [];
+    $healthAlerts = $mode === 'config' ? ($insights['health'] ?? []) : [];
+    $mlRecommendations = $mode === 'ml' ? data_get($mlResponse, 'recommendations', []) : [];
+    $mlMetadata = $mode === 'ml' ? data_get($mlResponse, 'metadata', []) : [];
+    $mlStatus = $mode === 'ml' ? data_get($mlResponse, 'status', 'waiting_for_training') : null;
+    $modelVersion = $mode === 'ml' ? data_get($mlResponse, 'model_version', 'untrained') : null;
 @endphp
 
 @push('styles')
@@ -165,11 +170,15 @@
                     <p class="subtitle mb-0">Insight terkurasi untuk membantu keputusan operasional harian.</p>
                 </div>
                 <div class="meta">
+                    <div class="mb-2">
+                        <span class="status-pill {{ $mode === 'ml' ? 'info' : 'ok' }}">Mode {{ strtoupper($mode) }}</span>
+                    </div>
                     <small>Terakhir diperbarui</small>
                     {{ optional($lastUpdated)->format('d/m/Y H:i') }}
                 </div>
             </div>
 
+            @if($mode === 'config')
             <div class="summary-grid">
                 @php
                     $summaryMeta = [
@@ -398,6 +407,67 @@
                     @endif
                 </div>
             </div>
+            @else
+            <div class="section-card">
+                <div class="card-head">
+                    <div>
+                        <h2 class="card-title mb-0">Rekomendasi Machine Learning</h2>
+                        <small class="text-muted">Model version: {{ $modelVersion }} • Status: {{ strtoupper($mlStatus) }}</small>
+                    </div>
+                </div>
+                <div class="row mt-3 g-3">
+                    <div class="col-md-4">
+                        <div class="p-3 border rounded-4">
+                            <div class="text-muted mb-1">Artifact Label</div>
+                            <div class="fw-semibold">{{ data_get($settings, 'ml.artifact_label', '-') ?: '-' }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 border rounded-4">
+                            <div class="text-muted mb-1">Default Phase</div>
+                            <div class="fw-semibold">{{ data_get($settings, 'ml.default_phase', 'grower') }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 border rounded-4">
+                            <div class="text-muted mb-1">Catatan</div>
+                            <div class="fw-semibold">{{ data_get($settings, 'ml.notes', '-') ?: '-' }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    @if(count($mlRecommendations))
+                        <div class="list-group list-group-flush">
+                            @foreach($mlRecommendations as $recommendation)
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="fw-semibold">{{ data_get($recommendation, 'category', 'Insight') }}</div>
+                                            <p class="mb-1 text-muted">{{ data_get($recommendation, 'summary', 'Tidak ada ringkasan') }}</p>
+                                        </div>
+                                        <span class="status-pill info">ML</span>
+                                    </div>
+                                    @php $actions = data_get($recommendation, 'action_items', []); @endphp
+                                    @if(is_array($actions) && count($actions))
+                                        <ul class="mb-0 ps-4 text-muted" style="font-size:0.9rem;">
+                                            @foreach($actions as $action)
+                                                <li>{{ $action }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="empty-state">
+                            <i class="fa-solid fa-robot" style="font-size:2rem;"></i>
+                            <p class="mb-0 mt-2">Belum ada rekomendasi dari model. Pastikan artefak sudah dilatih dan diunggah.</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 </div>

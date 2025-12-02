@@ -69,8 +69,8 @@
         </li>
         <li data-group="operasional">
       <a href="{{ route('admin.dss') }}" class="menu-link {{ request()->routeIs('admin.dss') ? 'active' : '' }}">
-                <img src="{{ asset('bolopa/img/icon/streamline--money-graph-arrow-increase-ascend-growth-up-arrow-stats-graph-right-grow.svg') }}" alt="DSS" class="menu-icon" />
-                <span class="links_name">DSS Insight</span>
+                <img src="{{ asset('bolopa/img/icon/fluent--chart-multiple-32-filled.svg') }}" alt="DSS" class="menu-icon" />
+                <span class="links_name">Kinerja</span>
             </a>
             <span class="tooltip">Decision Support</span>
         </li>

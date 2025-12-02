@@ -51,9 +51,13 @@
         gap: 20px;
         margin-bottom: 30px;
         max-width: 1200px;
-        margin-left: auto;
-        margin-right: auto;
-        justify-content: center;
+        margin-left: 0;
+        margin-right: 0;
+        justify-content: flex-start;
+    }
+
+    .dashboard-settings-grid.compact {
+        max-width: 560px;
     }
 
     .goals-card {
@@ -283,6 +287,47 @@
         </div>
     </div>
 
+    <!-- IoT Settings Section -->
+    <div class="sistem-section">
+        <h2 class="sistem-section-title">
+            <i class="fas fa-satellite-dish"></i>
+            Pengaturan IoT & DSS
+        </h2>
+
+        <div class="dashboard-settings-grid compact">
+            <div class="goals-card">
+                <div class="goals-card-icon efficiency">
+                    <i class="fas fa-wifi"></i>
+                </div>
+                <h3 class="goals-card-title">Suhu & Kelembapan</h3>
+                <div class="goals-description">
+                    Kelola integrasi IoT untuk pembacaan suhu dan kelembapan kandang secara real-time.
+                </div>
+                <div class="goals-card-actions">
+                    <a href="{{ route('admin.sistem.iot') }}" class="goals-btn goals-btn-primary">
+                        <i class="fas fa-plug"></i>
+                        Pengaturan IoT
+                    </a>
+                </div>
+            </div>
+            <div class="goals-card">
+                <div class="goals-card-icon production">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h3 class="goals-card-title">Decision Support</h3>
+                <div class="goals-description">
+                    Edit parameter DSS rule-based atau aktifkan mode ML langsung dari dashboard sistem VF.
+                </div>
+                <div class="goals-card-actions">
+                    <a href="{{ route('admin.sistem.dss') }}" class="goals-btn goals-btn-primary">
+                        <i class="fas fa-sliders-h"></i>
+                        Pengaturan DSS
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Database Settings Section -->
     <div class="sistem-section">
         <h2 class="sistem-section-title">
@@ -355,32 +400,6 @@
                     <a href="{{ route('admin.sistem.database.optimization') }}" class="goals-btn goals-btn-primary">
                         <i class="fas fa-wrench"></i>
                         Optimalkan
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- IoT Settings Section -->
-    <div class="sistem-section">
-        <h2 class="sistem-section-title">
-            <i class="fas fa-satellite-dish"></i>
-            Pengaturan IoT
-        </h2>
-
-        <div class="dashboard-settings-grid">
-            <div class="goals-card">
-                <div class="goals-card-icon efficiency">
-                    <i class="fas fa-wifi"></i>
-                </div>
-                <h3 class="goals-card-title">Suhu & Kelembapan</h3>
-                <div class="goals-description">
-                    Kelola integrasi IoT untuk pembacaan suhu dan kelembapan kandang secara real-time.
-                </div>
-                <div class="goals-card-actions">
-                    <a href="{{ route('admin.sistem.iot') }}" class="goals-btn goals-btn-primary">
-                        <i class="fas fa-plug"></i>
-                        Pengaturan IoT
                     </a>
                 </div>
             </div>

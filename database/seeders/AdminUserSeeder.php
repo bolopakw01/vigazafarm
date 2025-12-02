@@ -59,7 +59,7 @@ class AdminUserSeeder extends Seeder
             ]);
         } else {
             DB::table('vf_pengguna')->insert([
-                'nama' => 'Operator',
+                'nama' => 'Operator Cokro Sutisno Hadikusumo Mangunkarso TitisanDewo Mangku wanitolimo tanpobusono',
                 'nama_pengguna' => $operatorUsername,
                 'surel' => $operatorUsername . '@local',
                 'nomor_telepon' => '081111111111',

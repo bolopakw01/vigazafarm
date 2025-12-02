@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use App\Models\Kandang;
+use App\Services\Dss\DssSettingsService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,6 +22,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        try {
+            app(DssSettingsService::class)->applyOverrides();
+        } catch (\Throwable $e) {
+            // Silence errors when storage/config is not ready yet.
+        }
+
         // Share list of kandang to admin views so forms can access them
         try {
             $kandangs = Kandang::orderBy('nama_kandang')->get();

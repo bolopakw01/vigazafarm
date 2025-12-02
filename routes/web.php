@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\MlPreviewController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
@@ -39,6 +40,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/admin/dss', [DssController::class, 'index'])->name('admin.dss');
 
+    Route::prefix('/api/ml')->name('api.ml.')->group(function () {
+        Route::post('/dss/predict', [MlPreviewController::class, 'predict'])->name('dss.predict');
+    });
+
     // Master routes (Owner only)
     Route::middleware('owner')->group(function () {
         // Kandang CRUD
@@ -67,6 +72,8 @@ Route::middleware('auth')->group(function () {
         Route::put('/admin/sistem/matriks', [App\Http\Controllers\SistemController::class, 'updateMatrix'])->name('admin.sistem.matriks.update');
         Route::get('/admin/sistem/performance', [App\Http\Controllers\SistemController::class, 'performance'])->name('admin.sistem.performance');
         Route::put('/admin/sistem/performance', [App\Http\Controllers\SistemController::class, 'updatePerformance'])->name('admin.sistem.performance.update');
+        Route::get('/admin/sistem/dss', [App\Http\Controllers\SistemController::class, 'dss'])->name('admin.sistem.dss');
+        Route::put('/admin/sistem/dss', [App\Http\Controllers\SistemController::class, 'updateDss'])->name('admin.sistem.dss.update');
         Route::get('/admin/sistem/pakan-vitamin', [FeedVitaminController::class, 'index'])->name('admin.sistem.pakanvitamin');
         Route::post('/admin/sistem/pakan-vitamin', [FeedVitaminController::class, 'store'])->name('admin.sistem.pakanvitamin.store');
         Route::put('/admin/sistem/pakan-vitamin/{item}', [FeedVitaminController::class, 'update'])->name('admin.sistem.pakanvitamin.update');

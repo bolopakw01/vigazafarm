@@ -1,0 +1,6 @@
+# Ignore large or sensitive ML artifacts
+artifacts/
+!artifacts/.gitkeep
+
+data/raw/
+data/processed/
