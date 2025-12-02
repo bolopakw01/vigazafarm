@@ -299,7 +299,7 @@
     }
 
     .bolopa-breadcrumb-node.is-active .bolopa-breadcrumb-node-icon {
-      background: #dbeafe;
+      background: #ffffff;
       color: #2563eb;
       box-shadow: 0 1px 2px rgba(30,64,175,0.2);
     }

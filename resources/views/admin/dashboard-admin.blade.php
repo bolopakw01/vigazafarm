@@ -20,6 +20,9 @@
 		.goals-empty { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 32px 16px; border: 1px dashed #e5e7eb; border-radius: 10px; }
 		.goals-empty i { font-size: 32px; margin-bottom: 12px; color: #cbd5f5; }
 		.goals-empty p, .goals-empty small { color: #cbd5f5; }
+		.performance-empty { border: 1px dashed #e5e7eb; border-radius: 12px; padding: 28px 16px; width: 100%; min-height: 220px; background: #f8fafc; }
+		.performance-empty i { color: #cbd5f5; }
+		.performance-empty p, .performance-empty small { color: #94a3b8; }
 		@media (max-width: 991.98px) {
 			.goals-panel { flex-direction: column; }
 			.goals-empty { border-style: solid; }
@@ -210,7 +213,11 @@
 									<div class="goals-empty text-muted">
 										<i class="fas fa-bullseye"></i>
 										<p class="mb-1">Belum ada goals yang ditetapkan</p>
-										<small>Silakan atur goals di menu Sistem &gt; Dashboard</small>
+										@if(auth()->user()->peran === 'owner')
+											<small>Silakan atur goals di menu Sistem &gt; Dashboard</small>
+										@else
+											<small>Silakan tunggu update goals dari owner</small>
+										@endif
 									</div>
 								@endif
 							</div>
@@ -227,6 +234,8 @@
 			$matrixEnabled = $matrixEnabled ?? true;
 			$activityDatasets = $activityDatasets ?? [];
 			$performanceChart = $performanceChart ?? ['labels' => [], 'series' => [], 'colors' => []];
+			$performanceSeries = $performanceChart['series'] ?? [];
+			$performanceHasData = !empty($performanceChart['labels']) && collect($performanceSeries)->contains(fn ($serie) => !empty($serie['data']));
 		@endphp
 		@if($matrixEnabled)
 			<div class="app-card section-gap kpi-card kpi-matrix-section">
@@ -268,13 +277,15 @@
 										<span class="kpi-delta" data-target="{{ $percentTarget }}">0</span>%
 									</div>
 									<div class="value">
-										<span class="kpi-value" data-currency="{{ $isGoalsCard ? '' : 'Rp ' }}" data-target="{{ $valueTarget }}">
-											@if($isGoalsCard)
-												{{ number_format($valueTarget, 0, ',', '.') }}
-											@else
+										@if($isGoalsCard)
+											<span class="kpi-value" data-static="true">
+												{{ $valueTarget }}/{{ $targetValue }}
+											</span>
+										@else
+											<span class="kpi-value" data-currency="Rp " data-target="{{ $valueTarget }}">
 												Rp {{ number_format($valueTarget, 0, ',', '.') }}
-											@endif
-										</span>
+											</span>
+										@endif
 									</div>
 									<div class="label">{{ $label }}</div>
 								</div>
@@ -324,30 +335,40 @@
 									</tr>
 								</thead>
 								<tbody>
-									@foreach(\App\Models\Produksi::latest()->take(5)->get() as $row)
-										@php
-											$dateSource = $row->tanggal_mulai ?? $row->tanggal ?? $row->dibuat_pada ?? $row->created_at;
-											$batchLabel = $row->batch_produksi_id ?? ($row->batch ?? '-');
-											$tipeProduksi = strtolower($row->tipe_produksi ?? $row->jenis_input ?? 'telur');
-											$jumlahTelur = $row->jumlah_telur ?? null;
-											$jumlahPuyuh = $row->jumlah_indukan ?? $row->jumlah_jantan ?? $row->jumlah_betina ?? null;
-											$jumlahFallback = $row->jumlah ?? 0;
-											$jumlahUtama = $tipeProduksi === 'telur'
-												? ($jumlahTelur ?? $jumlahPuyuh ?? $jumlahFallback)
-												: ($jumlahPuyuh ?? $jumlahTelur ?? $jumlahFallback);
-											$satuan = $tipeProduksi === 'telur' ? 'butir' : 'ekor';
-											$tipeLabel = ucfirst($tipeProduksi);
-										@endphp
-									<tr>
-										<td class="text-truncate" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $dateSource ? optional(\Illuminate\Support\Carbon::parse($dateSource))->format('d/m/Y') : '-' }}</td>
-										<td class="text-truncate" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $batchLabel ?: '-' }}</td>
-										<td class="text-truncate" style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ number_format($jumlahUtama, 0, ',', '.') }} {{ $satuan }}</td>
-										@php
-											$badgeClass = $tipeProduksi === 'telur' ? 'badge-type badge-type-telur' : 'badge-type badge-type-puyuh';
-										@endphp
-										<td><span class="{{ $badgeClass }}">{{ $tipeLabel }}</span></td>
-									</tr>
-									@endforeach
+									@php $produksiData = \App\Models\Produksi::latest()->take(5)->get(); @endphp
+									@if($produksiData->isEmpty())
+										<tr>
+											<td colspan="4" class="text-center py-4">
+												<img src="{{ asset('bolopa/img/icon/streamline-sharp--archive-box-solid.svg') }}" alt="Produksi" class="mb-2" style="width: 32px; height: 32px; filter: invert(65%) sepia(13%) saturate(19%) hue-rotate(174deg) brightness(99%) contrast(100%);">
+												<p class="text-muted">Belum ada data produksi</p>
+											</td>
+										</tr>
+									@else
+										@foreach($produksiData as $row)
+											@php
+												$dateSource = $row->tanggal_mulai ?? $row->tanggal ?? $row->dibuat_pada ?? $row->created_at;
+												$batchLabel = $row->batch_produksi_id ?? ($row->batch ?? '-');
+												$tipeProduksi = strtolower($row->tipe_produksi ?? $row->jenis_input ?? 'telur');
+												$jumlahTelur = $row->jumlah_telur ?? null;
+												$jumlahPuyuh = $row->jumlah_indukan ?? $row->jumlah_jantan ?? $row->jumlah_betina ?? null;
+												$jumlahFallback = $row->jumlah ?? 0;
+												$jumlahUtama = $tipeProduksi === 'telur'
+													? ($jumlahTelur ?? $jumlahPuyuh ?? $jumlahFallback)
+													: ($jumlahPuyuh ?? $jumlahTelur ?? $jumlahFallback);
+												$satuan = $tipeProduksi === 'telur' ? 'butir' : 'ekor';
+												$tipeLabel = ucfirst($tipeProduksi);
+											@endphp
+											<tr>
+												<td class="text-truncate" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $dateSource ? optional(\Illuminate\Support\Carbon::parse($dateSource))->format('d/m/Y') : '-' }}</td>
+												<td class="text-truncate" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $batchLabel ?: '-' }}</td>
+												<td class="text-truncate" style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ number_format($jumlahUtama, 0, ',', '.') }} {{ $satuan }}</td>
+												@php
+													$badgeClass = $tipeProduksi === 'telur' ? 'badge-type badge-type-telur' : 'badge-type badge-type-puyuh';
+												@endphp
+												<td><span class="{{ $badgeClass }}">{{ $tipeLabel }}</span></td>
+											</tr>
+										@endforeach
+									@endif
 								</tbody>
 							</table>
 						</div>
@@ -367,8 +388,13 @@
 							<div class="chart-menu"><i class="fa-solid fa-list"></i></div>
 						</div>
 					</div>
-					<div class="box-body d-flex align-items-center" style="height: calc(100% - 80px);">
-						<div id="radarChart" style="width: 100%;"></div>
+					<div class="box-body d-flex align-items-center justify-content-center" style="height: calc(100% - 80px);">
+						<div id="radarChart" class="{{ $performanceHasData ? '' : 'd-none' }}" style="width: 100%;"></div>
+						<div id="performanceEmptyState" class="goals-empty performance-empty {{ $performanceHasData ? 'd-none' : '' }}">
+							<i class="fas fa-bullseye"></i>
+							<p class="mb-1">Belum ada data performance</p>
+							
+						</div>
 					</div>
 				</div>
 			</div>
@@ -401,19 +427,29 @@
 								</tr>
 							</thead>
 							<tbody>
-								@foreach(\App\Models\Penetasan::latest()->take(5)->get() as $r)
-									@php
-										$createdAt = $r->dibuat_pada ?? $r->created_at;
-										$jumlahTelur = $r->jumlah_telur ?? 0;
-									@endphp
-								<tr>
-									<td>{{ optional($createdAt)->format('d/m/Y') ?? '-' }}</td>
-									<td class="text-truncate">{{ $r->kandang?->nama_kandang ?? '-' }}</td>
-									<td class="text-truncate">{{ $r->batch ?? '—' }}</td>
-									<td>{{ number_format($jumlahTelur, 0, ',', '.') }}</td>
-									<td><span class="badge badge-pill badge-aktif">Aktif</span></td>
-								</tr>
-								@endforeach
+								@php $penetasanData = \App\Models\Penetasan::latest()->take(5)->get(); @endphp
+								@if($penetasanData->isEmpty())
+									<tr>
+										<td colspan="5" class="text-center py-4">
+											<img src="{{ asset('bolopa/img/icon/game-icons--nest-eggs.svg') }}" alt="Penetasan" class="mb-2" style="width: 32px; height: 32px; filter: invert(65%) sepia(13%) saturate(19%) hue-rotate(174deg) brightness(99%) contrast(100%);">
+											<p class="text-muted">Belum ada data penetasan</p>
+										</td>
+									</tr>
+								@else
+									@foreach($penetasanData as $r)
+										@php
+											$createdAt = $r->dibuat_pada ?? $r->created_at;
+											$jumlahTelur = $r->jumlah_telur ?? 0;
+										@endphp
+									<tr>
+										<td>{{ optional($createdAt)->format('d/m/Y') ?? '-' }}</td>
+										<td class="text-truncate">{{ $r->kandang?->nama_kandang ?? '-' }}</td>
+										<td class="text-truncate">{{ $r->batch ?? '—' }}</td>
+										<td>{{ number_format($jumlahTelur, 0, ',', '.') }}</td>
+										<td><span class="badge badge-pill badge-aktif">Aktif</span></td>
+									</tr>
+									@endforeach
+								@endif
 							</tbody>
 						</table>
 					</div>
@@ -451,21 +487,31 @@
 								</tr>
 							</thead>
 							<tbody>
-								@foreach(\App\Models\Pembesaran::latest()->take(5)->get() as $pr)
-									@php
-										$createdAt = $pr->dibuat_pada ?? $pr->created_at;
-										$jenisKelamin = $pr->jenis_kelamin ?? $pr->jenis ?? '-';
-										$jumlahAnak = $pr->jumlah_anak_ayam ?? $pr->jumlah_siap ?? $pr->jumlah ?? 0;
-										$keterangan = $pr->status_batch ?? $pr->catatan ?? 'Aktif';
-									@endphp
-								<tr>
-									<td>{{ optional($createdAt)->format('d/m/Y') ?? '-' }}</td>
-									<td class="text-truncate">{{ $pr->kandang?->nama_kandang ?? '-' }}</td>
-									<td>{{ ucfirst($jenisKelamin) }}</td>
-									<td>{{ number_format($jumlahAnak, 0, ',', '.') }}</td>
-									<td class="text-truncate"><span class="badge badge-pill badge-aktif">{{ ucfirst($keterangan) }}</span></td>
-								</tr>
-								@endforeach
+								@php $pembesaranData = \App\Models\Pembesaran::latest()->take(5)->get(); @endphp
+								@if($pembesaranData->isEmpty())
+									<tr>
+										<td colspan="5" class="text-center py-4">
+											<img src="{{ asset('bolopa/img/icon/game-icons--nest-birds.svg') }}" alt="Pembesaran" class="mb-2" style="width: 32px; height: 32px; filter: invert(65%) sepia(13%) saturate(19%) hue-rotate(174deg) brightness(99%) contrast(100%);">
+											<p class="text-muted">Belum ada data pembesaran</p>
+										</td>
+									</tr>
+								@else
+									@foreach($pembesaranData as $pr)
+										@php
+											$createdAt = $pr->dibuat_pada ?? $pr->created_at;
+											$jenisKelamin = $pr->jenis_kelamin ?? $pr->jenis ?? '-';
+											$jumlahAnak = $pr->jumlah_anak_ayam ?? $pr->jumlah_siap ?? $pr->jumlah ?? 0;
+											$keterangan = $pr->status_batch ?? $pr->catatan ?? 'Aktif';
+										@endphp
+									<tr>
+										<td>{{ optional($createdAt)->format('d/m/Y') ?? '-' }}</td>
+										<td class="text-truncate">{{ $pr->kandang?->nama_kandang ?? '-' }}</td>
+										<td>{{ ucfirst($jenisKelamin) }}</td>
+										<td>{{ number_format($jumlahAnak, 0, ',', '.') }}</td>
+										<td class="text-truncate"><span class="badge badge-pill badge-aktif">{{ ucfirst($keterangan) }}</span></td>
+									</tr>
+									@endforeach
+								@endif
 							</tbody>
 						</table>
 					</div>
@@ -488,9 +534,11 @@
 			// Check if chart containers exist
 			const mainChartContainer = document.querySelector('#mainChart');
 			const radarChartContainer = document.querySelector('#radarChart');
+			const performanceEmptyState = document.getElementById('performanceEmptyState');
+			const performanceHasData = {{ $performanceHasData ? 'true' : 'false' }};
 			
-			if (!mainChartContainer || !radarChartContainer) {
-				console.warn('Chart containers not found, skipping chart initialization');
+			if (!mainChartContainer) {
+				console.warn('Main chart container not found, skipping chart initialization');
 				return;
 			}
 
@@ -691,65 +739,68 @@
 			});
 
 			// radar chart
-			const defaultRadarSeries = [
-				{ name: 'Produktivitas', data: [80, 65, 75, 85, 70, 90] },
-				{ name: 'Kesehatan', data: [70, 80, 85, 75, 80, 85] },
-				{ name: 'Efisiensi', data: [60, 75, 80, 70, 85, 75] }
-			];
-			const defaultRadarLabels = ['Penetasan', 'Pembesaran', 'Produksi', 'Kualitas', 'Distribusi', 'Keuntungan'];
 			const defaultRadarColors = ['#0d6efd', '#20c997', '#ffc107'];
-			const resolvedRadarSeries = Array.isArray(performanceConfig.series) && performanceConfig.series.length
-				? performanceConfig.series
-				: defaultRadarSeries;
-			const resolvedRadarLabels = Array.isArray(performanceConfig.labels) && performanceConfig.labels.length
-				? performanceConfig.labels
-				: defaultRadarLabels;
-			const resolvedRadarColors = Array.isArray(performanceConfig.colors) && performanceConfig.colors.length
-				? performanceConfig.colors
-				: defaultRadarColors;
-			const radarOptions = {
-				chart: { type: 'radar', height: '100%', toolbar: { show:false }, foreColor: '#6c757d', parentHeightOffset: 0 },
-				series: resolvedRadarSeries,
-				labels: resolvedRadarLabels,
-				colors: resolvedRadarColors,
-				stroke: { width: 2 }, fill: { opacity: 0.3 }, markers: { size: 4 }, dataLabels: { enabled: false }, yaxis: { show: false }, grid: { show: false },
-				legend: { position: 'bottom', horizontalAlign: 'center', fontWeight: 700, fontSize: '14px', markers: { width: 14, height: 14, radius: 12 }, itemMargin: { horizontal: 16, vertical: 8 }, offsetY: 20 },
-				xaxis: { labels: { style: { fontSize: '13px', fontWeight: 600, colors: '#495057' } } },
-				plotOptions: { radar: { size: 180, polygons: { strokeColors: '#e9ecef', connectorColors: '#e9ecef', strokeWidth: 1 } } },
-				responsive: [ { breakpoint: 992, options: { plotOptions: { radar: { size: 150 } } } }, { breakpoint: 576, options: { plotOptions: { radar: { size: 120 } }, legend: { itemMargin: { horizontal: 12, vertical: 6 } } } } ]
-			};
 
-			// Initialize radar chart with error handling
-			let radarChart;
-			try {
-				radarChart = new ApexCharts(radarChartContainer, radarOptions);
-				radarChart.render();
-			} catch (error) {
-				console.error('Error initializing radar chart:', error);
-				// Fallback: show a message in the container
-				radarChartContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; font-size: 14px;">Chart sedang dimuat...</div>';
+			if (radarChartContainer && performanceHasData) {
+				performanceEmptyState?.classList.add('d-none');
+				radarChartContainer.classList.remove('d-none');
+				const resolvedRadarSeries = Array.isArray(performanceConfig.series) ? performanceConfig.series : [];
+				const resolvedRadarLabels = Array.isArray(performanceConfig.labels) ? performanceConfig.labels : [];
+				const resolvedRadarColors = Array.isArray(performanceConfig.colors) && performanceConfig.colors.length
+					? performanceConfig.colors
+					: defaultRadarColors;
+				const radarOptions = {
+					chart: { type: 'radar', height: '100%', toolbar: { show:false }, foreColor: '#6c757d', parentHeightOffset: 0 },
+					series: resolvedRadarSeries,
+					labels: resolvedRadarLabels,
+					colors: resolvedRadarColors,
+					stroke: { width: 2 }, fill: { opacity: 0.3 }, markers: { size: 4 }, dataLabels: { enabled: false }, yaxis: { show: false }, grid: { show: false },
+					legend: { position: 'bottom', horizontalAlign: 'center', fontWeight: 700, fontSize: '14px', markers: { width: 14, height: 14, radius: 12 }, itemMargin: { horizontal: 16, vertical: 8 }, offsetY: 20 },
+					xaxis: { labels: { style: { fontSize: '13px', fontWeight: 600, colors: '#495057' } } },
+					plotOptions: { radar: { size: 180, polygons: { strokeColors: '#e9ecef', connectorColors: '#e9ecef', strokeWidth: 1 } } },
+					responsive: [ { breakpoint: 992, options: { plotOptions: { radar: { size: 150 } } } }, { breakpoint: 576, options: { plotOptions: { radar: { size: 120 } }, legend: { itemMargin: { horizontal: 12, vertical: 6 } } } } ]
+				};
+
+				// Initialize radar chart with error handling
+				let radarChart;
+				try {
+					radarChart = new ApexCharts(radarChartContainer, radarOptions);
+					radarChart.render();
+				} catch (error) {
+					console.error('Error initializing radar chart:', error);
+					// Fallback: show a message in the container
+					radarChartContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7280; font-size: 14px;">Chart sedang dimuat...</div>';
+				}
+
+				// chart export menu
+				(function(){
+					const menu = document.querySelector('.chart-menu'); if(!menu) return; menu.setAttribute('role','button'); menu.setAttribute('tabindex','0'); menu.setAttribute('title','Export chart');
+					const parent = menu.parentElement || document.body; if(getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
+					const box = document.createElement('div'); box.className = 'chart-export-box'; Object.assign(box.style, { position:'absolute', right:'0', top:'36px', background:'#fff', border:'1px solid #e6e9ee', borderRadius:'6px', boxShadow:'0 8px 20px rgba(15,23,42,0.06)', padding:'6px', zIndex:9999, display:'none', minWidth:'160px' });
+					box.innerHTML = `
+						<button class="chart-export-btn" data-type="png" style="display:block;width:100%;text-align:left;padding:8px;border:0;background:transparent;cursor:pointer">Download PNG</button>
+						<button class="chart-export-btn" data-type="svg" style="display:block;width:100%;text-align:left;padding:8px;border:0;background:transparent;cursor:pointer">Download SVG</button>
+						<button class="chart-export-btn" data-type="csv" style="display:block;width:100%;text-align:left;padding:8px;border:0;background:transparent;cursor:pointer">Export CSV</button>
+					`;
+					parent.appendChild(box);
+					function toggle(){ box.style.display = box.style.display === 'none' ? 'block' : 'none'; }
+					function closeBox(){ box.style.display = 'none'; }
+					document.addEventListener('click', (e)=>{ if(!box.contains(e.target) && e.target !== menu) closeBox(); });
+					menu.addEventListener('click', function(e){ e.stopPropagation(); toggle(); });
+					menu.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar'){ e.preventDefault(); toggle(); } });
+					function downloadHref(href, filename){ const a = document.createElement('a'); a.href = href; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); }
+					function downloadBlob(blob, filename){ const url = URL.createObjectURL(blob); downloadHref(url, filename); setTimeout(()=> URL.revokeObjectURL(url), 15000); }
+					box.addEventListener('click', function(e){ const btn = e.target.closest('.chart-export-btn'); if(!btn) return; const type = btn.getAttribute('data-type'); closeBox(); if(type === 'png'){ if(typeof radarChart?.dataURI === 'function'){ radarChart.dataURI().then(({imgURI})=> downloadHref(imgURI, 'performance-chart.png')).catch(()=> alert('Unable to export PNG')); } else alert('Chart export not available'); } else if(type === 'svg'){ const svgEl = document.querySelector('#radarChart svg'); if(!svgEl){ alert('SVG not found'); return; } const svgText = svgEl.outerHTML; const blob = new Blob([svgText], {type: 'image/svg+xml;charset=utf-8'}); downloadBlob(blob, 'performance-chart.svg'); } else if(type === 'csv'){ try{ const labels = (typeof radarOptions !== 'undefined' && radarOptions.labels) || []; const series = (typeof radarOptions !== 'undefined' && radarOptions.series) || []; let csv = ['label'].concat(series.map(s=> '"'+s.name.replace(/"/g,'""')+'"')).join(',') + '\n'; for(let i=0;i<labels.length;i++){ const row = [ '"'+String(labels[i]).replace(/"/g,'""')+'"' ]; series.forEach(s=> row.push(s.data[i] != null ? s.data[i] : '')); csv += row.join(',') + '\n'; } const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'}); downloadBlob(blob, 'performance-chart.csv'); }catch(err){ console.error(err); alert('Unable to export CSV'); } } });
+				})();
+			} else {
+				if (!radarChartContainer) {
+					console.warn('Radar chart container not found, skipping radar initialization');
+				}
+				if (!performanceHasData) {
+					radarChartContainer?.classList.add('d-none');
+					performanceEmptyState?.classList.remove('d-none');
+				}
 			}
-
-			// chart export menu
-			(function(){
-				const menu = document.querySelector('.chart-menu'); if(!menu) return; menu.setAttribute('role','button'); menu.setAttribute('tabindex','0'); menu.setAttribute('title','Export chart');
-				const parent = menu.parentElement || document.body; if(getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
-				const box = document.createElement('div'); box.className = 'chart-export-box'; Object.assign(box.style, { position:'absolute', right:'0', top:'36px', background:'#fff', border:'1px solid #e6e9ee', borderRadius:'6px', boxShadow:'0 8px 20px rgba(15,23,42,0.06)', padding:'6px', zIndex:9999, display:'none', minWidth:'160px' });
-				box.innerHTML = `
-					<button class="chart-export-btn" data-type="png" style="display:block;width:100%;text-align:left;padding:8px;border:0;background:transparent;cursor:pointer">Download PNG</button>
-					<button class="chart-export-btn" data-type="svg" style="display:block;width:100%;text-align:left;padding:8px;border:0;background:transparent;cursor:pointer">Download SVG</button>
-					<button class="chart-export-btn" data-type="csv" style="display:block;width:100%;text-align:left;padding:8px;border:0;background:transparent;cursor:pointer">Export CSV</button>
-				`;
-				parent.appendChild(box);
-				function toggle(){ box.style.display = box.style.display === 'none' ? 'block' : 'none'; }
-				function closeBox(){ box.style.display = 'none'; }
-				document.addEventListener('click', (e)=>{ if(!box.contains(e.target) && e.target !== menu) closeBox(); });
-				menu.addEventListener('click', function(e){ e.stopPropagation(); toggle(); });
-				menu.addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar'){ e.preventDefault(); toggle(); } });
-				function downloadHref(href, filename){ const a = document.createElement('a'); a.href = href; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); }
-				function downloadBlob(blob, filename){ const url = URL.createObjectURL(blob); downloadHref(url, filename); setTimeout(()=> URL.revokeObjectURL(url), 15000); }
-				box.addEventListener('click', function(e){ const btn = e.target.closest('.chart-export-btn'); if(!btn) return; const type = btn.getAttribute('data-type'); closeBox(); if(type === 'png'){ if(typeof radarChart?.dataURI === 'function'){ radarChart.dataURI().then(({imgURI})=> downloadHref(imgURI, 'performance-chart.png')).catch(()=> alert('Unable to export PNG')); } else alert('Chart export not available'); } else if(type === 'svg'){ const svgEl = document.querySelector('#radarChart svg'); if(!svgEl){ alert('SVG not found'); return; } const svgText = svgEl.outerHTML; const blob = new Blob([svgText], {type: 'image/svg+xml;charset=utf-8'}); downloadBlob(blob, 'performance-chart.svg'); } else if(type === 'csv'){ try{ const labels = (typeof radarOptions !== 'undefined' && radarOptions.labels) || []; const series = (typeof radarOptions !== 'undefined' && radarOptions.series) || []; let csv = ['label'].concat(series.map(s=> '"'+s.name.replace(/"/g,'""')+'"')).join(',') + '\n'; for(let i=0;i<labels.length;i++){ const row = [ '"'+String(labels[i]).replace(/"/g,'""')+'"' ]; series.forEach(s=> row.push(s.data[i] != null ? s.data[i] : '')); csv += row.join(',') + '\n'; } const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'}); downloadBlob(blob, 'performance-chart.csv'); }catch(err){ console.error(err); alert('Unable to export CSV'); } } });
-			})();
 
 			// header-rt refresh
 			(function(){ const btn = document.querySelector('.header-rt'); if(!btn) return; btn.addEventListener('click', ()=> location.reload()); btn.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); location.reload(); } }); })();
@@ -766,7 +817,14 @@
 				const goals = document.querySelectorAll('.goal-text'); goals.forEach((textEl, i) => { const current = parseFloat(textEl.getAttribute('data-current')) || 0; const target = parseFloat(textEl.getAttribute('data-target')) || 0; const pct = target > 0 ? Math.max(0, Math.min(100, (current / target) * 100)) : 0; const currentSpan = textEl.querySelector('.current'); const bar = textEl.closest('.goal-block').querySelector('.progress-bar'); const delay = i * 160; setTimeout(()=>{ animateNumeric(currentSpan, 0, current, 900); bar.style.width = pct + '%'; }, delay); });
 				const items = document.querySelectorAll('.mini-kpi-card .mini-value[data-target]'); items.forEach((el, idx) => { const target = parseInt(el.getAttribute('data-target')) || 0; const isCurrency = el.closest('.mini-kpi-card').querySelector('.mini-label').textContent.trim().toLowerCase() === 'cost'; const delay = idx * 120; setTimeout(()=> animateValue(el, 0, target, 900, isCurrency), delay); });
 				const deltas = document.querySelectorAll('.kpi-delta'); deltas.forEach((d, i)=>{ const target = parseInt(d.getAttribute('data-target')) || 0; setTimeout(()=> animate(d, 0, target, 700, false), i*120); });
-				const values = document.querySelectorAll('.kpi-value'); values.forEach((v, i)=>{ const target = parseInt(v.getAttribute('data-target')) || 0; const currency = v.getAttribute('data-currency') || ''; setTimeout(()=> animate(v, 0, target, 900, currency !== '', currency), i*140); });
+				const values = document.querySelectorAll('.kpi-value'); values.forEach((v, i)=>{
+					if (v.dataset.static === 'true') {
+						return;
+					}
+					const target = parseInt(v.getAttribute('data-target')) || 0;
+					const currency = v.getAttribute('data-currency') || '';
+					setTimeout(()=> animate(v, 0, target, 900, currency !== '', currency), i*140);
+				});
 			})();
 		});
 	</script>

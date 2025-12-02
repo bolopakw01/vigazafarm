@@ -115,8 +115,9 @@
                     @forelse($snapshot as $key => $card)
                         @php
                             $label = $card['label'] ?? ucfirst($key);
-                            $actual = (int) ($card['actual'] ?? 0);
-                            $targetValue = old("targets.$key", (int) ($targets[$key]['target'] ?? $card['target'] ?? 0));
+                            $actual = (float) ($card['actual'] ?? 0);
+                            $defaultTarget = $targets[$key]['target'] ?? null;
+                            $targetValue = old("targets.$key", $defaultTarget === null ? '' : $defaultTarget);
                         @endphp
                         <div class="matriks-item">
                             <div class="matriks-item-header">

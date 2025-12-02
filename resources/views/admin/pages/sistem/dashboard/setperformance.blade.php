@@ -195,11 +195,6 @@
 		function attachRemoveHandlers(){
 			categoryBody.querySelectorAll('.remove-category').forEach(btn => {
 				btn.onclick = function(){
-					const rows = categoryBody.querySelectorAll('tr').length;
-					if(rows <= 1){
-						alert('Minimal harus ada satu kategori.');
-						return;
-					}
 					btn.closest('tr').remove();
 				};
 			});

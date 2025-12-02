@@ -605,6 +605,8 @@ let closeBtn = document.querySelector("#btn");
 let navList = document.querySelector('.nav-list');
 let miniButtons = document.querySelectorAll('.mini-menu');
 let sectionText = document.querySelector('.section-text');
+const userRole = '{{ auth()->user()->peran }}';
+const isOwner = userRole === 'owner';
 
 const menuIcon = '{{ asset("bolopa/img/icon/line-md--menu-fold-right.svg") }}';
 const menuIconAlt = '{{ asset("bolopa/img/icon/line-md--menu-fold-left.svg") }}';
@@ -617,6 +619,9 @@ function saveSidebarState() {
 
 // Function to save active menu state
 function saveActiveMenuState(activeMenu) {
+  if (!isOwner) {
+    return;
+  }
   localStorage.setItem('activeMenu', activeMenu);
 }
 
@@ -632,7 +637,7 @@ function loadSidebarState() {
 // Function to load active menu state and set based on current route
 function loadActiveMenuState() {
   // Get current route name from PHP
-  const currentRoute = '{{ request()->route()->getName() }}';
+  const currentRoute = '{{ request()->route() ? request()->route()->getName() : '' }}';
 
   // Determine which menu should be active based on route
   let activeMenu = 'operasional'; // default
@@ -641,9 +646,13 @@ function loadActiveMenuState() {
     activeMenu = 'master';
   } else if (currentRoute === 'admin.penetasan' || currentRoute === 'admin.pembesaran' || currentRoute === 'admin.produksi') {
     activeMenu = 'operasional';
-  } else {
+  } else if (isOwner) {
     // Load from localStorage if available, otherwise use default
     activeMenu = localStorage.getItem('activeMenu') || 'operasional';
+  }
+
+  if (!isOwner) {
+    activeMenu = 'operasional';
   }
 
   // Set active menu

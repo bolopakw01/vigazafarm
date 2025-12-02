@@ -208,8 +208,9 @@ class SistemController extends Controller
          * Menampilkan konfigurasi matriks finansial dan snapshot perhitungan.
          */
         $matrixData = $this->loadMatrixData();
+        $hasCustomTargets = $this->hasStoredMatrixTargets();
         $targets = $matrixData['targets'];
-        $matriks_enabled = (bool) ($matrixData['enabled'] ?? true);
+        $matriks_enabled = $hasCustomTargets ? (bool) ($matrixData['enabled'] ?? true) : false;
         $metrics = $this->calculateFinancialMetrics();
         $snapshot = $this->buildMatrixSnapshot($targets, $metrics);
 
@@ -274,7 +275,7 @@ class SistemController extends Controller
             'series.*.key' => 'nullable|string|max:60',
             'series.*.label' => 'required|string|max:50',
             'series.*.color' => ['required', 'regex:/^#([0-9a-fA-F]{3}){1,2}$/'],
-            'categories' => 'required|array|min:3|max:8',
+            'categories' => 'nullable|array|max:8',
             'categories.*.label' => 'required|string|max:60',
             'categories.*.values' => 'required|array',
             'categories.*.values.*' => 'nullable|numeric|min:0|max:200',
@@ -299,7 +300,7 @@ class SistemController extends Controller
 
         $seriesKeys = $series->pluck('key');
 
-        $categories = collect($validated['categories'])
+        $categories = collect($validated['categories'] ?? [])
             ->map(function ($item) use ($seriesKeys) {
                 $values = collect($item['values'] ?? [])
                     ->map(fn ($value) => (float) $value)
@@ -452,7 +453,7 @@ class SistemController extends Controller
     {
         $matrixData = $this->loadMatrixData();
 
-        if (!$matrixData['enabled']) {
+        if (!$matrixData['enabled'] || !$this->hasStoredMatrixTargets()) {
             return [];
         }
 
@@ -466,7 +467,7 @@ class SistemController extends Controller
 
     public function isMatrixEnabled(): bool
     {
-        return $this->loadMatrixData()['enabled'];
+        return $this->hasStoredMatrixTargets() && $this->loadMatrixData()['enabled'];
     }
 
     public function getPerformanceChartConfig(): array
@@ -534,7 +535,10 @@ class SistemController extends Controller
     protected function normalizePerformanceSettings(array $settings): array
     {
         $defaults = $this->defaultPerformanceSettings();
-        $series = collect($settings['series'] ?? $defaults['series'])
+        $hasCustomSeries = array_key_exists('series', $settings);
+        $seriesSource = $hasCustomSeries ? ($settings['series'] ?? []) : $defaults['series'];
+
+        $series = collect($seriesSource)
             ->map(function ($serie) {
                 $label = trim($serie['label'] ?? 'Series');
                 return [
@@ -553,7 +557,10 @@ class SistemController extends Controller
 
         $seriesKeys = $series->pluck('key');
 
-        $categories = collect($settings['categories'] ?? $defaults['categories'])
+        $hasCustomCategories = array_key_exists('categories', $settings);
+        $categoriesSource = $hasCustomCategories ? ($settings['categories'] ?? []) : $defaults['categories'];
+
+        $categories = collect($categoriesSource)
             ->map(function ($category) use ($seriesKeys) {
                 $values = collect($category['values'] ?? [])
                     ->map(fn ($value) => (float) $value)
@@ -571,7 +578,7 @@ class SistemController extends Controller
             ->filter(fn ($item) => $item['label'])
             ->values();
 
-        if ($categories->isEmpty()) {
+        if ($categories->isEmpty() && !$hasCustomCategories) {
             $categories = collect($defaults['categories']);
         }
 
@@ -634,20 +641,20 @@ class SistemController extends Controller
         return [
             'pendapatan' => [
                 'key' => 'pendapatan',
-                'label' => 'Pendapatan',
-                'target' => 35000000,
+                'label' => 'Total Pendapatan',
+                'target' => null,
                 'icon' => 'fa-solid fa-coins',
             ],
             'pengeluaran' => [
                 'key' => 'pengeluaran',
-                'label' => 'Pengeluaran',
-                'target' => 20000000,
+                'label' => 'Total Pengeluaran',
+                'target' => null,
                 'icon' => 'fa-solid fa-receipt',
             ],
             'laba' => [
                 'key' => 'laba',
-                'label' => 'Laba',
-                'target' => 15000000,
+                'label' => 'Total Laba',
+                'target' => null,
                 'icon' => 'fa-solid fa-wallet',
             ],
         ];
@@ -681,6 +688,11 @@ class SistemController extends Controller
         ];
     }
 
+    protected function hasStoredMatrixTargets(): bool
+    {
+        return Storage::disk('local')->exists($this->matrixStorage);
+    }
+
     protected function loadMatrixTargets(): array
     {
         return $this->loadMatrixData()['targets'];
@@ -707,11 +719,20 @@ class SistemController extends Controller
                 return [
                     'key' => $key,
                     'label' => $label,
-                    'target' => max((float) $targetValue, 0),
+                    'target' => $this->normalizeMatrixTargetValue($targetValue),
                     'icon' => $icon,
                 ];
             })
             ->toArray();
+    }
+
+    protected function normalizeMatrixTargetValue($value): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        return max((float) $value, 0);
     }
 
     protected function calculateFinancialMetrics(): array
@@ -775,8 +796,9 @@ class SistemController extends Controller
         return collect($targets)
             ->map(function ($config, $key) use ($metrics) {
                 $actual = (float) ($metrics[$key] ?? 0);
-                $target = max((float) ($config['target'] ?? 1), 1);
-                $percent = round(($actual / $target) * 100, 1);
+                $rawTarget = $config['target'] ?? null;
+                $target = is_numeric($rawTarget) ? max((float) $rawTarget, 0) : 0;
+                $percent = $target > 0 ? round(($actual / $target) * 100, 1) : 0;
                 $trend = $this->determineMatrixTrend($key, $actual, $target);
 
                 return array_merge($config, [
@@ -784,6 +806,7 @@ class SistemController extends Controller
                     'percent' => $percent,
                     'trend' => $trend,
                     'comparison' => $this->compareToTarget($actual, $target),
+                    'target_numeric' => $target,
                 ]);
             })
             ->toArray();
@@ -792,7 +815,7 @@ class SistemController extends Controller
     protected function compareToTarget(float $actual, float $target): string
     {
         if ($target <= 0) {
-            return 'equal';
+            return $actual > 0 ? 'above' : 'equal';
         }
 
         $difference = $actual - $target;
@@ -828,7 +851,7 @@ class SistemController extends Controller
 
         $snapshot['goals'] = [
             'key' => 'goals',
-            'label' => 'Goals',
+            'label' => 'Penyelesaian Tujuan',
             'target' => $goalTarget,
             'actual' => $completedGoals,
             'percent' => $percent,
