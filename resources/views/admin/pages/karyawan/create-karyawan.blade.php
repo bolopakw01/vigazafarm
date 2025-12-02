@@ -394,7 +394,7 @@
                     <label class="form-label fw-semibold">
                       <i class="fa-solid fa-phone text-secondary me-1"></i>Nomor Telepon
                     </label>
-                    <input type="text" name="nomor_telepon" class="form-control @error('nomor_telepon') is-invalid @enderror" placeholder="Contoh: 081234567890" value="{{ old('nomor_telepon') }}">
+                    <input type="text" name="nomor_telepon" class="form-control @error('nomor_telepon') is-invalid @enderror" placeholder="Contoh: 081234567890" value="{{ old('nomor_telepon') }}" required>
                     @error('nomor_telepon')
                       <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -564,6 +564,8 @@
       const nameInput = document.querySelector('input[name="nama"]');
       const form = photoSection.closest('form');
       const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+      const roleSelect = document.querySelector('select[name="peran"]');
+      let ownerAlertTimeout = null;
 
       const cropperModal = document.getElementById('employeeCropperModal');
       const cropperBackdrop = document.getElementById('employeeCropperBackdrop');
@@ -772,6 +774,35 @@
           closeCropper();
         }
       });
+
+      function showOwnerAlert() {
+        const message = 'Peran Owner memiliki akses penuh terhadap seluruh modul termasuk manajemen finansial dan pengaturan sistem. Pastikan hanya diberikan kepada Karyawan yang Terpercaya.';
+        if (window.Swal && typeof window.Swal.fire === 'function') {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Peran Owner Dipilih',
+            text: message,
+            confirmButtonText: 'Mengerti',
+            confirmButtonColor: '#d97706',
+            allowOutsideClick: true,
+          });
+        } else {
+          alert(message);
+        }
+      }
+
+      if (roleSelect) {
+        roleSelect.addEventListener('change', function () {
+          if (roleSelect.value === 'owner') {
+            clearTimeout(ownerAlertTimeout);
+            ownerAlertTimeout = setTimeout(showOwnerAlert, 50);
+          }
+        });
+
+        if (roleSelect.value === 'owner') {
+          ownerAlertTimeout = setTimeout(showOwnerAlert, 200);
+        }
+      }
 
       if (removeButton && removeField) {
         removeButton.addEventListener('click', function () {

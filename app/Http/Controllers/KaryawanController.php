@@ -66,12 +66,12 @@ class KaryawanController extends Controller
             'nama' => 'required|string|max:255',
             'nama_pengguna' => 'required|string|max:255|unique:vf_pengguna,nama_pengguna',
             'surel' => 'required|email|max:255|unique:vf_pengguna,surel',
-            'nomor_telepon' => 'nullable|string|max:30',
+            'nomor_telepon' => 'required|string|max:30',
             'kata_sandi' => 'required|string|min:8',
             'peran' => 'required|string|in:owner,operator',
             'alamat' => 'nullable|string|max:500',
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+        ], $this->validationMessages(), $this->validationAttributes());
 
         // Tangani unggah file
         if ($request->hasFile('foto_profil')) {
@@ -118,11 +118,11 @@ class KaryawanController extends Controller
             'nama' => 'required|string|max:255',
             'nama_pengguna' => 'required|string|max:255|unique:vf_pengguna,nama_pengguna,' . $karyawan->id,
             'surel' => 'required|email|max:255|unique:vf_pengguna,surel,' . $karyawan->id,
-            'nomor_telepon' => 'nullable|string|max:30',
+            'nomor_telepon' => 'required|string|max:30',
             'peran' => 'required|string|in:owner,operator',
             'alamat' => 'nullable|string|max:500',
             'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+        ], $this->validationMessages(), $this->validationAttributes());
 
         $removePhoto = $request->boolean('remove_profile_picture');
         $destination = public_path('foto_profil');
@@ -157,7 +157,7 @@ class KaryawanController extends Controller
         if ($request->filled('kata_sandi')) {
             $request->validate([
                 'kata_sandi' => 'string|min:8',
-            ]);
+            ], $this->validationMessages(), $this->validationAttributes());
             $data['kata_sandi'] = Hash::make($request->kata_sandi);
         }
 
@@ -181,5 +181,34 @@ class KaryawanController extends Controller
 
         $karyawan->delete();
         return redirect()->route('admin.karyawan')->with('success', 'Karyawan berhasil dihapus');
+    }
+
+    protected function validationMessages(): array
+    {
+        return [
+            'required' => ':attribute wajib diisi.',
+            'email' => ':attribute harus berupa alamat surel yang valid.',
+            'string' => ':attribute harus berupa teks.',
+            'max' => ':attribute tidak boleh lebih dari :max karakter.',
+            'min' => ':attribute minimal :min karakter.',
+            'unique' => ':attribute sudah digunakan.',
+            'in' => ':attribute tidak valid.',
+            'image' => ':attribute harus berupa file gambar.',
+            'mimes' => ':attribute harus berformat: :values.',
+        ];
+    }
+
+    protected function validationAttributes(): array
+    {
+        return [
+            'nama' => 'Nama',
+            'nama_pengguna' => 'Username',
+            'surel' => 'Email',
+            'nomor_telepon' => 'Nomor telepon',
+            'kata_sandi' => 'Kata sandi',
+            'peran' => 'Peran',
+            'alamat' => 'Alamat',
+            'foto_profil' => 'Foto profil',
+        ];
     }
 }

@@ -64,7 +64,7 @@ class KandangController extends Controller
 
         // Generate kode_kandang secara otomatis jika tidak disediakan
         if (!isset($data['kode_kandang']) || empty($data['kode_kandang'])) {
-            $data['kode_kandang'] = 'KDG-' . str_pad((Kandang::count() + 1), 3, '0', STR_PAD_LEFT);
+            $data['kode_kandang'] = $this->generateKodeKandang();
         }
 
         Kandang::create($data);
@@ -104,7 +104,7 @@ class KandangController extends Controller
         // Generate kode_kandang secara otomatis jika tidak disediakan dan record saat ini tidak memilikinya
         if (!isset($data['kode_kandang']) || empty($data['kode_kandang'])) {
             if (empty($kandang->kode_kandang)) {
-                $data['kode_kandang'] = 'KDG-' . str_pad((Kandang::count() + 1), 3, '0', STR_PAD_LEFT);
+                $data['kode_kandang'] = $this->generateKodeKandang();
             }
         }
 
@@ -120,5 +120,26 @@ class KandangController extends Controller
          */
         $kandang->delete();
         return redirect()->route('admin.kandang')->with('success', 'Kandang berhasil dihapus');
+    }
+
+    /**
+     * Generate kode kandang unik dengan mempertimbangkan record soft-delete.
+     */
+    protected function generateKodeKandang(): string
+    {
+        $prefix = 'KDG-';
+        $latestNumber = Kandang::withTrashed()
+            ->where('kode_kandang', 'like', $prefix . '%')
+            ->selectRaw('MAX(CAST(SUBSTRING(kode_kandang, ?) AS UNSIGNED)) as max_code', [strlen($prefix) + 1])
+            ->value('max_code');
+
+        $nextNumber = ((int) $latestNumber) + 1;
+
+        do {
+            $candidate = $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+            $nextNumber++;
+        } while (Kandang::withTrashed()->where('kode_kandang', $candidate)->exists());
+
+        return $candidate;
     }
 }
