@@ -67,6 +67,13 @@
             </a>
             <span class="tooltip">Produksi</span>
         </li>
+        <li data-group="operasional">
+      <a href="{{ route('admin.dss') }}" class="menu-link {{ request()->routeIs('admin.dss') ? 'active' : '' }}">
+                <img src="{{ asset('bolopa/img/icon/streamline--money-graph-arrow-increase-ascend-growth-up-arrow-stats-graph-right-grow.svg') }}" alt="DSS" class="menu-icon" />
+                <span class="links_name">DSS Insight</span>
+            </a>
+            <span class="tooltip">Decision Support</span>
+        </li>
         @if(auth()->user()->peran === 'owner')
         <!-- master menu items -->
     <li data-group="master">
@@ -237,13 +244,23 @@
   border-radius: 6px;
   background: transparent;
   text-decoration: none;
-  transition: background 160ms ease, transform 160ms ease;
+  transition: background 160ms ease;
 }
 .bolopa-sidebar-vigazafarm li.mini-menus .mini-menu img{
   height: 16px;
   width: auto;
   display: block;
   filter: invert(100%) sepia(100%) saturate(1%) hue-rotate(51deg) brightness(101%) contrast(102%);
+}
+
+.bolopa-sidebar-vigazafarm li.mini-menus .mini-menu:hover img,
+.bolopa-sidebar-vigazafarm li.mini-menus .mini-menu:focus-visible img{
+  filter: invert(36%) sepia(73%) saturate(476%) hue-rotate(81deg) brightness(95%) contrast(92%);
+}
+
+.bolopa-sidebar-vigazafarm li.mini-menus .mini-menu:hover .mini-label,
+.bolopa-sidebar-vigazafarm li.mini-menus .mini-menu:focus-visible .mini-label{
+  color: #48BB78;
 }
 
 /* when sidebar is closed: hide labels and ensure icons are perfectly centered */
@@ -279,9 +296,28 @@
 }
 
 /* active mini-menu visual */
-.mini-menu.active{
-  background: rgba(72,187,120,0.12);
-  border-radius: 6px;
+.bolopa-sidebar-vigazafarm li.mini-menus .mini-menu.active{
+  background: transparent;
+}
+
+.bolopa-sidebar-vigazafarm li.mini-menus .mini-menu.active img{
+  animation: miniMenuIconColor 2.6s ease-in-out infinite;
+}
+
+.bolopa-sidebar-vigazafarm li.mini-menus .mini-menu.active .mini-label{
+  animation: miniMenuLabelColor 2.6s ease-in-out infinite;
+}
+
+@keyframes miniMenuIconColor {
+  0% { filter: invert(36%) sepia(73%) saturate(476%) hue-rotate(81deg) brightness(85%) contrast(95%); }
+  50% { filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(115%) contrast(105%); }
+  100% { filter: invert(36%) sepia(73%) saturate(476%) hue-rotate(81deg) brightness(85%) contrast(95%); }
+}
+
+@keyframes miniMenuLabelColor {
+  0% { color: rgba(72,187,120,0.8); }
+  50% { color: rgba(255,255,255,0.95); }
+  100% { color: rgba(72,187,120,0.8); }
 }
 
 .bolopa-sidebar-vigazafarm.open li.mini-menus .mini-menu{
@@ -296,11 +332,10 @@
 
 /* hover/active feedback for mini-menu */
 .bolopa-sidebar-vigazafarm li.mini-menus .mini-menu:hover{
-  background: rgba(255,255,255,0.04);
-  transform: scale(1.08);
+  background: rgba(255,255,255,0.08);
 }
 .bolopa-sidebar-vigazafarm li.mini-menus .mini-menu:active{
-  transform: scale(0.98);
+  background: rgba(255,255,255,0.12);
 }
 
 /* keep animations off for users who prefer reduced motion */

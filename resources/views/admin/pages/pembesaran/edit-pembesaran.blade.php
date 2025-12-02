@@ -2,6 +2,15 @@
 
 @section('title', 'Edit Pembesaran Puyuh - ' . $pembesaran->batch_produksi_id)
 
+@php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Pembesaran', 'link' => route('admin.pembesaran')],
+        ['label' => 'Detail Batch', 'link' => route('admin.pembesaran.show', $pembesaran->id), 'badge' => $pembesaran->batch_produksi_id],
+        ['label' => 'Edit Data'],
+    ];
+@endphp
+
 @push('styles')
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-pembesaran.css') }}">
 <style>

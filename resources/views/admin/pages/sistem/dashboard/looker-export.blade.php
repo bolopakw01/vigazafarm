@@ -2,6 +2,14 @@
 
 @section('title', 'Export Master Dashboard')
 
+@php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Sistem', 'link' => route('admin.sistem')],
+        ['label' => 'Export Looker Studio'],
+    ];
+@endphp
+
 @push('styles')
 <style>
     @font-face {

@@ -2,6 +2,15 @@
 
 @section('title', 'Detail Biaya Pembesaran - ' . $pembesaran->batch_produksi_id)
 
+@php
+	$breadcrumbs = [
+		['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+		['label' => 'Pembesaran', 'link' => route('admin.pembesaran')],
+		['label' => 'Detail Batch', 'link' => route('admin.pembesaran.show', $pembesaran->id), 'badge' => $pembesaran->batch_produksi_id],
+		['label' => 'Detail Biaya'],
+	];
+@endphp
+
 @push('styles')
 <style>
 	/* Receipt (Struk) style */

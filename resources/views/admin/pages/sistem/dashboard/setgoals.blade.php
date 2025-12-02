@@ -2,6 +2,14 @@
 
 @section('title', 'Set Goals')
 
+@php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Sistem', 'link' => route('admin.sistem')],
+        ['label' => 'Set Goals'],
+    ];
+@endphp
+
 @push('styles')
 <style>
     @font-face {

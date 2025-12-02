@@ -2,6 +2,14 @@
 
 @section('title', 'Edit Data Penetasan')
 
+@php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Penetasan', 'link' => route('admin.penetasan')],
+        ['label' => 'Edit Data'],
+    ];
+@endphp
+
 @section('content')
 <div class="bolopa-form-wrapper">
     <div class="bolopa-form-container">

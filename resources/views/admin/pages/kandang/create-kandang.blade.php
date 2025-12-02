@@ -2,6 +2,14 @@
 
 @section('title', 'Tambah Kandang')
 
+@php
+  $breadcrumbs = [
+    ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+    ['label' => 'Kandang', 'link' => route('admin.kandang')],
+    ['label' => 'Tambah Data'],
+  ];
+@endphp
+
 @section('content')
 <div class="container-fluid">
   <div class="card shadow-sm border-0 mx-auto" style="max-width: 1200px; border-radius: 1rem;">

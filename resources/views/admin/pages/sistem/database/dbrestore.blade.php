@@ -2,6 +2,15 @@
 
 @section('title', 'Restore Database')
 
+@php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Sistem', 'link' => route('admin.sistem')],
+        ['label' => 'Database'],
+        ['label' => 'Restore Database'],
+    ];
+@endphp
+
 @push('styles')
 <style>
     @font-face {
@@ -154,7 +163,7 @@
                             <div class="card-subtitle">Pilih file yang pernah dibuat untuk mengembalikan data</div>
                         </div>
                         <div class="card-body">
-                            <form method="POST" action="{{ route('admin.sistem.database.restore.run') }}">
+                            <form method="POST" action="{{ route('admin.sistem.database.restore.run') }}" class="restore-confirm-form" data-confirm-message="Proses restore akan menimpa seluruh data dari backup yang dipilih. Lanjutkan?" data-confirm-icon="warning">
                                 @csrf
                                 <input type="hidden" name="source" value="existing">
                                 <div class="mb-3">
@@ -171,7 +180,7 @@
                                         <div class="text-danger small">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                <button class="btn btn-primary" @if(empty($backups)) disabled @endif onclick="return confirm('Proses restore akan menimpa seluruh data. Lanjutkan?');">
+                                <button class="btn btn-primary" @if(empty($backups)) disabled @endif>
                                     <i class="fas fa-cloud-upload-alt me-2"></i>Restore dari Backup
                                 </button>
                                 @if(empty($backups))
@@ -188,7 +197,7 @@
                             <div class="card-subtitle">Unggah file backup eksternal untuk direstore</div>
                         </div>
                         <div class="card-body">
-                            <form method="POST" action="{{ route('admin.sistem.database.restore.run') }}" enctype="multipart/form-data">
+                            <form method="POST" action="{{ route('admin.sistem.database.restore.run') }}" enctype="multipart/form-data" class="restore-confirm-form" data-confirm-message="Pastikan file backup valid. Proses restore akan menimpa data. Lanjutkan?" data-confirm-icon="info">
                                 @csrf
                                 <input type="hidden" name="source" value="upload">
                                 <div class="mb-3">
@@ -198,7 +207,7 @@
                                         <div class="text-danger small">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                <button class="btn btn-outline-primary" onclick="return confirm('Proses restore akan menimpa seluruh data. Pastikan file valid. Lanjutkan?');">
+                                <button class="btn btn-outline-primary">
                                     <i class="fas fa-file-import me-2"></i>Upload & Restore
                                 </button>
                             </form>
@@ -213,4 +222,38 @@
     </div>
 </div>
 @endsection
+
+    @push('scripts')
+    <script src="{{ asset('bolopa/plugin/sweetalert2/sweetalert2.all.min.js') }}"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.restore-confirm-form').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                const submitButton = form.querySelector('button[type="submit"]');
+                if (submitButton && submitButton.disabled) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                Swal.fire({
+                    title: 'Konfirmasi Restore',
+                    text: form.dataset.confirmMessage || 'Proses restore akan menimpa seluruh data. Lanjutkan?',
+                    icon: form.dataset.confirmIcon || 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Ya, lanjutkan',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true,
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    });
+    </script>
+    @endpush
 

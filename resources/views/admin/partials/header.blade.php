@@ -15,90 +15,94 @@
         $userRoleLabel = $authUser && $authUser->peran === 'owner' ? 'owner' : 'operator';
     @endphp
     <div class="bolopa-header-vigazafarm-header-left">
-      @php
-          $currentRoute = request()->route()->getName();
-          $breadcrumbs = [];
-          $userRole = $authUser->peran ?? 'operator';
-          
-            // Get route parameters for dynamic links (safe extraction)
-            $routeParams = request()->route() ? request()->route()->parameters() : [];
-            if (isset($routeParams['pembesaran'])) {
-              $pembesaranParam = $routeParams['pembesaran'];
-              $pembesaranId = is_object($pembesaranParam) ? ($pembesaranParam->id ?? null) : $pembesaranParam;
-            } else {
-              $pembesaranId = null;
+        @php
+          $pageTitle = trim($title ?? '');
+          $dashboardLink = \Illuminate\Support\Facades\Route::has('admin.dashboard') ? route('admin.dashboard') : url('/');
+          $dashboardIcon = asset('bolopa/img/icon/bolopa-noto--house.svg');
+          $imageExtensions = ['.svg', '.png', '.jpg', '.jpeg', '.webp', '.gif'];
+
+          $normalizeIcon = function ($icon) use ($imageExtensions) {
+            if (empty($icon)) {
+              return null;
             }
 
-          $breadcrumbMap = [
-              'dashboard' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => null]],
-              'admin.dashboard' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => null], ['label' => 'Dashboard', 'link' => null]],
-              'admin.kandang' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Kandang', 'link' => null]],
-              'admin.kandang.create' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Kandang', 'link' => route('admin.kandang'), 'class' => 'breadcrumb-link'], ['label' => 'Tambah Data', 'link' => null]],
-              'admin.kandang.edit' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Kandang', 'link' => route('admin.kandang'), 'class' => 'breadcrumb-link'], ['label' => 'Edit Data', 'link' => null]],
-              'admin.karyawan' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Karyawan', 'link' => null]],
-              'admin.karyawan.create' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Karyawan', 'link' => route('admin.karyawan'), 'class' => 'breadcrumb-link'], ['label' => 'Tambah Data', 'link' => null]],
-              'admin.karyawan.edit' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Karyawan', 'link' => route('admin.karyawan'), 'class' => 'breadcrumb-link'], ['label' => 'Edit Data', 'link' => null]],
-              'admin.sistem' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Sistem', 'link' => null]],
-              'admin.sistem.dashboard' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Sistem', 'link' => route('admin.sistem'), 'class' => 'breadcrumb-link'], ['label' => 'Pengaturan Dashboard', 'link' => null]],
-              'admin.sistem.matriks' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Sistem', 'link' => route('admin.sistem'), 'class' => 'breadcrumb-link'], ['label' => 'Set Matriks', 'link' => null]],
-              'admin.sistem.pakanvitamin' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Sistem', 'link' => route('admin.sistem'), 'class' => 'breadcrumb-link'], ['label' => 'Set Pakan & Vitamin', 'link' => null]],
-              'admin.sistem.database.backup' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Sistem', 'link' => route('admin.sistem'), 'class' => 'breadcrumb-link'], ['label' => 'Backup Database', 'link' => null]],
-              'admin.sistem.database.restore' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Sistem', 'link' => route('admin.sistem'), 'class' => 'breadcrumb-link'], ['label' => 'Restore Database', 'link' => null]],
-              'admin.sistem.database.info' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Sistem', 'link' => route('admin.sistem'), 'class' => 'breadcrumb-link'], ['label' => 'Informasi Database', 'link' => null]],
-              'admin.sistem.database.optimization' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Sistem', 'link' => route('admin.sistem'), 'class' => 'breadcrumb-link'], ['label' => 'Optimasi Database', 'link' => null]],
-              'admin.sistem.looker.export' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Sistem', 'link' => route('admin.sistem'), 'class' => 'breadcrumb-link'], ['label' => 'Pengaturan Dashboard', 'link' => route('admin.sistem.dashboard'), 'class' => 'breadcrumb-link'], ['label' => 'Export Looker Studio', 'link' => null]],
-              'admin.sistem.iot' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Master', 'link' => '#', 'class' => 'category-link'], ['label' => 'Sistem', 'link' => route('admin.sistem'), 'class' => 'breadcrumb-link'], ['label' => 'Pengaturan IoT', 'link' => null]],
-              'profile.edit' => [['label' => '🏠', 'link' => null], ['label' => 'Profile', 'link' => null]],
-              'admin.penetasan' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Penetasan', 'link' => null]],
-              'admin.penetasan.create' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Penetasan', 'link' => route('admin.penetasan'), 'class' => 'breadcrumb-link'], ['label' => 'Tambah Data', 'link' => null]],
-              'admin.penetasan.edit' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Penetasan', 'link' => route('admin.penetasan'), 'class' => 'breadcrumb-link'], ['label' => 'Edit Data', 'link' => null]],
-              'admin.pembesaran' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Pembesaran', 'link' => null]],
-              'admin.pembesaran.create' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Pembesaran', 'link' => route('admin.pembesaran'), 'class' => 'breadcrumb-link'], ['label' => 'Tambah Data', 'link' => null]],
-              'admin.pembesaran.createFromPenetasan' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Penetasan', 'link' => route('admin.penetasan'), 'class' => 'breadcrumb-link'], ['label' => 'Transfer ke Pembesaran', 'link' => null]],
-              'admin.pembesaran.show' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Pembesaran', 'link' => route('admin.pembesaran'), 'class' => 'breadcrumb-link'], ['label' => 'Detail Data', 'link' => null]],
-              'admin.pembesaran.detail-biaya' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Pembesaran', 'link' => route('admin.pembesaran'), 'class' => 'breadcrumb-link'], ['label' => 'Detail Data', 'link' => $pembesaranId ? route('admin.pembesaran.show', $pembesaranId) : null, 'class' => 'breadcrumb-link'], ['label' => 'Detail Biaya', 'link' => null]],
-              'admin.pembesaran.edit' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Pembesaran', 'link' => route('admin.pembesaran'), 'class' => 'breadcrumb-link'], ['label' => 'Edit Data', 'link' => null]],
-              'admin.pembesaran.recording.laporan.show' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Pembesaran', 'link' => route('admin.pembesaran'), 'class' => 'breadcrumb-link'], ['label' => 'Detail', 'link' => $pembesaranId ? route('admin.pembesaran.show', $pembesaranId) : '#', 'class' => 'breadcrumb-link'], ['label' => 'Catatan', 'link' => null]],
-              'admin.produksi' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Produksi', 'link' => null]],
-              'admin.produksi.create' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Produksi', 'link' => route('admin.produksi'), 'class' => 'breadcrumb-link'], ['label' => trim(View::yieldContent('title')) !== '' ? View::yieldContent('title') : 'Tambah Data', 'link' => null]],
-              'admin.produksi.show' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Produksi', 'link' => route('admin.produksi'), 'class' => 'breadcrumb-link'], ['label' => 'Detail Data', 'link' => null]],
-              'admin.produksi.edit' => [['label' => '🏠', 'link' => null], ['label' => 'Backoffice', 'link' => '#', 'class' => 'category-link'], ['label' => 'Produksi', 'link' => route('admin.produksi'), 'class' => 'breadcrumb-link'], ['label' => trim(View::yieldContent('title')) !== '' ? View::yieldContent('title') : 'Edit Data', 'link' => null]],
-          ];
-
-          // Untuk owner, tambahkan "Operasional" di breadcrumb operasional menu
-      if ($userRole === 'owner') {
-        $operationalRoutes = ['admin.penetasan', 'admin.penetasan.create', 'admin.penetasan.edit', 'admin.pembesaran', 'admin.pembesaran.create', 'admin.pembesaran.createFromPenetasan', 'admin.pembesaran.show', 'admin.pembesaran.edit', 'admin.pembesaran.recording.laporan.show', 'admin.pembesaran.detail-biaya', 'admin.produksi', 'admin.produksi.create', 'admin.produksi.show', 'admin.produksi.edit'];
-              if (in_array($currentRoute, $operationalRoutes) && isset($breadcrumbMap[$currentRoute])) {
-                  // Insert "Operasional" setelah "Backoffice"
-                  $temp = $breadcrumbMap[$currentRoute];
-                  array_splice($temp, 2, 0, [['label' => 'Operasional', 'link' => '#', 'class' => 'category-link']]);
-                  $breadcrumbMap[$currentRoute] = $temp;
+            if (is_array($icon)) {
+              $value = $icon['src'] ?? $icon['value'] ?? $icon['text'] ?? null;
+              if ($value === null) {
+                return null;
               }
-          }
 
-          if (isset($breadcrumbMap[$currentRoute])) {
-              $breadcrumbs = $breadcrumbMap[$currentRoute];
-          } else {
-              $breadcrumbs = [['label' => $title ?? 'Dashboard', 'link' => null]];
-          }
-      @endphp
+              $type = $icon['type'] ?? ((is_string($value) && \Illuminate\Support\Str::endsWith(strtolower($value), $imageExtensions)) ? 'image' : 'text');
 
-      <div class="bolopa-header-vigazafarm-breadcrumb">
-        @foreach($breadcrumbs as $index => $crumb)
-          @if($index === count($breadcrumbs) - 1)
-            <span class="bolopa-header-vigazafarm-active">{{ $crumb['label'] }}</span>
-          @elseif(isset($crumb['link']) && $crumb['link'] !== null)
-            <a href="{{ $crumb['link'] }}" class="{{ $crumb['class'] ?? 'breadcrumb-link' }}">{{ $crumb['label'] }}</a>
-          @else
-            <span class="bolopa-header-vigazafarm-category">{{ $crumb['label'] }}</span>
-          @endif
-          @if($index < count($breadcrumbs) - 1 && $index > 0) <span class="bolopa-header-vigazafarm-separator">/</span> @endif
-        @endforeach
-      </div>
+              return [
+                'type' => $type,
+                'value' => $value,
+                'alt' => $icon['alt'] ?? null,
+              ];
+            }
 
-      <div class="bolopa-header-vigazafarm-status-text">
-        <div class="bolopa-header-vigazafarm-status-text-dot"></div>
-        <span>Online</span>
+            $iconString = (string) $icon;
+            $lowerIconString = strtolower($iconString);
+            $isImage = \Illuminate\Support\Str::endsWith($lowerIconString, $imageExtensions)
+              || filter_var($iconString, FILTER_VALIDATE_URL);
+
+            return [
+              'type' => $isImage ? 'image' : 'text',
+              'value' => $iconString,
+              'alt' => null,
+            ];
+          };
+
+            $defaultTrail = [
+              ['label' => 'Backoffice', 'link' => $dashboardLink, 'icon' => ['type' => 'image', 'src' => $dashboardIcon, 'alt' => 'Backoffice']],
+              ['label' => $pageTitle !== '' ? $pageTitle : 'Dashboard', 'link' => null],
+            ];
+
+            $rawBreadcrumbs = $breadcrumbs ?? $defaultTrail;
+
+            if ($rawBreadcrumbs instanceof \Illuminate\Support\Collection) {
+              if ($rawBreadcrumbs->isEmpty()) {
+                $rawBreadcrumbs = $defaultTrail;
+              }
+            } elseif (empty($rawBreadcrumbs)) {
+              $rawBreadcrumbs = $defaultTrail;
+            }
+
+            $resolvedBreadcrumbs = collect($rawBreadcrumbs)
+            ->map(function ($crumb) use ($normalizeIcon, $dashboardIcon, $dashboardLink) {
+              if (is_string($crumb)) {
+                $crumb = [
+                  'label' => $crumb,
+                  'link' => null,
+                  'badge' => null,
+                ];
+              } elseif ($crumb instanceof \Illuminate\Support\Collection) {
+                $crumb = $crumb->toArray();
+              }
+
+              $icon = $crumb['icon'] ?? null;
+              if (($crumb['label'] ?? '') === 'Backoffice') {
+                if (empty($crumb['link'])) {
+                  $crumb['link'] = $dashboardLink;
+                }
+                if (!$icon) {
+                  $icon = ['type' => 'image', 'src' => $dashboardIcon, 'alt' => 'Backoffice'];
+                }
+              }
+
+              return [
+                'label' => $crumb['label'] ?? ($crumb['title'] ?? ''),
+                'link' => $crumb['link'] ?? ($crumb['url'] ?? null),
+                'icon' => $normalizeIcon($icon),
+                'badge' => $crumb['badge'] ?? null,
+              ];
+            })
+              ->filter(fn ($crumb) => $crumb['label'] !== '')
+              ->values();
+        @endphp
+
+      <div class="bolopa-header-vigazafarm-breadcrumb-wrapper">
+        @include('admin.partials.breadcrumb', ['items' => $resolvedBreadcrumbs])
       </div>
     </div>
 
@@ -206,32 +210,120 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 18px;
+    }
+
+    .bolopa-header-vigazafarm-header-left {
+      flex: 1 1 auto;
+      min-width: 0;
     }
 
     /* Left - Breadcrumb */
-    .bolopa-header-vigazafarm-breadcrumb {
+    .bolopa-header-vigazafarm-breadcrumb-wrapper {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 14px;
-      color: #555;
+      gap: 18px;
+      flex: 1 1 auto;
+      min-width: 0;
     }
 
-    .bolopa-header-vigazafarm-breadcrumb span:first-child {
+    .bolopa-breadcrumb-pill {
       display: flex;
       align-items: center;
-      justify-content: center;
-      width: 16px; /* Fixed width for consistent alignment */
+      gap: 12px;
+      padding: 8px 16px;
+      background: linear-gradient(135deg, rgba(37,99,235,0.08), rgba(14,165,233,0.08));
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.25);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.35);
+      list-style: none;
+      flex: 1 1 auto;
+      min-width: 0;
     }
 
-    .bolopa-header-vigazafarm-breadcrumb span.bolopa-header-vigazafarm-active {
-      font-weight: 600;
+    .bolopa-breadcrumb-node {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #0f172a;
+      min-width: 0;
+    }
+
+    .bolopa-breadcrumb-node-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s ease;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .bolopa-breadcrumb-node-link:hover {
       color: #2563eb;
     }
 
-    .bolopa-header-vigazafarm-breadcrumb a, .bolopa-header-vigazafarm-category {
-      color: #777;
-      text-decoration: none;
+    .bolopa-breadcrumb-node-link.is-active {
+      color: #2563eb;
+      font-weight: 600;
+      cursor: default;
+    }
+
+    .bolopa-breadcrumb-node-link.is-active.is-standalone {
+      color: #111827;
+    }
+
+    .bolopa-breadcrumb-node-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #ffffff;
+      color: #2563eb;
+      box-shadow: 0 1px 2px rgba(37,99,235,0.2);
+      flex-shrink: 0;
+    }
+
+    .bolopa-breadcrumb-node-icon img {
+      width: 18px;
+      height: 18px;
+    }
+
+    .bolopa-breadcrumb-node-icon.is-symbol {
+      font-size: 14px;
+    }
+
+    .bolopa-breadcrumb-node.is-active .bolopa-breadcrumb-node-icon {
+      background: #dbeafe;
+      color: #2563eb;
+      box-shadow: 0 1px 2px rgba(30,64,175,0.2);
+    }
+
+    .bolopa-breadcrumb-node-badge {
+      background: #dbeafe;
+      color: #1d4ed8;
+      border-radius: 999px;
+      padding: 0 6px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .bolopa-breadcrumb-label {
+      display: inline-block;
+      max-width: clamp(120px, 30vw, 220px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .bolopa-breadcrumb-arrow {
+      color: #94a3b8;
+      font-size: 12px;
     }
 
     /* Right - Info */
@@ -241,6 +333,7 @@
       gap: 20px;
       font-size: 14px;
       color: #555;
+      flex-shrink: 0;
     }
 
     .bolopa-header-vigazafarm-status {
@@ -259,11 +352,18 @@
       animation: pulse 2s infinite;
     }
 
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
     /* User */
     .bolopa-header-vigazafarm-user {
       display: flex;
       align-items: center;
       gap: 8px;
+        flex-shrink: 0;
       cursor: pointer;
       position: relative;
     }
@@ -423,33 +523,6 @@
 
     .bolopa-header-vigazafarm-mobile-menu .bolopa-header-vigazafarm-menu-links a.bolopa-header-vigazafarm-logout { color: #ef4444; font-weight: 600; }
 
-    /* Status text below breadcrumb */
-    .bolopa-header-vigazafarm-status-text {
-      display: none;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      color: #16a34a;
-      font-weight: 500;
-      margin-top: 8px;
-      padding-left: 3px; /* Align dot with home icon center */
-    }
-
-    .bolopa-header-vigazafarm-status-text-dot {
-      width: 10px;
-      height: 10px;
-      background: #16a34a;
-      border-radius: 50%;
-      animation: pulse 2s infinite;
-      flex-shrink: 0; /* Prevent dot from shrinking */
-    }
-
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.5; }
-      100% { opacity: 1; }
-    }
-
     @media (max-width: 1024px) {
       /* Tablet styles */
       .bolopa-header-vigazafarm-header { 
@@ -488,7 +561,6 @@
       .bolopa-header-vigazafarm-hamburger { display: inline-flex; position: absolute; top: 10px; right: 16px; }
       .bolopa-header-vigazafarm-breadcrumb { gap: 4px; font-size: 13px; }
       .bolopa-header-vigazafarm-breadcrumb > *:not(:first-child):not(.bolopa-header-vigazafarm-active) { display: none; }
-      .bolopa-header-vigazafarm-status-text { display: flex; }
       .bolopa-header-vigazafarm-mobile-menu { width: 280px; padding: 20px; }
     }
   </style>

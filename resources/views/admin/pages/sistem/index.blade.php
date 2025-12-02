@@ -2,6 +2,13 @@
 
 @section('title', 'Manajemen Sistem')
 
+@php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Sistem'],
+    ];
+@endphp
+
 @push('styles')
 <style>
     @font-face {

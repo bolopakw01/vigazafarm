@@ -2,6 +2,13 @@
 
 @section('title', 'Data Kandang')
 
+@php
+	$breadcrumbs = [
+		['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+		['label' => 'Kandang'],
+	];
+@endphp
+
 @push('styles')
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-kandang.css') }}">
 <!-- Bootstrap for SweetAlert form styling -->

@@ -2,6 +2,14 @@
 
 @section('title', 'Tambah Pembesaran Puyuh')
 
+@php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Pembesaran', 'link' => route('admin.pembesaran')],
+        ['label' => 'Tambah Data'],
+    ];
+@endphp
+
 @push('styles')
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-pembesaran.css') }}">
 <style>

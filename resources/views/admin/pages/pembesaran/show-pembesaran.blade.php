@@ -2,6 +2,14 @@
 
 @section('title', 'Detail Pembesaran Puyuh - ' . $pembesaran->batch_produksi_id)
 
+@php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Pembesaran', 'link' => route('admin.pembesaran')],
+        ['label' => 'Detail Batch', 'badge' => $pembesaran->batch_produksi_id],
+    ];
+@endphp
+
 @push('styles')
 {{-- Custom CSS for this page only (scoped to prevent sidebar conflicts) --}}
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-show-pembesaran.css') }}?v={{ time() }}">

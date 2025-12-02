@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\DssController;
 use App\Http\Controllers\FeedVitaminController;
 use App\Http\Controllers\DatabaseMaintenanceController;
 use App\Http\Controllers\LookerExportController;
@@ -36,6 +37,7 @@ Route::middleware('auth')->group(function () {
 
     // Admin Dashboard (All authenticated users)
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    Route::get('/admin/dss', [DssController::class, 'index'])->name('admin.dss');
 
     // Master routes (Owner only)
     Route::middleware('owner')->group(function () {

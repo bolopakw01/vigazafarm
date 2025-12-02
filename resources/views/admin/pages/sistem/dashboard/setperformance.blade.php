@@ -3,6 +3,14 @@
 @section('title', 'Set Performance')
 
 @php
+	$breadcrumbs = [
+		['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+		['label' => 'Sistem', 'link' => route('admin.sistem')],
+		['label' => 'Set Performance'],
+	];
+@endphp
+
+@php
 	$performance = $performance ?? [];
 	$series = $performance['series'] ?? [];
 	$categories = $performance['categories'] ?? [];

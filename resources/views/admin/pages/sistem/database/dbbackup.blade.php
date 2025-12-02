@@ -2,6 +2,15 @@
 
 @section('title', 'Backup Database')
 
+@php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Sistem', 'link' => route('admin.sistem')],
+        ['label' => 'Database'],
+        ['label' => 'Backup Database'],
+    ];
+@endphp
+
 @push('styles')
 <style>
     @font-face {
@@ -200,7 +209,7 @@
                                     <a href="{{ route('admin.sistem.database.backup.download', $backup['name']) }}" class="btn btn-outline-primary btn-sm">
                                         <i class="fas fa-arrow-down"></i>
                                     </a>
-                                    <form method="POST" action="{{ route('admin.sistem.database.backup.delete', $backup['name']) }}" class="d-inline" onsubmit="return confirm('Hapus backup ini?');">
+                                    <form method="POST" action="{{ route('admin.sistem.database.backup.delete', $backup['name']) }}" class="d-inline backup-delete-form">
                                         @csrf
                                         @method('DELETE')
                                         <button class="btn btn-outline-danger btn-sm">
@@ -221,4 +230,33 @@
     </div>
 </div>
 @endsection
+
+    @push('scripts')
+    <script src="{{ asset('bolopa/plugin/sweetalert2/sweetalert2.all.min.js') }}"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const deleteForms = document.querySelectorAll('.backup-delete-form');
+        deleteForms.forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                Swal.fire({
+                    title: 'Hapus backup?',
+                    text: 'File cadangan akan dihapus secara permanen.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Ya, hapus',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true,
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    });
+    </script>
+    @endpush
 

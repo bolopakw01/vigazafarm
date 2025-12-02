@@ -2,6 +2,14 @@
 
 @section('title', 'Tambah Karyawan')
 
+@php
+  $breadcrumbs = [
+    ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+    ['label' => 'Karyawan', 'link' => route('admin.karyawan')],
+    ['label' => 'Tambah Data'],
+  ];
+@endphp
+
 @push('styles')
 <link rel="stylesheet" href="{{ asset('bolopa/plugin/cropperjs/cropper.min.css') }}">
 <style>

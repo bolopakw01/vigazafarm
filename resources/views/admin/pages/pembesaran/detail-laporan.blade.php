@@ -2,6 +2,15 @@
 
 @section('title', 'Detail Laporan Harian')
 
+@php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Pembesaran', 'link' => route('admin.pembesaran')],
+        ['label' => 'Detail Batch', 'link' => route('admin.pembesaran.show', $pembesaran->id), 'badge' => $pembesaran->batch_produksi_id],
+        ['label' => 'Catatan Harian'],
+    ];
+@endphp
+
 @push('styles')
 <style>
 /* Specific styles for detail laporan page - sesuai note.html */

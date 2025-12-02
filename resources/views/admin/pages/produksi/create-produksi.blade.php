@@ -2,6 +2,14 @@
 
 @section('title', 'Tambah Data Produksi')
 
+@php
+  $breadcrumbs = [
+    ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+    ['label' => 'Produksi', 'link' => route('admin.produksi')],
+    ['label' => 'Tambah Data'],
+  ];
+@endphp
+
 @push('styles')
 <style>
     body {

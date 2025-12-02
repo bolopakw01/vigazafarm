@@ -2,6 +2,15 @@
 
 @section('title', 'Informasi Database')
 
+@php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Sistem', 'link' => route('admin.sistem')],
+        ['label' => 'Database'],
+        ['label' => 'Informasi Database'],
+    ];
+@endphp
+
 @push('styles')
 <style>
     @font-face {

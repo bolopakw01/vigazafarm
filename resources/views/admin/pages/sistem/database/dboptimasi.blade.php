@@ -2,6 +2,15 @@
 
 @section('title', 'Optimasi Database')
 
+@php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Sistem', 'link' => route('admin.sistem')],
+        ['label' => 'Database'],
+        ['label' => 'Optimasi Database'],
+    ];
+@endphp
+
 @push('styles')
 <style>
     @font-face {
@@ -134,7 +143,7 @@
                     <h4 style="margin: 0 0 5px 0; color: #495057;">Statistik & Optimasi Database</h4>
                     <small class="text-muted">Terakhir dijalankan: {{ $last_optimization ? \Carbon\Carbon::parse($last_optimization)->diffForHumans() : 'Belum pernah' }}</small>
                 </div>
-                <form method="POST" action="{{ route('admin.sistem.database.optimization.run') }}" onsubmit="return confirm('Jalankan optimasi database sekarang?');">
+                <form method="POST" action="{{ route('admin.sistem.database.optimization.run') }}" class="run-optimization-form">
                     @csrf
                     <button class="btn btn-outline-primary">
                         <i class="fas fa-bolt me-2"></i>Jalankan Optimasi
@@ -191,4 +200,35 @@
     </div>
 </div>
 @endsection
+
+    @push('scripts')
+    <script src="{{ asset('bolopa/plugin/sweetalert2/sweetalert2.all.min.js') }}"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const optimizeForm = document.querySelector('.run-optimization-form');
+
+        if (optimizeForm) {
+            optimizeForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                Swal.fire({
+                    title: 'Jalankan optimasi?',
+                    text: 'Proses ini akan menjalankan OPTIMIZE & ANALYZE TABLE pada seluruh tabel aktif.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2563eb',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Ya, jalankan',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true,
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        optimizeForm.submit();
+                    }
+                });
+            });
+        }
+    });
+    </script>
+    @endpush
 

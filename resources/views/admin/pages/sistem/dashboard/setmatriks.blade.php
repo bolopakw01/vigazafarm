@@ -3,6 +3,14 @@
 @section('title', 'Set Matriks')
 
 @php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Sistem', 'link' => route('admin.sistem')],
+        ['label' => 'Set Matriks'],
+    ];
+@endphp
+
+@php
     $snapshot = $snapshot ?? [];
     $targets = $targets ?? [];
 @endphp

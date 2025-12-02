@@ -2,6 +2,13 @@
 
 @section('title', 'Data Produksi')
 
+@php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Produksi'],
+    ];
+@endphp
+
 @push('styles')
     <link rel="stylesheet" href="{{ asset('bolopa/css/admin-penetasan.css') }}">
     <link rel="stylesheet" href="{{ asset('bolopa/css/admin-produksi.css') }}">

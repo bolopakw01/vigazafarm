@@ -2,6 +2,15 @@
 
 @section('title', 'Edit Data Produksi')
 
+@php
+	$breadcrumbs = [
+		['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+		['label' => 'Produksi', 'link' => route('admin.produksi')],
+		['label' => 'Detail Batch', 'link' => route('admin.produksi.show', $produksi->id), 'badge' => $produksi->batch_produksi_id],
+		['label' => 'Edit Data'],
+	];
+@endphp
+
 @push('styles')
 <style>
 		body {

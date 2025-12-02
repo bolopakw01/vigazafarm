@@ -2,6 +2,12 @@
 
 @section('title', 'Backoffice')
 
+@php
+	$breadcrumbs = [
+		['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+	];
+@endphp
+
 @push('styles')
 	<link rel="stylesheet" href="{{ asset('bolopa/css/admin-dashboard.css') }}">
 	<link rel="stylesheet" href="{{ asset('bolopa/plugin/fontawesome/css/all.min.css') }}">

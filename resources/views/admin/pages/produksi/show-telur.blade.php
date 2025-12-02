@@ -2,6 +2,14 @@
 
 @section('title', 'Detail Produksi Telur - ' . ($produksi->batch_produksi_id ?? 'Tanpa Kode Batch'))
 
+@php
+    $breadcrumbs = [
+        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
+        ['label' => 'Produksi', 'link' => route('admin.produksi')],
+        ['label' => 'Detail Produksi', 'badge' => $produksi->batch_produksi_id],
+    ];
+@endphp
+
 @push('styles')
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
     <link rel="stylesheet" href="{{ asset('bolopa/plugin/fontawesome/css/all.min.css') }}">
