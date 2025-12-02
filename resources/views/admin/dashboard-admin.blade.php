@@ -23,6 +23,11 @@
 		.performance-empty { border: 1px dashed #e5e7eb; border-radius: 12px; padding: 28px 16px; width: 100%; min-height: 220px; background: #f8fafc; }
 		.performance-empty i { color: #cbd5f5; }
 		.performance-empty p, .performance-empty small { color: #94a3b8; }
+		.table-filter-panel { display: none; margin-top: 10px; }
+		.table-filter-panel.show { display: block; }
+		.table-filter-panel .input-group-text { background: #fff; border-right: 0; }
+		.table-filter-panel .table-filter-input { border-left: 0; }
+		.table-filter-panel .table-filter-reset { color: #64748b; }
 		@media (max-width: 991.98px) {
 			.goals-panel { flex-direction: column; }
 			.goals-empty { border-style: solid; }
@@ -315,17 +320,25 @@
 			<div class="col-12 col-lg-6">
 				<div class="app-card h-100 section-gap">
 					<div class="card-head">
-						<div class="w-100 d-flex justify-content-between align-items-center">
+						<div class="w-100 d-flex justify-content-between align-items-center flex-wrap gap-2">
 							<h2 class="card-title mb-0">Produksi</h2>
-							<div class="d-flex gap-2">
-								<button class="btn btn-sm rounded-pill px-3 border"><i class="fa-solid fa-filter me-2"></i>Filter</button>
-								<button class="btn btn-sm rounded-pill px-3 border"><i class="fa-solid fa-up-right-from-square me-2"></i>Export</button>
+							<div class="d-flex gap-2 flex-wrap">
+								<button type="button" class="btn btn-sm rounded-pill px-3 border table-filter-toggle" data-table-key="produksi"><i class="fa-solid fa-filter me-2"></i>Filter</button>
+								<button type="button" class="btn btn-sm rounded-pill px-3 border table-export-btn" data-table-key="produksi"><i class="fa-solid fa-up-right-from-square me-2"></i>Export</button>
 							</div>
+						</div>
+					</div>
+					<div class="table-filter-panel" id="filter-panel-produksi" data-table-key="produksi">
+						<div class="input-group input-group-sm">
+							<span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+							<input type="search" class="form-control table-filter-input" placeholder="Cari batch, tanggal, atau jumlah" aria-label="Filter data produksi">
+							<button type="button" class="btn btn-primary table-filter-apply">Terapkan</button>
+							<button type="button" class="btn btn-link table-filter-reset">Reset</button>
 						</div>
 					</div>
 					<div class="table-wrap">
 						<div class="table-responsive">
-							<table class="table align-middle table-dashboard-compact">
+							<table class="table align-middle table-dashboard-compact" id="table-produksi">
 								<thead>
 									<tr>
 										<th class="text-start">Tanggal</th>
@@ -337,7 +350,7 @@
 								<tbody>
 									@php $produksiData = \App\Models\Produksi::latest()->take(5)->get(); @endphp
 									@if($produksiData->isEmpty())
-										<tr>
+										<tr data-empty-state="true">
 											<td colspan="4" class="text-center py-4">
 												<img src="{{ asset('bolopa/img/icon/streamline-sharp--archive-box-solid.svg') }}" alt="Produksi" class="mb-2" style="width: 32px; height: 32px; filter: invert(65%) sepia(13%) saturate(19%) hue-rotate(174deg) brightness(99%) contrast(100%);">
 												<p class="text-muted">Belum ada data produksi</p>
@@ -404,19 +417,27 @@
 		<div class="row g-4">
 			<div class="col-12">
 				<div class="app-card section-gap mt-penetasan">
-			<div class="card-head">
-				<div class="w-100 d-flex justify-content-between align-items-center">
-					<h2 class="card-title mb-0">Penetasan</h2>
-					<div class="d-flex gap-2">
-						<button class="btn btn-sm rounded-pill px-3 border"><i class="fa-solid fa-filter me-2"></i>Filter</button>
-						<button class="btn btn-sm rounded-pill px-3 border"><i class="fa-solid fa-up-right-from-square me-2"></i>Export</button>
-					</div>
+		<div class="card-head">
+			<div class="w-100 d-flex justify-content-between align-items-center flex-wrap gap-2">
+				<h2 class="card-title mb-0">Penetasan</h2>
+				<div class="d-flex gap-2 flex-wrap">
+					<button type="button" class="btn btn-sm rounded-pill px-3 border table-filter-toggle" data-table-key="penetasan"><i class="fa-solid fa-filter me-2"></i>Filter</button>
+					<button type="button" class="btn btn-sm rounded-pill px-3 border table-export-btn" data-table-key="penetasan"><i class="fa-solid fa-up-right-from-square me-2"></i>Export</button>
 				</div>
 			</div>
+		</div>
+		<div class="table-filter-panel" id="filter-panel-penetasan" data-table-key="penetasan">
+			<div class="input-group input-group-sm">
+				<span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+				<input type="search" class="form-control table-filter-input" placeholder="Cari batch, kandang, atau status" aria-label="Filter data penetasan">
+				<button type="button" class="btn btn-primary table-filter-apply">Terapkan</button>
+				<button type="button" class="btn btn-link table-filter-reset">Reset</button>
+			</div>
+		</div>
 			<div class="box-body">
 				<div class="table-wrap penetasan-table">
 					<div class="table-responsive">
-						<table class="table align-middle table-dashboard-compact">
+						<table class="table align-middle table-dashboard-compact" id="table-penetasan">
 							<thead>
 								<tr>
 									<th class="text-start">Tanggal</th>
@@ -429,7 +450,7 @@
 							<tbody>
 								@php $penetasanData = \App\Models\Penetasan::latest()->take(5)->get(); @endphp
 								@if($penetasanData->isEmpty())
-									<tr>
+									<tr data-empty-state="true">
 										<td colspan="5" class="text-center py-4">
 											<img src="{{ asset('bolopa/img/icon/game-icons--nest-eggs.svg') }}" alt="Penetasan" class="mb-2" style="width: 32px; height: 32px; filter: invert(65%) sepia(13%) saturate(19%) hue-rotate(174deg) brightness(99%) contrast(100%);">
 											<p class="text-muted">Belum ada data penetasan</p>
@@ -464,19 +485,27 @@
 		<div class="row g-4">
 			<div class="col-12">
 				<div class="app-card section-gap mt-penetasan">
-			<div class="card-head">
-				<div class="w-100 d-flex justify-content-between align-items-center">
-					<h2 class="card-title mb-0">Pembesaran</h2>
-					<div class="d-flex gap-2">
-						<button class="btn btn-sm rounded-pill px-3 border"><i class="fa-solid fa-filter me-2"></i>Filter</button>
-						<button class="btn btn-sm rounded-pill px-3 border"><i class="fa-solid fa-up-right-from-square me-2"></i>Export</button>
-					</div>
+		<div class="card-head">
+			<div class="w-100 d-flex justify-content-between align-items-center flex-wrap gap-2">
+				<h2 class="card-title mb-0">Pembesaran</h2>
+				<div class="d-flex gap-2 flex-wrap">
+					<button type="button" class="btn btn-sm rounded-pill px-3 border table-filter-toggle" data-table-key="pembesaran"><i class="fa-solid fa-filter me-2"></i>Filter</button>
+					<button type="button" class="btn btn-sm rounded-pill px-3 border table-export-btn" data-table-key="pembesaran"><i class="fa-solid fa-up-right-from-square me-2"></i>Export</button>
 				</div>
 			</div>
+		</div>
+		<div class="table-filter-panel" id="filter-panel-pembesaran" data-table-key="pembesaran">
+			<div class="input-group input-group-sm">
+				<span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+				<input type="search" class="form-control table-filter-input" placeholder="Cari kandang, jenis, atau jumlah" aria-label="Filter data pembesaran">
+				<button type="button" class="btn btn-primary table-filter-apply">Terapkan</button>
+				<button type="button" class="btn btn-link table-filter-reset">Reset</button>
+			</div>
+		</div>
 			<div class="box-body">
 				<div class="table-wrap penetasan-table">
 					<div class="table-responsive">
-						<table class="table align-middle table-dashboard-compact">
+						<table class="table align-middle table-dashboard-compact" id="table-pembesaran">
 							<thead>
 								<tr>
 									<th class="text-start">Tanggal</th>
@@ -489,7 +518,7 @@
 							<tbody>
 								@php $pembesaranData = \App\Models\Pembesaran::latest()->take(5)->get(); @endphp
 								@if($pembesaranData->isEmpty())
-									<tr>
+									<tr data-empty-state="true">
 										<td colspan="5" class="text-center py-4">
 											<img src="{{ asset('bolopa/img/icon/game-icons--nest-birds.svg') }}" alt="Pembesaran" class="mb-2" style="width: 32px; height: 32px; filter: invert(65%) sepia(13%) saturate(19%) hue-rotate(174deg) brightness(99%) contrast(100%);">
 											<p class="text-muted">Belum ada data pembesaran</p>
@@ -737,6 +766,112 @@
 					}
 				}
 			});
+
+			// table filter + export helpers
+			(function(){
+				const toggleButtons = document.querySelectorAll('.table-filter-toggle');
+				toggleButtons.forEach(btn => {
+					btn.addEventListener('click', () => {
+						const key = btn.dataset.tableKey;
+						const panel = document.querySelector(`#filter-panel-${key}`);
+						if (!panel) { return; }
+						panel.classList.toggle('show');
+						if (panel.classList.contains('show')) {
+							panel.querySelector('.table-filter-input')?.focus();
+						}
+					});
+				});
+
+				document.querySelectorAll('.table-filter-panel').forEach(panel => {
+					const key = panel.dataset.tableKey;
+					const table = document.querySelector(`#table-${key}`);
+					const input = panel.querySelector('.table-filter-input');
+					const applyBtn = panel.querySelector('.table-filter-apply');
+					const resetBtn = panel.querySelector('.table-filter-reset');
+					if (!table) { return; }
+					const tbody = table.querySelector('tbody');
+					if (!tbody) { return; }
+
+					const ensureNoMatchRow = () => {
+						let row = tbody.querySelector('.table-no-match');
+						if (!row) {
+							const colSpan = table.querySelectorAll('thead th').length || 1;
+							row = document.createElement('tr');
+							row.className = 'table-no-match d-none';
+							row.innerHTML = `<td colspan="${colSpan}" class="text-center py-4 text-muted"><i class="fa-solid fa-circle-info me-2"></i>Tidak ada data sesuai filter</td>`;
+							tbody.appendChild(row);
+						}
+						return row;
+					};
+
+					const getDataRows = () => Array.from(tbody.querySelectorAll('tr')).filter(row => !row.dataset.emptyState && !row.classList.contains('table-no-match'));
+					const noMatchRow = ensureNoMatchRow();
+
+					const applyFilter = () => {
+						const term = (input?.value || '').trim().toLowerCase();
+						const rows = getDataRows();
+						if (!rows.length) {
+							noMatchRow.classList.add('d-none');
+							return;
+						}
+						if (!term) {
+							rows.forEach(row => row.style.display = '');
+							noMatchRow.classList.add('d-none');
+							return;
+						}
+						let matches = 0;
+						rows.forEach(row => {
+							const text = row.textContent.toLowerCase();
+							const hit = text.includes(term);
+							row.style.display = hit ? '' : 'none';
+							if (hit) { matches += 1; }
+						});
+						noMatchRow.classList.toggle('d-none', matches > 0);
+					};
+
+					applyBtn?.addEventListener('click', applyFilter);
+					input?.addEventListener('keydown', (event) => {
+						if (event.key === 'Enter') {
+							event.preventDefault();
+							applyFilter();
+						}
+					});
+					resetBtn?.addEventListener('click', () => {
+						if (input) { input.value = ''; }
+						getDataRows().forEach(row => row.style.display = '');
+						noMatchRow.classList.add('d-none');
+					});
+				});
+
+				document.querySelectorAll('.table-export-btn').forEach(btn => {
+					btn.addEventListener('click', () => {
+						const key = btn.dataset.tableKey;
+						const table = document.querySelector(`#table-${key}`);
+						if (!table) { return; }
+						const rows = Array.from(table.querySelectorAll('tr')).filter(row => row.offsetParent !== null && !row.classList.contains('table-no-match') && !row.dataset.emptyState);
+						if (!rows.length) {
+							alert('Tidak ada data untuk diexport.');
+							return;
+						}
+						const csv = rows.map(row => {
+							const cells = row.querySelectorAll('th,td');
+							return Array.from(cells).map(cell => {
+								const text = cell.innerText.replace(/\s+/g, ' ').trim();
+								return '"' + text.replace(/"/g, '""') + '"';
+							}).join(',');
+						}).join('\n');
+						const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+						const link = document.createElement('a');
+						const timestamp = new Date().toISOString().slice(0, 10);
+						link.href = URL.createObjectURL(blob);
+						link.download = `dashboard-${key}-${timestamp}.csv`;
+						document.body.appendChild(link);
+						link.click();
+						document.body.removeChild(link);
+						setTimeout(() => URL.revokeObjectURL(link.href), 1500);
+					});
+				});
+			})();
 
 			// radar chart
 			const defaultRadarColors = ['#0d6efd', '#20c997', '#ffc107'];
