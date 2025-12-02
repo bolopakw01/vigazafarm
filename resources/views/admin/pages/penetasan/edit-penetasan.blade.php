@@ -75,9 +75,23 @@
                                         $availableKandangs = collect();
                                     }
                                 @endphp
+                                @php $selectedKandangId = old('kandang_id', $penetasan->kandang_id); @endphp
                                 @foreach($availableKandangs as $k)
-                                <option value="{{ $k->id }}" {{ old('kandang_id', $penetasan->kandang_id) == $k->id ? 'selected' : '' }}>
+                                @php
+                                    $statusLabel = strtolower($k->status ?? 'aktif');
+                                    $isMaintenance = $statusLabel === 'maintenance';
+                                    $isSelected = (string) $selectedKandangId === (string) $k->id;
+                                @endphp
+                                <option
+                                    value="{{ $k->id }}"
+                                    data-status="{{ $statusLabel }}"
+                                    {{ $isSelected ? 'selected' : '' }}
+                                    @disabled($isMaintenance && !$isSelected)
+                                >
                                     {{ $k->nama_dengan_detail }}
+                                    @if($isMaintenance)
+                                        &ndash; Maintenance
+                                    @endif
                                 </option>
                                 @endforeach
                             </select>

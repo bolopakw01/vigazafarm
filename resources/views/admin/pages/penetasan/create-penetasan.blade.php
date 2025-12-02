@@ -69,19 +69,28 @@
                                         $availableKandangs = collect();
                                     }
                                 @endphp
+                                @php $selectedKandangId = old('kandang_id'); @endphp
                                 @foreach($availableKandangs as $k)
                                 @php
                                     $typeLabel = ucwords(strtolower($k->tipe_kandang ?? $k->tipe ?? '-'));
                                     $remainingLabel = number_format((int) $k->kapasitas_tersisa);
+                                    $statusLabel = strtolower($k->status ?? 'aktif');
+                                    $isMaintenance = $statusLabel === 'maintenance';
+                                    $isSelected = (string) $selectedKandangId === (string) $k->id;
                                 @endphp
                                 <option
                                     value="{{ $k->id }}"
+                                    data-status="{{ $statusLabel }}"
                                     data-kapasitas="{{ $k->kapasitas_total }}"
                                     data-terpakai="{{ $k->kapasitas_terpakai }}"
                                     data-sisa="{{ $k->kapasitas_tersisa }}"
-                                    {{ old('kandang_id') == $k->id ? 'selected' : '' }}
+                                    {{ $isSelected ? 'selected' : '' }}
+                                    @disabled($isMaintenance && !$isSelected)
                                 >
                                     {{ $k->nama_kandang }} ({{ $typeLabel }}, {{ $remainingLabel }})
+                                    @if($isMaintenance)
+                                        &ndash; Maintenance
+                                    @endif
                                 </option>
                                 @endforeach
                             </select>

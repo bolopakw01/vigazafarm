@@ -201,7 +201,10 @@ class TransferController extends Controller
          * Menampilkan halaman transfer untuk penetasan, menampilkan daftar kandang tujuan.
          */
         $penetasan = Penetasan::with('kandang')->findOrFail($penetasanId);
-        $kandangList = Kandang::where('status', 'aktif')->get();
+        $kandangList = Kandang::query()
+            ->statusIn(['aktif', 'maintenance'])
+            ->orderBy('nama_kandang')
+            ->get();
         
         return view('admin.pages.penetasan.transfer-penetasan', compact('penetasan', 'kandangList'));
     }
@@ -215,7 +218,11 @@ class TransferController extends Controller
          * Menampilkan halaman transfer untuk pembesaran, menampilkan daftar kandang produksi.
          */
         $pembesaran = Pembesaran::with('kandang', 'penetasan')->findOrFail($pembesaranId);
-        $kandangList = Kandang::where('status', 'aktif')->where('tipe_kandang', 'produksi')->get();
+        $kandangList = Kandang::query()
+            ->statusIn(['aktif', 'maintenance'])
+            ->typeIs('produksi')
+            ->orderBy('nama_kandang')
+            ->get();
         
         return view('admin.pages.pembesaran.transfer-pembesaran', compact('pembesaran', 'kandangList'));
     }

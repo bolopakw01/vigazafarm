@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\SyncsKandangMaintenance;
 
 class Penetasan extends Model
 {
+    use SyncsKandangMaintenance;
     protected $table = 'vf_penetasan';
 
     // the migrations renamed created_at/updated_at -> dibuat_pada/diperbarui_pada

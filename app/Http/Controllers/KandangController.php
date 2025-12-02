@@ -56,7 +56,7 @@ class KandangController extends Controller
          */
         $data = $request->validate([
             'nama_kandang' => 'required|string|max:191',
-            'kapasitas_maksimal' => 'nullable|integer',
+            'kapasitas_maksimal' => 'nullable|integer|min:0',
             'tipe_kandang' => 'nullable|string|max:100',
             'status' => 'nullable|string|max:50',
             'keterangan' => 'nullable|string|max:100',
@@ -67,7 +67,9 @@ class KandangController extends Controller
             $data['kode_kandang'] = $this->generateKodeKandang();
         }
 
-        Kandang::create($data);
+        $kandang = Kandang::create($data);
+
+        $kandang->syncMaintenanceStatus();
 
         return redirect()->route('admin.kandang')->with('success', 'Kandang berhasil dibuat');
     }
@@ -95,7 +97,7 @@ class KandangController extends Controller
          */
         $data = $request->validate([
             'nama_kandang' => 'required|string|max:191',
-            'kapasitas_maksimal' => 'nullable|integer',
+            'kapasitas_maksimal' => 'nullable|integer|min:0',
             'tipe_kandang' => 'nullable|string|max:100',
             'status' => 'nullable|string|max:50',
             'keterangan' => 'nullable|string|max:100',
@@ -109,6 +111,8 @@ class KandangController extends Controller
         }
 
         $kandang->update($data);
+
+        $kandang->syncMaintenanceStatus();
 
         return redirect()->route('admin.kandang')->with('success', 'Kandang berhasil diperbarui');
     }

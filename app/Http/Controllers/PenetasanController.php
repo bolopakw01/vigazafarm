@@ -23,8 +23,9 @@ class PenetasanController extends Controller
         /**
          * Menampilkan form pembuatan penetasan baru (pilih kandang dan tanggal simpan telur).
          */
-        $kandang = Kandang::whereRaw('LOWER(tipe_kandang) = ?', ['penetasan'])
-            ->where('status', 'aktif')
+        $kandang = Kandang::query()
+            ->typeIs('penetasan')
+            ->statusIn(['aktif', 'maintenance'])
             ->orderBy('nama_kandang')
             ->get();
         return view('admin.pages.penetasan.create-penetasan', compact('kandang'));
@@ -92,6 +93,8 @@ class PenetasanController extends Controller
 
         $penetasan = Penetasan::create($data);
 
+        $kandang->syncMaintenanceStatus();
+
         return redirect()
             ->route('admin.penetasan')
             ->with('success', sprintf('Penetasan batch %s berhasil ditambahkan.', $penetasan->batch));
@@ -128,12 +131,15 @@ class PenetasanController extends Controller
         /**
          * Menampilkan form edit untuk penetasan yang dipilih.
          */
-        $kandang = Kandang::where(function ($query) {
-                $query->whereRaw('LOWER(tipe_kandang) = ?', ['penetasan'])
-                    ->where('status', 'aktif');
-            })
-            ->when($penetasan->kandang_id, function ($query) use ($penetasan) {
-                $query->orWhere('id', $penetasan->kandang_id);
+        $kandang = Kandang::query()
+            ->where(function ($query) use ($penetasan) {
+                $query->where(function ($available) {
+                    $available->typeIs('penetasan')->statusIn(['aktif', 'maintenance']);
+                });
+
+                if ($penetasan->kandang_id) {
+                    $query->orWhere('id', $penetasan->kandang_id);
+                }
             })
             ->orderBy('nama_kandang')
             ->get();
@@ -145,6 +151,8 @@ class PenetasanController extends Controller
         /**
          * Memvalidasi dan memperbarui data penetasan, termasuk penetapan status jika tanggal menetas terisi.
          */
+        $originalKandangId = $penetasan->kandang_id;
+
         $data = $request->validate([
             'kandang_id' => 'required|exists:vf_kandang,id',
             'tanggal_simpan_telur' => 'required|date',
@@ -209,6 +217,13 @@ class PenetasanController extends Controller
 
         $penetasan->update($data);
 
+        $penetasan->loadMissing('kandang');
+        $penetasan->kandang?->syncMaintenanceStatus();
+
+        if ($originalKandangId && $originalKandangId !== $penetasan->kandang_id) {
+            Kandang::find($originalKandangId)?->syncMaintenanceStatus();
+        }
+
         $identifier = $penetasan->batch ? 'batch ' . $penetasan->batch : '#' . $penetasan->id;
 
         return redirect()
@@ -232,6 +247,9 @@ class PenetasanController extends Controller
 
         $penetasan->update($data);
 
+        $penetasan->loadMissing('kandang');
+        $penetasan->kandang?->syncMaintenanceStatus();
+
         return response()->json([
             'success' => true,
             'message' => 'Status berhasil diperbarui',
@@ -244,6 +262,8 @@ class PenetasanController extends Controller
         /**
          * Memindahkan batch dari Setter ke Hatcher saat mencapai target hari ke-14.
          */
+        $originalKandangId = $penetasan->kandang_id;
+
         if ($penetasan->fase_penetasan === 'hatcher' && !empty($penetasan->tanggal_masuk_hatcher)) {
             return response()->json([
                 'message' => 'Batch sudah berada dalam fase Hatcher.'
@@ -287,6 +307,13 @@ class PenetasanController extends Controller
         $penetasan->tanggal_masuk_hatcher = $requestedDate;
         $penetasan->updated_by = Auth::id();
         $penetasan->save();
+
+        $penetasan->loadMissing('kandang');
+        $penetasan->kandang?->syncMaintenanceStatus();
+
+        if ($originalKandangId && $originalKandangId !== $penetasan->kandang_id) {
+            Kandang::find($originalKandangId)?->syncMaintenanceStatus();
+        }
 
         return response()->json([
             'success' => true,
@@ -363,6 +390,9 @@ class PenetasanController extends Controller
         $penetasan->status = 'selesai';
         $penetasan->save();
 
+        $penetasan->loadMissing('kandang');
+        $penetasan->kandang?->syncMaintenanceStatus();
+
         return response()->json([
             'success' => true,
             'message' => 'Penetasan berhasil diselesaikan.',
@@ -384,6 +414,9 @@ class PenetasanController extends Controller
          */
         $identifier = $penetasan->batch ? 'batch ' . $penetasan->batch : '#' . $penetasan->id;
         $penetasan->delete();
+
+        $penetasan->loadMissing('kandang');
+        $penetasan->kandang?->syncMaintenanceStatus();
 
         return redirect()
             ->route('admin.penetasan')

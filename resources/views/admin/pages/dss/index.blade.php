@@ -25,7 +25,7 @@
 		}
 		.dss-shell {
 			background: #ffffff;
-			border-radius: 28px;
+			border-radius: 8px;
 			padding: 28px;
 			box-shadow: 0 35px 65px rgba(15, 23, 42, 0.12);
 		}
@@ -160,7 +160,7 @@
 			<div class="dss-header">
 				<div>
 					<h1>
-						<img src="{{ asset('bolopa/img/icon/line-md--monitor-screenshot.svg') }}" alt="DSS Icon">
+						<img src="{{ asset('bolopa/img/icon/fluent--chart-multiple-32-filled.svg') }}" alt="DSS Icon">
 						Decision Support System
 					</h1>
 					<p class="subtitle mb-0">Insight terkurasi untuk membantu keputusan operasional harian.</p>

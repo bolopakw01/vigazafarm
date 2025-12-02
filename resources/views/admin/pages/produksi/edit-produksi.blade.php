@@ -220,11 +220,25 @@
 							<div class="row g-3 mt-1">
 								<div class="col-md-6">
 									<label for="kandang_id" class="form-label">Kandang <span class="required">*</span></label>
+									@php $selectedKandangId = old('kandang_id', $produksi->kandang_id); @endphp
 									<select id="kandang_id" name="kandang_id" class="form-select @error('kandang_id') is-invalid @enderror" required>
 										<option value="">Pilih Kandang</option>
 										@foreach($kandangList as $kandang)
-											<option value="{{ $kandang->id }}" {{ old('kandang_id', $produksi->kandang_id) == $kandang->id ? 'selected' : '' }}>
+											@php
+												$statusLabel = strtolower($kandang->status ?? 'aktif');
+												$isMaintenance = $statusLabel === 'maintenance';
+												$isSelected = (string) $selectedKandangId === (string) $kandang->id;
+											@endphp
+											<option
+												value="{{ $kandang->id }}"
+												data-status="{{ $statusLabel }}"
+												{{ $isSelected ? 'selected' : '' }}
+												@disabled($isMaintenance && !$isSelected)
+											>
 												{{ $kandang->nama_dengan_detail }}
+												@if($isMaintenance)
+													&ndash; Maintenance
+												@endif
 											</option>
 										@endforeach
 									</select>

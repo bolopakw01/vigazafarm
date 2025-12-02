@@ -183,12 +183,11 @@ class ProduksiController extends Controller
      */
     public function create()
     {
-        $kandangList = Kandang::where(function ($query) {
-                    $query->whereRaw('LOWER(tipe_kandang) = ?', ['produksi'])
-                          ->whereIn('status', ['aktif', 'maintenance']);
-                      })
-                      ->orderBy('nama_kandang')
-                      ->get();
+        $kandangList = Kandang::query()
+            ->typeIs('produksi')
+            ->statusIn(['aktif', 'maintenance'])
+            ->orderBy('nama_kandang')
+            ->get();
         
         // Dapatkan pembesaran dengan stok breeding yang tersedia dan muat relasi kandang
         // Hanya dapat pembesaran yang telah selesai dengan stok tersedia
@@ -523,6 +522,7 @@ class ProduksiController extends Controller
 
             // Create produksi record
             $produksi = Produksi::create($validated);
+            Kandang::find($validated['kandang_id'])?->syncMaintenanceStatus();
             if ($sumberProduksi) {
                 $this->syncTelurTurunanFromPuyuh($sumberProduksi);
             }
@@ -1525,15 +1525,14 @@ class ProduksiController extends Controller
      */
     public function edit(Produksi $produksi)
     {
-        $kandangList = Kandang::where(function ($query) {
-                    $query->whereRaw('LOWER(tipe_kandang) = ?', ['produksi'])
-                          ->whereIn('status', ['aktif', 'maintenance']);
-                      })
-                      ->when($produksi->kandang_id, function ($query) use ($produksi) {
-                      $query->orWhere('id', $produksi->kandang_id);
-                      })
-                      ->orderBy('nama_kandang')
-                      ->get();
+        $kandangList = Kandang::query()
+            ->typeIs('produksi')
+            ->statusIn(['aktif', 'maintenance'])
+            ->when($produksi->kandang_id, function ($query) use ($produksi) {
+                $query->orWhere('id', $produksi->kandang_id);
+            })
+            ->orderBy('nama_kandang')
+            ->get();
         
         $penetasanList = Penetasan::with('kandang')
                                   ->whereIn('status', ['selesai', 'proses'])
@@ -1553,6 +1552,8 @@ class ProduksiController extends Controller
      */
     public function update(Request $request, Produksi $produksi)
     {
+        $originalKandangId = $produksi->kandang_id;
+
         $rules = [
             'kandang_id' => 'required|exists:vf_kandang,id',
             'batch_produksi_id' => 'required|string|max:50',
@@ -1599,6 +1600,13 @@ class ProduksiController extends Controller
         try {
             $produksi->update($validated);
 
+            $produksi->loadMissing('kandang');
+            $produksi->kandang?->syncMaintenanceStatus();
+
+            if ($originalKandangId && $originalKandangId !== $produksi->kandang_id) {
+                Kandang::find($originalKandangId)?->syncMaintenanceStatus();
+            }
+
             $identifier = $produksi->batch_produksi_id ? 'batch ' . $produksi->batch_produksi_id : '#' . $produksi->id;
 
             return redirect()->route('admin.produksi')
@@ -1616,6 +1624,7 @@ class ProduksiController extends Controller
      */
     public function destroy(Produksi $produksi)
     {
+        $kandangId = $produksi->kandang_id;
         DB::beginTransaction();
         try {
             // Rollback transfers if applicable
@@ -1638,6 +1647,9 @@ class ProduksiController extends Controller
             $produksi->delete();
 
             DB::commit();
+            if ($kandangId) {
+                Kandang::find($kandangId)?->syncMaintenanceStatus();
+            }
             return redirect()->route('admin.produksi')
                            ->with('success', sprintf('Produksi %s berhasil dihapus.', $identifier));
 
@@ -1653,6 +1665,7 @@ class ProduksiController extends Controller
      */
     public function updateStatus(Request $request, Produksi $produksi)
     {
+        $kandangId = $produksi->kandang_id;
         $validated = $request->validate([
             'status' => 'required|in:aktif,tidak_aktif',
             'tanggal_akhir' => 'nullable|date',
@@ -1660,6 +1673,13 @@ class ProduksiController extends Controller
 
         try {
             $produksi->update($validated);
+
+            $produksi->loadMissing('kandang');
+            $produksi->kandang?->syncMaintenanceStatus();
+
+            if ($kandangId && $kandangId !== $produksi->kandang_id) {
+                Kandang::find($kandangId)?->syncMaintenanceStatus();
+            }
 
             $identifier = $produksi->batch_produksi_id ? 'batch ' . $produksi->batch_produksi_id : '#' . $produksi->id;
 

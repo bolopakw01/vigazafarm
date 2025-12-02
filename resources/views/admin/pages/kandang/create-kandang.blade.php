@@ -54,6 +54,7 @@
               <option value="Pembesaran" {{ old('tipe_kandang') == 'Pembesaran' ? 'selected' : '' }}>Pembesaran</option>
               <option value="Produksi" {{ old('tipe_kandang') == 'Produksi' ? 'selected' : '' }}>Produksi</option>
               <option value="Penetasan" {{ old('tipe_kandang') == 'Penetasan' ? 'selected' : '' }}>Penetasan</option>
+              <option value="Karantina" {{ old('tipe_kandang') == 'Karantina' ? 'selected' : '' }}>Karantina</option>
             </select>
             @error('tipe_kandang')
               <div class="invalid-feedback">{{ $message }}</div>
@@ -65,7 +66,7 @@
             <label class="form-label fw-semibold">
               <i class="fa-solid fa-cubes-stacked text-info me-1"></i>Kapasitas Maksimal
             </label>
-            <input type="number" name="kapasitas_maksimal" class="form-control @error('kapasitas_maksimal') is-invalid @enderror" placeholder="Masukkan kapasitas maksimal (ekor)" value="{{ old('kapasitas_maksimal') }}">
+            <input type="number" name="kapasitas_maksimal" class="form-control @error('kapasitas_maksimal') is-invalid @enderror" placeholder="Masukkan kapasitas maksimal (ekor)" value="{{ old('kapasitas_maksimal') }}" min="0">
             @error('kapasitas_maksimal')
               <div class="invalid-feedback">{{ $message }}</div>
             @enderror

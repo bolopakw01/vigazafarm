@@ -140,7 +140,8 @@
 									data-nama="{{ $row->nama_kandang }}"
 									data-tipe="{{ $row->tipe_kandang ?? $row->tipe ?? '' }}"
 									data-kapasitas="{{ $row->kapasitas ?? $row->kapasitas_maksimal ?? 0 }}"
-									data-status="{{ $row->status ?? ($row->aktif ? 'aktif' : 'kosong') }}"
+									data-kapasitas-terpakai="{{ $row->kapasitas_terpakai ?? 0 }}"
+									data-status="{{ strtolower($row->status ?? ($row->aktif ? 'aktif' : 'kosong')) }}"
 									data-keterangan="{{ $row->keterangan ?? '' }}">
 									<img src="{{ asset('bolopa/img/icon/line-md--edit-twotone.svg') }}" alt="Edit">
 								</button>
@@ -654,8 +655,14 @@ document.addEventListener('DOMContentLoaded', function() {
 				const nama = this.dataset.nama || '';
 				const tipe = this.dataset.tipe || '';
 				const kapasitas = this.dataset.kapasitas || '';
+				const kapasitasTerpakai = this.dataset.kapasitasTerpakai || '';
 				const status = this.dataset.status || 'aktif';
 				const keterangan = this.dataset.keterangan || '';
+
+				const kapasitasNumeric = parseInt(kapasitas, 10) || 0;
+				const terpakaiNumeric = parseInt(kapasitasTerpakai, 10) || 0;
+				const isFull = kapasitasNumeric > 0 && terpakaiNumeric >= kapasitasNumeric;
+				const normalizedStatus = (status || 'aktif').toLowerCase();
 
 				Swal.fire({
 					title: '<h5 class="fw-semibold text-dark mb-3">Edit Data Kandang</h5>',
@@ -686,6 +693,7 @@ document.addEventListener('DOMContentLoaded', function() {
 										<option value="maintenance">Maintenance</option>
 										<option value="kosong">Tidak Aktif</option>
 									</select>
+									<div class="form-text text-danger ${isFull ? '' : 'd-none'}" id="swal-maintenance-note">Kapasitas penuh, kosongkan kandang sebelum memilih status Maintenance.</div>
 								</div>
 								<div>
 									<label class="form-label small text-muted mb-1">Keterangan</label>
@@ -705,7 +713,20 @@ document.addEventListener('DOMContentLoaded', function() {
 					customClass: { popup: 'p-0', confirmButton: 'btn btn-primary btn-sm', cancelButton: 'btn btn-secondary btn-sm' },
 					didOpen: () => {
 						document.getElementById('swal-tipe').value = tipe;
-						document.getElementById('swal-status').value = status;
+						const statusSelect = document.getElementById('swal-status');
+						statusSelect.value = normalizedStatus;
+
+						if (isFull) {
+							Array.from(statusSelect.options).forEach((option) => {
+								if (option.value !== 'maintenance') {
+									option.disabled = true;
+								}
+							});
+						} else {
+							Array.from(statusSelect.options).forEach((option) => {
+								option.disabled = false;
+							});
+						}
 					},
 					preConfirm: () => {
 						const namaVal = document.getElementById('swal-nama').value.trim();
@@ -716,6 +737,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 						if (!namaVal || !tipeVal || !kapasitasVal || !statusVal) {
 							Swal.showValidationMessage('Semua field wajib diisi!');
+							return false;
+						}
+
+						if (isFull && statusVal !== 'maintenance') {
+							Swal.showValidationMessage('Kapasitas penuh. Status wajib Maintenance hingga kapasitas tersedia.');
 							return false;
 						}
 

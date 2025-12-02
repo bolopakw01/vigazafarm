@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\SyncsKandangMaintenance;
 
 class Pembesaran extends Model
 {
+    use SyncsKandangMaintenance;
     protected $table = 'vf_pembesaran';
 
     const CREATED_AT = 'dibuat_pada';

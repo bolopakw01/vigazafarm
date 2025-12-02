@@ -8,22 +8,31 @@
   <div class="row g-3">
     <div class="col-md-6">
       <label for="kandang_id" class="form-label">Kandang <span class="required">*</span></label>
+      @php $selectedKandangId = old('kandang_id'); @endphp
       <select id="kandang_id" name="kandang_id" class="form-select @error('kandang_id') is-invalid @enderror" required>
         <option value="">Pilih Kandang</option>
         @foreach($kandangList as $kandang)
-    @php
-      $typeLabel = ucwords(strtolower($kandang->tipe_kandang ?? $kandang->tipe ?? '-'));
-      $remainingLabel = number_format((int) $kandang->kapasitas_tersisa);
-    @endphp
-    <option
-      value="{{ $kandang->id }}"
-      data-kapasitas="{{ $kandang->kapasitas_total }}"
-      data-terpakai="{{ $kandang->kapasitas_terpakai }}"
-      data-sisa="{{ $kandang->kapasitas_tersisa }}"
-      {{ old('kandang_id') == $kandang->id ? 'selected' : '' }}
-    >
-      {{ $kandang->nama_kandang }} ({{ $typeLabel }}, {{ $remainingLabel }})
-    </option>
+        @php
+          $typeLabel = ucwords(strtolower($kandang->tipe_kandang ?? $kandang->tipe ?? '-'));
+          $remainingLabel = number_format((int) $kandang->kapasitas_tersisa);
+          $statusLabel = strtolower($kandang->status ?? 'aktif');
+          $isMaintenance = $statusLabel === 'maintenance';
+          $isSelected = (string) $selectedKandangId === (string) $kandang->id;
+        @endphp
+        <option
+          value="{{ $kandang->id }}"
+          data-status="{{ $statusLabel }}"
+          data-kapasitas="{{ $kandang->kapasitas_total }}"
+          data-terpakai="{{ $kandang->kapasitas_terpakai }}"
+          data-sisa="{{ $kandang->kapasitas_tersisa }}"
+          {{ $isSelected ? 'selected' : '' }}
+          @disabled($isMaintenance && !$isSelected)
+        >
+          {{ $kandang->nama_kandang }} ({{ $typeLabel }}, {{ $remainingLabel }})
+          @if($isMaintenance)
+            &ndash; Maintenance
+          @endif
+        </option>
         @endforeach
       </select>
       @error('kandang_id')

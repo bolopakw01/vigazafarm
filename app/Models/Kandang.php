@@ -5,10 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class Kandang extends Model
 {
     use SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::saved(function (Kandang $kandang) {
+            $kandang->syncMaintenanceStatus();
+        });
+    }
 
     protected const TYPE_KEYWORDS = [
         'penetasan' => ['penetasan', 'tetasan', 'hatch', 'inkubasi', 'doc'],
@@ -240,5 +248,42 @@ class Kandang extends Model
         $normalized = strtolower(trim($status));
 
         return in_array($normalized, self::ACTIVE_STATUS_VALUES, true);
+    }
+
+    public function scopeTypeIs($query, string $type)
+    {
+        return $query->whereRaw('LOWER(COALESCE(tipe_kandang, "")) = ?', [strtolower($type)]);
+    }
+
+    public function scopeStatusEquals($query, string $status)
+    {
+        return $query->whereRaw('LOWER(COALESCE(status, "")) = ?', [strtolower($status)]);
+    }
+
+    public function scopeStatusIn($query, array $statuses)
+    {
+        $normalized = array_map(fn ($status) => strtolower($status), $statuses);
+
+        return $query->whereIn(DB::raw('LOWER(COALESCE(status, ""))'), $normalized);
+    }
+
+    public function syncMaintenanceStatus(): void
+    {
+        $kapasitasTotal = $this->kapasitas_total;
+
+        if ($kapasitasTotal <= 0) {
+            return;
+        }
+
+        $kapasitasTerpakai = $this->kapasitas_terpakai;
+        $currentStatus = strtolower((string) ($this->status ?? ''));
+
+        if ($kapasitasTerpakai >= $kapasitasTotal && $currentStatus !== 'maintenance') {
+            $this->status = 'maintenance';
+            $this->saveQuietly();
+        } elseif ($kapasitasTerpakai < $kapasitasTotal && $currentStatus === 'maintenance') {
+            $this->status = 'aktif';
+            $this->saveQuietly();
+        }
     }
 }

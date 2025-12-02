@@ -71,8 +71,12 @@ class PembesaranController extends Controller
             ->with('error', 'Penetasan harus memiliki jumlah DOQ yang valid untuk dipindahkan ke pembesaran.');
         }
 
-        // Ambil kandang pembesaran
-        $kandangList = Kandang::orderBy('nama_kandang')->get();
+        // Ambil kandang pembesaran aktif
+        $kandangList = Kandang::query()
+            ->typeIs('pembesaran')
+            ->statusIn(['aktif', 'maintenance'])
+            ->orderBy('nama_kandang')
+            ->get();
 
         return view('admin.pages.pembesaran.create-from-penetasan', compact('penetasan', 'kandangList'));
     }
@@ -119,6 +123,8 @@ class PembesaranController extends Controller
             'tanggal_siap' => $readyDate,
         ]);
 
+        Kandang::find($validated['kandang_id'])?->syncMaintenanceStatus();
+
         return redirect()->route('admin.pembesaran')
             ->with(
                 'success',
@@ -134,8 +140,10 @@ class PembesaranController extends Controller
         /**
          * Menampilkan form pembuatan pembesaran baru (manual) dan meng-generate kode batch.
          */
-        $kandangList = Kandang::where('tipe_kandang', 'pembesaran')
-            ->where('status', 'aktif')
+        $kandangList = Kandang::query()
+            ->typeIs('pembesaran')
+            ->statusIn(['aktif', 'maintenance'])
+            ->orderBy('nama_kandang')
             ->get();
 
         // Ambil daftar penetasan yang selesai dan punya DOQ
@@ -206,6 +214,8 @@ class PembesaranController extends Controller
         }
 
         $pembesaran = Pembesaran::create($validated);
+
+        $kandang->syncMaintenanceStatus();
 
         return redirect()->route('admin.pembesaran')
             ->with('success', 'Data pembesaran berhasil ditambahkan dengan batch: ' . ($pembesaran->batch_produksi_id ?? $validated['batch_produksi_id']));
@@ -329,7 +339,18 @@ class PembesaranController extends Controller
         /**
          * Menampilkan form edit untuk pembesaran yang dipilih.
          */
-        $kandangList = Kandang::orderBy('nama_kandang')->get();
+        $kandangList = Kandang::query()
+            ->where(function ($query) use ($pembesaran) {
+                $query->where(function ($available) {
+                    $available->typeIs('pembesaran')->statusIn(['aktif', 'maintenance']);
+                });
+
+                if ($pembesaran->kandang_id) {
+                    $query->orWhere('id', $pembesaran->kandang_id);
+                }
+            })
+            ->orderBy('nama_kandang')
+            ->get();
 
         return view('admin.pages.pembesaran.edit-pembesaran', compact('pembesaran', 'kandangList'));
     }

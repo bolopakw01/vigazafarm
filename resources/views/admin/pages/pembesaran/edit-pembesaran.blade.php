@@ -139,8 +139,21 @@
                             <select name="kandang_id" id="kandang_id" class="form-control" required>
                                 <option value="">-- Pilih Kandang --</option>
                                 @foreach($kandangList as $k)
-                                <option value="{{ $k->id }}" {{ old('kandang_id', $pembesaran->kandang_id) == $k->id ? 'selected' : '' }}>
+                                @php
+                                    $statusLabel = strtolower($k->status ?? 'aktif');
+                                    $isMaintenance = $statusLabel === 'maintenance';
+                                    $isSelected = (string) old('kandang_id', $pembesaran->kandang_id) === (string) $k->id;
+                                @endphp
+                                <option
+                                    value="{{ $k->id }}"
+                                    data-status="{{ $statusLabel }}"
+                                    {{ $isSelected ? 'selected' : '' }}
+                                    @disabled($isMaintenance && !$isSelected)
+                                >
                                     {{ $k->nama_dengan_detail }}
+                                    @if($isMaintenance)
+                                        &ndash; Maintenance
+                                    @endif
                                 </option>
                                 @endforeach
                             </select>
