@@ -95,7 +95,6 @@ class SistemController extends Controller
             'mode' => $settings['mode'] ?? 'config',
             'configSettings' => $settings['config'] ?? [],
             'mlSettings' => $settings['ml'] ?? [],
-            'metricsJson' => json_encode($settings['ml']['metrics'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
         ]);
     }
 
@@ -119,27 +118,25 @@ class SistemController extends Controller
             'ml.default_phase' => ['nullable', 'string', 'max:60'],
             'ml.artifact_label' => ['nullable', 'string', 'max:120'],
             'ml.notes' => ['nullable', 'string', 'max:500'],
-            'ml.metrics_json' => ['nullable', 'string'],
+            'ml.metrics' => ['nullable', 'array'],
+            'ml.metrics.*.label' => ['nullable', 'string', 'max:60'],
+            'ml.metrics.*.value' => ['nullable', 'string', 'max:60'],
         ]);
 
-        $metricsJson = $request->input('ml.metrics_json');
-        $metrics = [];
-
-        if ($metricsJson) {
-            $decoded = json_decode($metricsJson, true);
-
-            if (!is_array($decoded)) {
-                return back()
-                    ->withErrors(['ml.metrics_json' => 'Format JSON metrics tidak valid.'])
-                    ->withInput();
-            }
-
-            $metrics = $decoded;
-        }
+        $metricsRows = $request->input('ml.metrics', []);
+        $metrics = collect($metricsRows)
+            ->map(function ($row) {
+                return [
+                    'label' => trim((string) ($row['label'] ?? '')),
+                    'value' => trim((string) ($row['value'] ?? '')),
+                ];
+            })
+            ->filter(fn ($row) => $row['label'] !== '' && $row['value'] !== '')
+            ->mapWithKeys(fn ($row) => [$row['label'] => $row['value']])
+            ->toArray();
 
         $validated['ml'] = $validated['ml'] ?? [];
         $validated['ml']['metrics'] = $metrics;
-        unset($validated['ml']['metrics_json']);
 
         $this->dssSettings->save($validated);
 

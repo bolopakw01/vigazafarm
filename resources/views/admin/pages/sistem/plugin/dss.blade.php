@@ -12,6 +12,27 @@
     $config = $configSettings ?? [];
     $ml = $mlSettings ?? [];
     $currentMode = old('mode', $mode ?? 'config');
+    $metricsRows = collect(old('ml.metrics'))->map(function ($row) {
+        return [
+            'label' => $row['label'] ?? '',
+            'value' => $row['value'] ?? '',
+        ];
+    })->values();
+
+    if ($metricsRows->isEmpty()) {
+        $metricsRows = collect($ml['metrics'] ?? [])->map(function ($value, $label) {
+            return [
+                'label' => is_string($label) ? $label : '',
+                'value' => $value,
+            ];
+        })->values();
+    }
+
+    if ($metricsRows->isEmpty()) {
+        $metricsRows = collect([
+            ['label' => '', 'value' => ''],
+        ]);
+    }
 @endphp
 
 @push('styles')
@@ -238,6 +259,59 @@
         margin-top: 4px;
     }
 
+    .metrics-builder {
+        border: 1px dashed #cbd5ff;
+        border-radius: 12px;
+        padding: 16px;
+        background: #f8fafc;
+    }
+
+    .metric-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 12px;
+        margin-bottom: 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #fff;
+    }
+
+    .metric-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .metric-row .remove-metric {
+        border: none;
+        background: #fee2e2;
+        color: #b91c1c;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        cursor: pointer;
+        align-self: flex-end;
+    }
+
+    .metrics-empty-hint {
+        font-size: 13px;
+        color: #94a3b8;
+        margin-top: 6px;
+    }
+
+    .add-metric-btn {
+        margin-top: 12px;
+        border: 1px dashed #2563eb;
+        color: #2563eb;
+        background: #eef2ff;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
     .form-actions {
         display: flex;
         align-items: center;
@@ -362,6 +436,34 @@
                     <p class="form-help mb-3">Semua nilai di bawah ini akan menimpa konfigurasi default untuk seluruh pengguna.</p>
 
                     <div class="form-grid">
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label style="text-transform:uppercase; font-size:0.78rem; letter-spacing:0.08em; color:#94a3b8;">Eggs Configuration</label>
+                        </div>
+                        <div class="form-group">
+                            <label>Eggs • Max Batches</label>
+                            <input type="number" name="config[eggs][max_batches]" class="form-control" min="1" max="10" value="{{ old('config.eggs.max_batches', data_get($config, 'eggs.max_batches')) }}">
+                            <div class="form-help">Jumlah batch penetasan yang dianalisis sekaligus.</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Eggs • Hatcher Warning (Hari)</label>
+                            <input type="number" name="config[eggs][hatcher_warning_days]" class="form-control" min="0" max="14" value="{{ old('config.eggs.hatcher_warning_days', data_get($config, 'eggs.hatcher_warning_days')) }}">
+                            <div class="form-help">Batas hari menjelang hatcher untuk status warning.</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Eggs • Hatcher Critical (Hari)</label>
+                            <input type="number" name="config[eggs][hatcher_critical_days]" class="form-control" min="0" max="14" value="{{ old('config.eggs.hatcher_critical_days', data_get($config, 'eggs.hatcher_critical_days')) }}">
+                            <div class="form-help">Jika lewat batas ini, status menjadi kritis.</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Eggs • Hatch Rate Warning (%)</label>
+                            <input type="number" step="0.1" name="config[eggs][hatch_rate_warning]" class="form-control" min="0" max="100" value="{{ old('config.eggs.hatch_rate_warning', data_get($config, 'eggs.hatch_rate_warning')) }}">
+                            <div class="form-help">Persentase rasio tetas yang memicu warning.</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Eggs • Hatch Rate Critical (%)</label>
+                            <input type="number" step="0.1" name="config[eggs][hatch_rate_critical]" class="form-control" min="0" max="100" value="{{ old('config.eggs.hatch_rate_critical', data_get($config, 'eggs.hatch_rate_critical')) }}">
+                            <div class="form-help">Persentase rasio tetas yang dianggap kritis.</div>
+                        </div>
                         <div class="form-group">
                             <label>Feed • Max Insights</label>
                             <input type="number" name="config[feed][max_insights]" class="form-control" min="1" max="20" value="{{ old('config.feed.max_insights', data_get($config, 'feed.max_insights')) }}">
@@ -422,6 +524,29 @@
                             <input type="number" step="0.1" name="config[health][critical_pct]" class="form-control" min="0" max="100" value="{{ old('config.health.critical_pct', data_get($config, 'health.critical_pct')) }}">
                             <div class="form-help">Persentase mortalitas yang memicu status critical.</div>
                         </div>
+                        <div class="form-group" style="grid-column: 1 / -1; margin-top:12px;">
+                            <label style="text-transform:uppercase; font-size:0.78rem; letter-spacing:0.08em; color:#94a3b8;">Mortality Alerts</label>
+                        </div>
+                        <div class="form-group">
+                            <label>Mortality • Window Days</label>
+                            <input type="number" name="config[mortality][window_days]" class="form-control" min="1" max="14" value="{{ old('config.mortality.window_days', data_get($config, 'mortality.window_days')) }}">
+                            <div class="form-help">Rentang hari yang dipakai untuk menghitung deviasi mortalitas.</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Mortality • Max Items</label>
+                            <input type="number" name="config[mortality][max_items]" class="form-control" min="1" max="10" value="{{ old('config.mortality.max_items', data_get($config, 'mortality.max_items')) }}">
+                            <div class="form-help">Jumlah alert mortalitas maksimum di dashboard.</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Mortality • Warning %</label>
+                            <input type="number" step="0.1" name="config[mortality][warning_pct]" class="form-control" min="0" max="100" value="{{ old('config.mortality.warning_pct', data_get($config, 'mortality.warning_pct')) }}">
+                            <div class="form-help">Persentase mortalitas yang memicu status warning.</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Mortality • Critical %</label>
+                            <input type="number" step="0.1" name="config[mortality][critical_pct]" class="form-control" min="0" max="100" value="{{ old('config.mortality.critical_pct', data_get($config, 'mortality.critical_pct')) }}">
+                            <div class="form-help">Persentase mortalitas yang dianggap kritis.</div>
+                        </div>
                     </div>
                 </div>
 
@@ -449,9 +574,30 @@
                         </div>
                     </div>
                     <div class="form-group mt-3">
-                        <label>Metrics JSON</label>
-                        <textarea name="ml[metrics_json]" rows="6" class="form-control" placeholder='{"fcr":1.8,"mortality_pct":0.4}'>{{ old('ml.metrics_json', $metricsJson ?? '{}') }}</textarea>
-                        <div class="form-help">Gunakan JSON valid untuk menyimpan metrik evaluasi (misal FCR, akurasi) yang ditampilkan pada halaman DSS saat mode ML aktif.</div>
+                        <label>Ringkasan Metrik</label>
+                        <div class="metrics-builder">
+                            <div id="mlMetricsList" data-next-index="{{ $metricsRows->count() }}">
+                                @foreach($metricsRows as $index => $metric)
+                                    <div class="metric-row" data-metric-row>
+                                        <div style="flex:1; min-width:180px;">
+                                            <label class="form-label">Nama Metrik</label>
+                                            <input type="text" name="ml[metrics][{{ $index }}][label]" class="form-control" value="{{ $metric['label'] }}" placeholder="Contoh: Akurasi" />
+                                        </div>
+                                        <div style="flex:1; min-width:180px;">
+                                            <label class="form-label">Nilai / Catatan</label>
+                                            <input type="text" name="ml[metrics][{{ $index }}][value]" class="form-control" value="{{ $metric['value'] }}" placeholder="Misal: 92%" />
+                                        </div>
+                                        <button type="button" class="remove-metric" data-remove-metric>
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                @endforeach
+                            </div>
+                            <button type="button" class="add-metric-btn" id="addMetricRow">
+                                <i class="fas fa-plus"></i> Tambah Metrik
+                            </button>
+                            <div class="metrics-empty-hint">Tambahkan baris seperlunya untuk menuliskan performa model tanpa mengetik JSON.</div>
+                        </div>
                     </div>
                 </div>
 
@@ -493,6 +639,55 @@
                 togglePanels(option.dataset.mode);
             });
         });
+
+        const metricsList = document.getElementById('mlMetricsList');
+        const addMetricButton = document.getElementById('addMetricRow');
+
+        if (metricsList && addMetricButton) {
+            let nextIndex = parseInt(metricsList.dataset.nextIndex, 10) || metricsList.querySelectorAll('[data-metric-row]').length;
+
+            const buildMetricRow = (index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'metric-row';
+                wrapper.setAttribute('data-metric-row', '');
+                wrapper.innerHTML = `
+                    <div style="flex:1; min-width:180px;">
+                        <label class="form-label">Nama Metrik</label>
+                        <input type="text" name="ml[metrics][${index}][label]" class="form-control" placeholder="Contoh: Akurasi" />
+                    </div>
+                    <div style="flex:1; min-width:180px;">
+                        <label class="form-label">Nilai / Catatan</label>
+                        <input type="text" name="ml[metrics][${index}][value]" class="form-control" placeholder="Misal: 92%" />
+                    </div>
+                    <button type="button" class="remove-metric" data-remove-metric>
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                return wrapper;
+            };
+
+            addMetricButton.addEventListener('click', () => {
+                const row = buildMetricRow(nextIndex++);
+                metricsList.appendChild(row);
+            });
+
+            metricsList.addEventListener('click', (event) => {
+                const trigger = event.target.closest('[data-remove-metric]');
+                if (!trigger) {
+                    return;
+                }
+
+                const rows = metricsList.querySelectorAll('[data-metric-row]');
+                if (rows.length <= 1) {
+                    return;
+                }
+
+                const row = trigger.closest('[data-metric-row]');
+                if (row) {
+                    row.remove();
+                }
+            });
+        }
     });
 </script>
 @endpush

@@ -226,6 +226,14 @@
 										@php
 											$statusLevel = data_get($item, 'status.level', 'info');
 											$statusMessage = data_get($item, 'status.message');
+											$statusStage = data_get($item, 'status.stage');
+											$daysToHatcher = $item['days_to_hatcher'];
+											$daysLabel = null;
+											if(!is_null($daysToHatcher)) {
+												$daysLabel = $daysToHatcher >= 0
+													? $daysToHatcher . ' hari lagi'
+													: 'Terlambat ' . abs($daysToHatcher) . ' hari';
+											}
 										@endphp
 										<tr>
 											<td class="fw-semibold">{{ $item['batch'] }}</td>
@@ -236,11 +244,7 @@
 											<td>
 												<div class="fw-semibold">{{ $item['target_hatcher'] ?? '-' }}</div>
 												<small class="text-muted">
-													@if(!is_null($item['days_to_hatcher']))
-														{{ $item['days_to_hatcher'] }} hari lagi
-													@else
-														Jadwal belum diisi
-													@endif
+													{{ $daysLabel ?? 'Jadwal belum diisi' }}
 												</small>
 											</td>
 											<td>
@@ -250,7 +254,7 @@
 												<small class="text-muted">{{ number_format($item['jumlah_menetas']) }} / {{ number_format($item['jumlah_telur']) }} telur</small>
 											</td>
 											<td>
-												<span class="status-pill {{ $statusLevel }}">{{ ucfirst($statusLevel) }}</span>
+												<span class="status-pill {{ $statusLevel }}">{{ $statusStage ?? ucfirst($statusLevel) }}</span>
 												<p class="mb-0 text-muted" style="font-size:0.8rem;">{{ $statusMessage }}</p>
 											</td>
 										</tr>
