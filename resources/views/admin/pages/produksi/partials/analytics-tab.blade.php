@@ -299,6 +299,17 @@
     <script>
         (function() {
             const payload = @json($chartPayload);
+            const defaultPalette = ['#0d6efd', '#20c997', '#ffc107', '#ef4444', '#a855f7', '#6366f1'];
+
+            function ensureGlobalPalette(colors) {
+                const palette = colors.length ? colors : defaultPalette;
+                window.Apex = window.Apex || {};
+                window.Apex.theme = window.Apex.theme || {};
+                window.Apex.theme.monochrome = { enabled: false };
+                window.Apex.colors = palette;
+                window.Apex.stroke = Object.assign({}, window.Apex.stroke, { colors: palette });
+                window.Apex.fill = Object.assign({}, window.Apex.fill, { colors: palette });
+            }
 
             function buildSeries(activeKeys) {
                 const filteredDefs = payload.seriesDefinitions.filter(def => activeKeys.includes(def.key));
@@ -306,9 +317,22 @@
                     filteredDefs.push(payload.seriesDefinitions[0]);
                 }
 
-                const colors = filteredDefs.map(def => def.color || '#2563eb');
-                const series = filteredDefs.map(def => ({
+                const paletteFallback = defaultPalette;
+                const colors = filteredDefs
+                    .map(def => def.color)
+                    .map((c, idx) => c || paletteFallback[idx % paletteFallback.length]);
+                const dashArray = filteredDefs.map((def, index) => {
+                    if (typeof def.dashArray === 'number') {
+                        return def.dashArray;
+                    }
+
+                    const pattern = [0, 6, 2, 8, 4];
+                    return pattern[index % pattern.length];
+                });
+
+                const series = filteredDefs.map((def, index) => ({
                     name: def.label,
+                    color: colors[index],
                     data: payload.dataset.map(row => {
                         const value = row?.[def.field] ?? 0;
                         const numeric = parseFloat(value);
@@ -316,7 +340,7 @@
                     })
                 }));
 
-                return { series, colors };
+                return { series, colors, dashArray, markerColors: colors };
             }
 
             function renderAnalyticsChart(activeKeys = payload.activeSeries || []) {
@@ -343,29 +367,83 @@
                     window.produksiAnalyticsCharts[payload.chartId].destroy();
                 }
 
-                const { series, colors } = buildSeries(activeKeys);
+                const { series, colors, dashArray, markerColors } = buildSeries(activeKeys);
+                ensureGlobalPalette(colors);
+
+                const gradientStops = colors.map(color => ([
+                    { offset: 0, color, opacity: 0.45 },
+                    { offset: 80, color, opacity: 0.15 },
+                    { offset: 100, color, opacity: 0.05 }
+                ]));
 
                 const options = {
                     chart: {
-                        type: 'line',
+                        type: 'area',
                         height: 320,
                         toolbar: { show: false },
-                        foreColor: '#6b7280'
+                        foreColor: '#6b7280',
+                        animations: {
+                            enabled: true,
+                            easing: 'easeinout',
+                            speed: 400
+                        },
+                        dropShadow: {
+                            enabled: true,
+                            top: 4,
+                            left: 0,
+                            blur: 10,
+                            opacity: 0.08,
+                            color: '#0f172a'
+                        }
+                    },
+                    theme: {
+                        monochrome: { enabled: false }
                     },
                     stroke: {
-                        width: 3,
-                        curve: 'smooth'
+                        width: 1,
+                        curve: 'smooth',
+                        lineCap: 'round',
+                        dashArray,
+                        colors
                     },
                     dataLabels: { enabled: false },
+                    markers: {
+                        size: 4,
+                        strokeWidth: 3,
+                        strokeColors: '#ffffff',
+                        colors: markerColors,
+                        hover: {
+                            size: 7
+                        }
+                    },
                     colors,
                     series,
                     legend: {
                         show: true,
-                        position: 'top'
+                        position: 'top',
+                        horizontalAlign: 'left',
+                        markers: {
+                            width: 12,
+                            height: 12,
+                            radius: 12,
+                            fillColors: colors,
+                            strokeWidth: 2,
+                            strokeColor: '#ffffff'
+                        },
+                        itemMargin: {
+                            horizontal: 12
+                        }
                     },
                     grid: {
                         strokeDashArray: 4,
-                        borderColor: 'rgba(148, 163, 184, 0.3)'
+                        borderColor: 'rgba(148, 163, 184, 0.3)',
+                        row: {
+                            colors: ['rgba(148, 163, 184, 0.08)', 'transparent']
+                        },
+                        padding: {
+                            left: 8,
+                            right: 8
+                        }
                     },
                     xaxis: {
                         categories: payload.categories,
@@ -388,10 +466,12 @@
                     fill: {
                         type: 'gradient',
                         gradient: {
-                            shadeIntensity: 1,
-                            opacityFrom: 0.35,
+                            shadeIntensity: 0.9,
+                            inverseColors: false,
+                            opacityFrom: 0.45,
                             opacityTo: 0.05,
-                            stops: [0, 90, 100]
+                            stops: [0, 80, 100],
+                            colorStops: gradientStops
                         }
                     }
                 };
