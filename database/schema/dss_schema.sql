@@ -252,7 +252,7 @@ CREATE TABLE kesehatan (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     batch_produksi_id BIGINT NOT NULL,
     tanggal DATE NOT NULL,
-    tipe_kegiatan ENUM('vaksinasi', 'pengobatan', 'pemeriksaan_rutin', 'karantina') NOT NULL,
+    tipe_kegiatan ENUM('vaksinasi', 'pengobatan', 'pemeriksaan_rutin', 'karantina', 'vitamin') NOT NULL,
     nama_vaksin_obat VARCHAR(100),
     jumlah_burung INT,
     catatan TEXT,

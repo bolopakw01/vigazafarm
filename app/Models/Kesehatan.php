@@ -18,6 +18,7 @@ class Kesehatan extends Model
     const TIPE_PENGOBATAN = 'pengobatan';
     const TIPE_PEMERIKSAAN = 'pemeriksaan_rutin';
     const TIPE_KARANTINA = 'karantina';
+    const TIPE_VITAMIN = 'vitamin';
 
     protected $fillable = [
         'batch_produksi_id',
@@ -25,6 +26,10 @@ class Kesehatan extends Model
         'tipe_kegiatan',
         'nama_vaksin_obat',
         'jumlah_burung',
+        'kandang_tujuan_id',
+        'karantina_dikembalikan',
+        'karantina_dikembalikan_pada',
+        'feed_vitamin_item_id',
         'catatan',
         'biaya',
         'petugas',
@@ -34,6 +39,8 @@ class Kesehatan extends Model
     protected $casts = [
         'tanggal' => 'date',
         'jumlah_burung' => 'integer',
+        'karantina_dikembalikan' => 'boolean',
+        'karantina_dikembalikan_pada' => 'datetime',
         'biaya' => 'decimal:2',
         'dibuat_pada' => 'datetime',
         'diperbarui_pada' => 'datetime',
@@ -55,6 +62,16 @@ class Kesehatan extends Model
         return $this->belongsTo(User::class, 'pengguna_id');
     }
 
+    public function kandangTujuan()
+    {
+        return $this->belongsTo(Kandang::class, 'kandang_tujuan_id');
+    }
+
+    public function vitaminItem()
+    {
+        return $this->belongsTo(FeedVitaminItem::class, 'feed_vitamin_item_id');
+    }
+
     /**
      * Get tipe kegiatan options
      */
@@ -64,6 +81,7 @@ class Kesehatan extends Model
             self::TIPE_VAKSINASI => 'Vaksinasi',
             self::TIPE_PENGOBATAN => 'Pengobatan',
             self::TIPE_PEMERIKSAAN => 'Pemeriksaan Rutin',
+            self::TIPE_VITAMIN => 'Vitamin',
             self::TIPE_KARANTINA => 'Karantina',
         ];
     }
@@ -110,6 +128,17 @@ class Kesehatan extends Model
     {
         return self::where('batch_produksi_id', $batchId)
             ->sum('biaya');
+    }
+
+    /**
+     * Hitung total burung yang sedang karantina (belum dikembalikan)
+     */
+    public static function totalKarantinaAktif($batchId)
+    {
+        return self::where('batch_produksi_id', $batchId)
+            ->where('tipe_kegiatan', self::TIPE_KARANTINA)
+            ->where('karantina_dikembalikan', false)
+            ->sum('jumlah_burung');
     }
 
     /**

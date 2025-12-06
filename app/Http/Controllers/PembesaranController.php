@@ -236,6 +236,8 @@ class PembesaranController extends Controller
         $totalMati = \App\Models\Kematian::totalKematianByBatch($pembesaran->batch_produksi_id);
         $populasiSaatIni = $populasiAwal - $totalMati;
         $mortalitas = \App\Models\Kematian::hitungMortalitasKumulatif($pembesaran->batch_produksi_id, $populasiAwal);
+        $karantinaAktif = Kesehatan::totalKarantinaAktif($pembesaran->batch_produksi_id);
+        $populasiSaatIni = max(0, $populasiSaatIni - $karantinaAktif);
         
         // Hitung total konsumsi pakan & biaya
         $totalPakan = \App\Models\Pakan::totalKonsumsiByBatch($pembesaran->batch_produksi_id);
@@ -254,11 +256,32 @@ class PembesaranController extends Controller
 
         // Sync daftar pakan dengan master Set Pakan & Vitamin (jika tersedia)
         $feedOptions = collect();
+        $vitaminOptions = collect();
         if (Schema::hasTable('vf_feed_vitamin_items')) {
             $feedOptions = FeedVitaminItem::active()
                 ->where('category', 'pakan')
                 ->orderBy('name')
                 ->get(['id', 'name', 'price', 'unit']);
+
+            $vitaminOptions = FeedVitaminItem::active()
+                ->where('category', 'vitamin')
+                ->orderBy('name')
+                ->get(['id', 'name', 'price', 'unit']);
+        }
+
+        $kandangKarantinaOptions = Kandang::query()
+            ->where(function ($query) {
+                $query->whereRaw('LOWER(COALESCE(tipe_kandang, "")) LIKE ?', ['%karantina%'])
+                    ->orWhereRaw('LOWER(COALESCE(nama_kandang, "")) LIKE ?', ['%karantina%']);
+            })
+            ->orderBy('nama_kandang')
+            ->get(['id', 'nama_kandang', 'kode_kandang', 'kapasitas_maksimal', 'tipe_kandang', 'status']);
+
+        if ($kandangKarantinaOptions->isEmpty()) {
+            $kandangKarantinaOptions = Kandang::query()
+                ->orderBy('nama_kandang')
+                ->limit(25)
+                ->get(['id', 'nama_kandang', 'kode_kandang', 'kapasitas_maksimal', 'tipe_kandang', 'status']);
         }
         
         // Get parameter standar
@@ -289,10 +312,13 @@ class PembesaranController extends Controller
             'umurHari',
             'stokPakanList',
             'feedOptions',
+            'vitaminOptions',
+            'kandangKarantinaOptions',
             'paramBeratStandar',
             'paramSuhuStandar',
             'paramKelembabanStandar',
-            'reminders'
+            'reminders',
+            'karantinaAktif'
         ));
     }
 
@@ -310,6 +336,8 @@ class PembesaranController extends Controller
         $populasiAwal = $pembesaran->jumlah_anak_ayam;
         $totalMati = \App\Models\Kematian::totalKematianByBatch($pembesaran->batch_produksi_id);
         $populasiSaatIni = $populasiAwal - $totalMati;
+        $karantinaAktif = Kesehatan::totalKarantinaAktif($pembesaran->batch_produksi_id);
+        $populasiSaatIni = max(0, $populasiSaatIni - $karantinaAktif);
 
         // Hitung total konsumsi pakan & biaya
         $totalPakan = \App\Models\Pakan::totalKonsumsiByBatch($pembesaran->batch_produksi_id);
@@ -324,6 +352,7 @@ class PembesaranController extends Controller
         return view('admin.pages.pembesaran.detail-biaya', compact(
             'pembesaran',
             'populasiSaatIni',
+            'karantinaAktif',
             'totalPakan',
             'totalBiayaPakan',
             'totalBiayaKesehatan',

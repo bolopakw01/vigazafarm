@@ -3,11 +3,13 @@
 @section('title', 'Detail Pembesaran Puyuh - ' . $pembesaran->batch_produksi_id)
 
 @php
-    $breadcrumbs = [
-        ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
-        ['label' => 'Pembesaran', 'link' => route('admin.pembesaran')],
-        ['label' => 'Detail Batch', 'badge' => $pembesaran->batch_produksi_id],
-    ];
+                                if ($totalBiayaPakan >= 1000000000) {
+                                    $biayaPakanDisplay = rtrim(rtrim(number_format($totalBiayaPakan / 1000000000, 1), '0'), '.') . ' M';
+                                } elseif ($totalBiayaPakan >= 1000000) {
+                                    $biayaPakanDisplay = rtrim(rtrim(number_format($totalBiayaPakan / 1000000, 1), '0'), '.') . ' jt';
+                                } else {
+                                    $biayaPakanDisplay = number_format($totalBiayaPakan, 0, ',', '.');
+                                }
 @endphp
 
 @push('styles')
@@ -157,6 +159,151 @@
     opacity: 1;
     transform: translateY(0);
 }
+
+.kai-unit {
+    font-size: 0.45em;
+    margin-left: 0.2em;
+    opacity: 0.85;
+}
+
+.history-empty-state {
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+    padding: 1.25rem;
+    color: #6b7280;
+}
+
+.history-empty-state img {
+    width: 40px;
+    height: 40px;
+    opacity: 0.7;
+}
+
+.history-empty-state p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* Force horizontal scroll for kesehatan history table on desktop */
+#kesehatan-history-content.history-scroll-container .table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+#kesehatan-history-content.history-scroll-container table {
+    min-width: 1200px; /* Force minimum width for horizontal scroll */
+    white-space: nowrap;
+}
+
+#kesehatan-history-content.history-scroll-container .table th,
+#kesehatan-history-content.history-scroll-container .table td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+/* Specific styling for kesehatan history table */
+.kesehatan-history-table {
+    table-layout: fixed;
+    min-width: 1500px;
+    width: 1500px;
+}
+
+.kesehatan-history-table th,
+.kesehatan-history-table td {
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    padding: 8px 12px;
+}
+
+.kesehatan-history-table .badge {
+    white-space: nowrap;
+}
+
+.kesehatan-history-table th:nth-child(1),
+.kesehatan-history-table td:nth-child(1) { width: 110px; }
+.kesehatan-history-table th:nth-child(2),
+.kesehatan-history-table td:nth-child(2) { width: 130px; }
+.kesehatan-history-table th:nth-child(3),
+.kesehatan-history-table td:nth-child(3) { width: 200px; }
+.kesehatan-history-table th:nth-child(4),
+.kesehatan-history-table td:nth-child(4) { width: 120px; text-align: right; }
+.kesehatan-history-table th:nth-child(5),
+.kesehatan-history-table td:nth-child(5) { width: 140px; text-align: right; }
+.kesehatan-history-table th:nth-child(6),
+.kesehatan-history-table td:nth-child(6) { width: 170px; }
+.kesehatan-history-table th:nth-child(7),
+.kesehatan-history-table td:nth-child(7) { width: 170px; }
+.kesehatan-history-table th:nth-child(8),
+.kesehatan-history-table td:nth-child(8) { width: 240px; }
+.kesehatan-history-table th:nth-child(9),
+.kesehatan-history-table td:nth-child(9) { width: 200px; }
+.kesehatan-history-table th:nth-child(10),
+.kesehatan-history-table td:nth-child(10) { width: 160px; }
+
+/* Align action columns center across tables */
+.history-action-cell {
+    text-align: center !important;
+    vertical-align: middle;
+}
+
+.history-action-cell .d-flex {
+    justify-content: center !important;
+}
+
+/* Ensure horizontal scroll for kesehatan table container */
+.kesehatan-history-table-container .table-responsive {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    max-height: none;
+}
+
+/* Mobile responsiveness for kesehatan table */
+@media (max-width: 768px) {
+    .kesehatan-history-table {
+        min-width: 800px; /* Reduced for mobile but still scrollable */
+        font-size: 0.875rem;
+    }
+    
+    .kesehatan-history-table th,
+    .kesehatan-history-table td {
+        padding: 6px 8px;
+        min-height: 40px;
+        white-space: nowrap !important; /* Force single line on mobile */
+    }
+}
+
+/* Ensure horizontal scroll works even with sidebar */
+@media (min-width: 768px) {
+    #kesehatan-history-content.history-scroll-container {
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+    
+    /* Force table to maintain horizontal layout */
+    #kesehatan-history-content .table-responsive {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+    
+    #kesehatan-history-content table {
+        display: table;
+        width: 100%;
+        min-width: 1200px;
+        table-layout: fixed;
+    }
+}
 </style>
 @endpush
 
@@ -167,6 +314,15 @@
         ? number_format($mortalitas, 0) 
         : rtrim(rtrim(number_format($mortalitas, 2), '0'), '.');
     $batchStartDate = optional($pembesaran->tanggal_masuk)->format('Y-m-d');
+
+    $beratRataRata = $pembesaran->berat_rata_rata;
+    if (is_null($beratRataRata)) {
+        $beratFormatted = '0';
+    } elseif ($beratRataRata == floor($beratRataRata)) {
+        $beratFormatted = number_format($beratRataRata, 0);
+    } else {
+        $beratFormatted = rtrim(rtrim(number_format($beratRataRata, 2), '0'), '.');
+    }
 @endphp
 
 <div class="pembesaran-detail-wrapper">
@@ -183,7 +339,8 @@
                 <span class="text-uppercase text-muted" style="font-size: 0.75rem; letter-spacing: 0.05em;">DOQ Puyuh → Puyuh dewasa siap produksi</span><br>
                 Batch: <a href="#">{{ $pembesaran->batch_produksi_id }}</a> &nbsp;|&nbsp;
                 Kandang: <strong>{{ $pembesaran->kandang->nama_kandang ?? '-' }}</strong> &nbsp;|&nbsp;
-                Umur: <strong>{{ (int)$umurHari }} hari</strong>
+                Umur: <strong>{{ (int)$umurHari }} hari</strong> &nbsp;|&nbsp;
+                Populasi (awal {{ number_format($populasiAwal) }})
             </div>
         </div>
         <div class="bolopa-header-action">
@@ -198,8 +355,16 @@
         {{-- Populasi --}}
         <div class="bolopa-card-kai bolopa-kai-teal">
             <div class="bolopa-kai-content">
-                <div class="bolopa-kai-value">{{ number_format($populasiSaatIni) }}</div>
-                <div class="bolopa-kai-label">Populasi (awal {{ number_format($populasiAwal) }})</div>
+                <div class="bolopa-kai-value" id="kai-populasi-value">
+                    {{ number_format($populasiSaatIni) }}<small class="kai-unit">ekor</small>
+                </div>
+                <div class="bolopa-kai-label" id="kai-populasi-label">
+                    @if ($karantinaAktif > 0)
+                        Karantina ({{ number_format($karantinaAktif) }} ekor)
+                    @else
+                        Populasi aktif
+                    @endif
+                </div>
             </div>
             <i class="fa-solid fa-egg bolopa-icon-faint"></i>
         </div>
@@ -216,7 +381,7 @@
         {{-- Berat Rata-rata --}}
         <div class="bolopa-card-kai bolopa-kai-green">
             <div class="bolopa-kai-content">
-                <div class="bolopa-kai-value">{{ $pembesaran->berat_rata_rata ? number_format($pembesaran->berat_rata_rata, 0) : 0 }}g</div>
+                <div class="bolopa-kai-value">{{ $beratFormatted }}<small class="kai-unit">gram</small></div>
                 <div class="bolopa-kai-label">Berat rata-rata</div>
             </div>
             <i class="fa-solid fa-scale-balanced bolopa-icon-faint"></i>
@@ -227,7 +392,18 @@
             <div class="bolopa-kai-content">
                 <div class="bolopa-kai-value" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
                     <span style="font-size: 0.35em; color: rgba(255, 255, 255, 0.7); margin-top: 0.2em;">Rp</span>
-                    <span id="kai-total-biaya-pakan" data-value="{{ $totalBiayaPakan }}">{{ number_format($totalBiayaPakan, 0, ',', '.') }}</span>
+                    <span id="kai-total-biaya-pakan" data-value="{{ $totalBiayaPakan }}">
+                        <span class="kai-cost-display">
+                            @php
+                                $biayaPakanDisplay = $totalBiayaPakan >= 1000000000 ? number_format($totalBiayaPakan / 1000000000, 1) . ' M'
+                                    : ($totalBiayaPakan >= 1000000 ? number_format($totalBiayaPakan / 1000000, 1) . ' jt'
+                                    : ($totalBiayaPakan >= 1000 ? number_format($totalBiayaPakan / 1000, 1) . ' rb'
+                                    : number_format($totalBiayaPakan, 0, ',', '.')));
+                                $biayaPakanDisplay = preg_replace('/\.0 (M|jt|rb)$/', ' $1', $biayaPakanDisplay);
+                            @endphp
+                            {{ $biayaPakanDisplay }}
+                        </span>
+                    </span>
                 </div>
                 <div class="bolopa-kai-label">Total Biaya Pakan</div>
             </div>
@@ -254,7 +430,11 @@
         csrfToken: '{{ csrf_token() }}',
         batchStartDate: '{{ $batchStartDate ?? '' }}',
         populasi_awal: {{ (int) $populasiAwal }},
-        populasi_saat_ini: {{ (int) $populasiSaatIni }}
+        populasi_saat_ini: {{ (int) $populasiSaatIni }},
+        populasi_aktif: {{ (int) $populasiSaatIni }},
+        karantina_aktif: {{ (int) $karantinaAktif }},
+        canDeleteHistory: @json(auth()->user() && in_array(auth()->user()->peran, ['owner', 'super_admin'])),
+        userRole: '{{ auth()->user()->peran ?? 'guest' }}'
     };
 </script>
 <script src="{{ asset('bolopa/js/admin-show-part-pembesaran.js') }}?v={{ time() }}"></script>

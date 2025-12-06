@@ -118,7 +118,7 @@ return new class extends Migration
                 $table->id();
                 $table->foreignId('batch_produksi_id')->constrained('batch_produksi')->onDelete('cascade');
                 $table->date('tanggal');
-                $table->enum('tipe_kegiatan', ['vaksinasi', 'pengobatan', 'pemeriksaan_rutin', 'karantina']);
+                $table->enum('tipe_kegiatan', ['vaksinasi', 'pengobatan', 'pemeriksaan_rutin', 'karantina', 'vitamin']);
                 $table->string('nama_vaksin_obat', 100)->nullable();
                 $table->integer('jumlah_burung')->nullable();
                 $table->text('gejala')->nullable();

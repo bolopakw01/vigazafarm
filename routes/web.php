@@ -144,14 +144,18 @@ Route::middleware('auth')->group(function () {
         // Monitoring Lingkungan
         Route::post('/monitoring', [App\Http\Controllers\PembesaranRecordingController::class, 'storeMonitoring'])->name('lingkungan');
         Route::get('/monitoring/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getMonitoringList'])->name('lingkungan.list');
+        Route::delete('/monitoring/{monitoring}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyMonitoring'])->name('lingkungan.destroy');
         
         // Kesehatan
         Route::post('/kesehatan', [App\Http\Controllers\PembesaranRecordingController::class, 'storeKesehatan'])->name('kesehatan');
         Route::get('/kesehatan/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getKesehatanList'])->name('kesehatan.list');
+        Route::post('/kesehatan/{kesehatan}/release', [App\Http\Controllers\PembesaranRecordingController::class, 'releaseKarantina'])->name('kesehatan.release');
+        Route::delete('/kesehatan/{kesehatan}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyKesehatan'])->name('kesehatan.destroy');
         
         // Update Berat
         Route::post('/berat', [App\Http\Controllers\PembesaranRecordingController::class, 'storeBeratRataRata'])->name('berat');
         Route::get('/berat/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getBeratList'])->name('berat.list');
+        Route::delete('/berat/{berat}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyBerat'])->name('berat.destroy');
     });
     
     // Penetasan routes

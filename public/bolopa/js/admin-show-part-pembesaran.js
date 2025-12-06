@@ -14,6 +14,93 @@ const baseUrl = config.baseUrl;
 const getCsrfToken = () => config.csrfToken || 
                            document.querySelector('meta[name="csrf-token"]')?.content || 
                            document.querySelector('input[name="_token"]')?.value;
+const canDeleteHistory = Boolean(config.canDeleteHistory);
+
+const historyTypeLabels = {
+    pakan: 'pakan',
+    kematian: 'kematian',
+    monitoring: 'monitoring lingkungan',
+    kesehatan: 'kesehatan/vaksinasi',
+    berat: 'sampling berat',
+    laporan: 'laporan harian'
+};
+
+const historyDeleteEndpoints = {
+    pakan: (id) => `${baseUrl}/admin/pembesaran/${pembesaranId}/pakan/${id}`,
+    kematian: (id) => `${baseUrl}/admin/pembesaran/${pembesaranId}/kematian/${id}`,
+    monitoring: (id) => `${baseUrl}/admin/pembesaran/${pembesaranId}/monitoring/${id}`,
+    kesehatan: (id) => `${baseUrl}/admin/pembesaran/${pembesaranId}/kesehatan/${id}`,
+    berat: (id) => `${baseUrl}/admin/pembesaran/${pembesaranId}/berat/${id}`,
+    laporan: (id) => `${baseUrl}/admin/pembesaran/${pembesaranId}/laporan-harian/${id}`
+};
+
+const historyReloaders = {
+    pakan: () => loadPakanData(),
+    kematian: () => loadKematianData(),
+    monitoring: () => loadMonitoringData(),
+    kesehatan: () => loadKesehatanData(),
+    berat: () => loadBeratData(),
+    laporan: () => loadLaporanData()
+};
+
+const historyEmptyIconSrc = `${(baseUrl || window.location.origin || '').replace(/\/+$/, '')}/bolopa/img/icon/streamline-sharp--archive-box-solid.svg`;
+
+const historyEmptyIcons = {
+    pakan: 'fa-solid fa-bowl-food',
+    kematian: 'fa-solid fa-skull-crossbones',
+    berat: 'fa-solid fa-weight-scale',
+    monitoring: 'fa-solid fa-cloud-sun',
+    kesehatan: 'fa-solid fa-syringe',
+    laporan: 'fa-solid fa-file-lines'
+};
+
+function renderHistoryEmptyState(container, message, altText = 'Data riwayat kosong', type = 'default') {
+    if (!container) return;
+    const safeMessage = escapeAttr(message || 'Belum ada data');
+    const safeAlt = escapeAttr(altText || 'Data riwayat kosong');
+    const iconClass = historyEmptyIcons[type] || 'fa-solid fa-archive';
+    container.innerHTML = `
+        <div class="history-empty-state">
+            <i class="${iconClass}" style="font-size: 40px; color: #6b7280; opacity: 0.7;"></i>
+            <p>${safeMessage}</p>
+        </div>
+    `;
+}
+
+function formatTime24Hour(dateInput = new Date()) {
+    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
+
+function autoFillCurrentTimeInputs(root = document, options = {}) {
+    const scope = root && typeof root.querySelectorAll === 'function' ? root : document;
+    const { overwriteExisting = false } = options || {};
+    const timeInputs = scope.querySelectorAll('input[type="time"][data-fill-current-time="true"]');
+    if (!timeInputs.length) return;
+
+    const currentValue = formatTime24Hour(new Date());
+    timeInputs.forEach((input) => {
+        if (overwriteExisting || !input.value) {
+            input.value = currentValue;
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => autoFillCurrentTimeInputs());
+
+function escapeAttr(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
 
 // Normalize date-like values to YYYY-MM-DD for reliable comparisons
 function toDateKey(input) {
@@ -109,6 +196,11 @@ const datasetByDateCache = {
     kesehatan: {},
     berat: {}
 };
+
+updateKaiPopulationCard(
+    config.populasi_aktif ?? config.populasi_saat_ini ?? 0,
+    config.karantina_aktif ?? 0
+);
 
 function getRecordsByDateCache(type, dateKey) {
     if (!type || !dateKey) return null;
@@ -254,6 +346,123 @@ function rememberRecords(type, records = []) {
     });
 }
 
+function invalidateDatasetCache(type) {
+    if (!type) return;
+    const datasetKey = datasetCacheKeys[type];
+    if (datasetKey) {
+        setDatasetCache(type, []);
+    }
+    if (datasetByDateCache[type]) {
+        datasetByDateCache[type] = {};
+    }
+    if (duplicateDateCache[type]?.clear) {
+        duplicateDateCache[type].clear();
+    }
+}
+
+async function deleteHistoryRecord(type, recordId) {
+    if (!type || !recordId) {
+        throw new Error('Data riwayat tidak valid.');
+    }
+
+    const buildEndpoint = historyDeleteEndpoints[type];
+    if (typeof buildEndpoint !== 'function') {
+        throw new Error('Kategori riwayat ini tidak mendukung penghapusan.');
+    }
+
+    const response = await fetch(buildEndpoint(recordId), {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': getCsrfToken(),
+            'Accept': 'application/json'
+        },
+        credentials: 'same-origin'
+    });
+
+    let payload = {};
+    try {
+        payload = await response.json();
+    } catch (error) {
+        console.warn('Tidak dapat mengurai respons penghapusan:', error);
+    }
+
+    if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || 'Gagal menghapus riwayat.');
+    }
+
+    invalidateDatasetCache(type);
+    const reloadFn = historyReloaders[type];
+    if (typeof reloadFn === 'function') {
+        await reloadFn();
+    }
+
+    return payload;
+}
+
+async function confirmHistoryDeletion({ type, dateLabel, extraLabel }) {
+    const typeLabel = historyTypeLabels[type] || 'riwayat';
+    const detailRow = extraLabel ? `<br><small class="text-muted">${extraLabel}</small>` : '';
+    const htmlMessage = `Catatan ${typeLabel} pada <strong>${dateLabel || '-'} </strong>${detailRow}`;
+
+    if (typeof Swal !== 'undefined' && Swal?.fire) {
+        const result = await Swal.fire({
+            title: 'Hapus catatan?',
+            html: htmlMessage,
+            icon: 'warning',
+            showCancelButton: true,
+            reverseButtons: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: '<i class="fa-solid fa-trash-can me-1"></i>Hapus',
+            cancelButtonText: '<i class="fa-solid fa-rotate-left me-1"></i>Batal'
+        });
+        return result.isConfirmed;
+    }
+
+    return window.confirm(`Hapus catatan ${typeLabel} pada ${dateLabel || '-'}?`);
+}
+
+async function handleHistoryDeleteButton(button) {
+    const type = button.dataset.historyType;
+    const recordId = button.dataset.historyId;
+    if (!type || !recordId) {
+        return;
+    }
+
+    const dateLabel = button.dataset.historyDate || '';
+    const extraLabel = button.dataset.historyLabel || '';
+    const confirmed = await confirmHistoryDeletion({ type, dateLabel, extraLabel });
+    if (!confirmed) {
+        return;
+    }
+
+    const originalHtml = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+    try {
+        const result = await deleteHistoryRecord(type, recordId);
+        showToast(result?.message || 'Riwayat berhasil dihapus');
+    } catch (error) {
+        console.error('Gagal menghapus riwayat:', error);
+        showToast(error.message || 'Gagal menghapus riwayat', 'error');
+    } finally {
+        button.disabled = false;
+        button.innerHTML = originalHtml;
+    }
+}
+
+if (canDeleteHistory) {
+    document.addEventListener('click', (event) => {
+        const deleteBtn = event.target.closest('[data-history-delete="true"]');
+        if (!deleteBtn) {
+            return;
+        }
+        event.preventDefault();
+        handleHistoryDeleteButton(deleteBtn);
+    });
+}
+
 function getDuplicateCheckUrl(type, dateKey) {
     const endpoint = duplicateEndpointPaths[type];
     if (!endpoint || !dateKey) return null;
@@ -319,7 +528,7 @@ async function confirmDuplicateSubmission(type, dateValue) {
     if (typeof Swal !== 'undefined') {
         const result = await Swal.fire({
             title: 'Catatan sudah ada di tanggal ini',
-            html: `Anda sudah memiliki ${label} pada tanggal <strong>${displayDate}</strong>.<br>Menambahkan data baru akan mengganti catatan sebelumnya untuk tanggal tersebut. Lanjutkan?`,
+            html: `Anda sudah memiliki ${label} pada tanggal <strong>${displayDate}</strong>.<br>Menambahkan data baru akan ditambahkan sebagai catatan tambahan pada tanggal yang sama. Lanjutkan?`,
             icon: 'warning',
             showCancelButton: true,
             reverseButtons: true,
@@ -331,7 +540,7 @@ async function confirmDuplicateSubmission(type, dateValue) {
         return result.isConfirmed;
     }
 
-    return window.confirm(`Data ${label} pada ${displayDate} sudah ada. Timpa catatan yang lama?`);
+    return window.confirm(`Data ${label} pada ${displayDate} sudah ada. Data baru akan menjadi catatan tambahan pada tanggal yang sama. Lanjutkan?`);
 }
 
 function registerLocalSubmission(type, record, fallbackDateValue) {
@@ -358,6 +567,18 @@ const kgFormatter = new Intl.NumberFormat('id-ID', {
 const formatCurrency = (value = 0) => rupiahFormatter.format(Math.round(parseFloat(value) || 0));
 const formatKg = (value = 0) => kgFormatter.format(parseFloat(value) || 0);
 const formatDecimal = (value = 0, digits = 2) => (Number.isFinite(parseFloat(value)) ? parseFloat(value).toFixed(digits) : (0).toFixed(digits));
+const formatSmartNumber = (value, maxDigits = 2, fallback = '-') => {
+    if (value === null || value === undefined || value === '') return fallback;
+    const num = Number(value);
+    if (!Number.isFinite(num)) return fallback;
+    const fixed = num.toFixed(maxDigits);
+    const trimmed = fixed.replace(/\.0+$/, '').replace(/\.(?=0+$)/, '');
+    const decimals = trimmed.includes('.') ? trimmed.split('.')[1].length : 0;
+    return num.toLocaleString('id-ID', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+    });
+};
 
 function updateTextValue(selector, formattedValue, numericValue) {
     const el = document.querySelector(selector);
@@ -445,7 +666,8 @@ function updatePakanSummaries(summary) {
     if (!summary) return;
     const totalKg = parseFloat(summary.total_konsumsi_kg ?? 0) || 0;
     const totalCost = parseFloat(summary.total_biaya ?? 0) || 0;
-    updateTextValue('#kai-total-biaya-pakan', formatCurrency(totalCost), totalCost);
+    const compactText = formatCompactCurrency(totalCost);
+    updateTextValue('#kai-total-biaya-pakan .kai-cost-display', compactText, totalCost);
     updateTextValue('#info-total-biaya-pakan', formatCurrency(totalCost), totalCost);
     updateTextValue('#info-total-pakan-kg', formatKg(totalKg), totalKg);
     recalcTotalBiayaKeseluruhan();
@@ -456,6 +678,50 @@ function updateKesehatanSummary(totalBiaya) {
     updateTextValue('#info-total-biaya-kesehatan', formatCurrency(numeric), numeric);
     setHealthCost(numeric);
     recalcTotalBiayaKeseluruhan();
+}
+
+function updateKaiPopulationCard(populasiAktif, karantinaAktif) {
+    const activeValue = Math.max(0, Number(populasiAktif) || 0);
+    const quarantineValue = Math.max(0, Number(karantinaAktif) || 0);
+    const valueEl = document.getElementById('kai-populasi-value');
+    const labelEl = document.getElementById('kai-populasi-label');
+
+    if (valueEl) {
+        valueEl.innerHTML = `${activeValue.toLocaleString('id-ID')}<small class="kai-unit">ekor</small>`;
+    }
+
+    if (labelEl) {
+        labelEl.textContent = quarantineValue > 0
+            ? `Karantina (${quarantineValue.toLocaleString('id-ID')} ekor)`
+            : 'Populasi aktif';
+    }
+
+    config.populasi_saat_ini = activeValue;
+    config.populasi_aktif = activeValue;
+    config.karantina_aktif = quarantineValue;
+
+    const ringkasanPanel = document.getElementById('ringkasan-biaya-panel');
+    if (ringkasanPanel) {
+        ringkasanPanel.dataset.populasi = activeValue;
+    }
+}
+
+function syncPopulationFromResponse(payload) {
+    if (!payload) return;
+    const hasPop = Object.prototype.hasOwnProperty.call(payload, 'populasi_saat_ini');
+    const hasKarantina = Object.prototype.hasOwnProperty.call(payload, 'karantina_aktif');
+    if (!hasPop && !hasKarantina) return;
+
+    const populasiAktif = hasPop ? Number(payload.populasi_saat_ini) || 0 : (config.populasi_saat_ini ?? 0);
+    const karantinaAktif = hasKarantina ? Number(payload.karantina_aktif) || 0 : (config.karantina_aktif ?? 0);
+    updateKaiPopulationCard(populasiAktif, karantinaAktif);
+}
+
+function formatCompactCurrency(value) {
+    const abs = Math.abs(value);
+    if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1).replace(/\.0$/, '')} M`;
+    if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')} jt`;
+    return value.toLocaleString('id-ID');
 }
 
 
@@ -616,10 +882,14 @@ if (kematianForm) {
             }
             
             // Update metrics di halaman
+            const mortalitasValue = Number(result.mortalitas ?? 0);
+            const totalMatiValue = Number(result.total_mati ?? 0);
             updateMetric('.bolopa-kai-red .bolopa-kai-value', 
-                `${result.mortalitas.toFixed(2)}<small style="font-size:0.45em;">%</small>`);
+                `${mortalitasValue.toFixed(2)}<small style="font-size:0.45em;">%</small>`);
             updateMetric('.bolopa-kai-red .bolopa-kai-label', 
-                `Mortalitas (${result.total_mati} ekor)`);
+                `Mortalitas (${totalMatiValue.toLocaleString('id-ID')} ekor)`);
+
+            syncPopulationFromResponse(result);
             
             loadKematianData(); // Reload chart
         } else {
@@ -657,6 +927,7 @@ if (monitoringForm) {
         if (result.success) {
             showToast(result.message || 'Data monitoring berhasil disimpan');
             this.reset();
+            autoFillCurrentTimeInputs(this, { overwriteExisting: true });
             registerLocalSubmission('monitoring', result.data, tanggal);
             
             // DSS Alert untuk lingkungan tidak ideal
@@ -675,11 +946,95 @@ if (monitoringForm) {
 
 const kesehatanForm = document.querySelector('form[aria-label="Form kesehatan & vaksinasi"]');
 if (kesehatanForm) {
+    const tipeKegiatanInput = kesehatanForm.querySelector('select[name="tipe_kegiatan"]');
+    const namaObatInput = kesehatanForm.querySelector('input[name="nama_vaksin_obat"]');
+    const vitaminFieldWrapper = kesehatanForm.querySelector('[data-kesehatan-vitamin-field]');
+    const vitaminSelect = vitaminFieldWrapper?.querySelector('select[name="feed_vitamin_item_id"]');
+    const karantinaFieldWrapper = kesehatanForm.querySelector('[data-kesehatan-karantina-field]');
+    const karantinaSelect = karantinaFieldWrapper?.querySelector('select[name="kandang_tujuan_id"]');
+    const biayaInput = kesehatanForm.querySelector('input[name="biaya"]');
+    const defaultNamaObatPlaceholder = namaObatInput?.getAttribute('data-default-placeholder') || namaObatInput?.placeholder || '';
+    const vitaminNamaObatPlaceholder = namaObatInput?.getAttribute('data-vitamin-placeholder') || 'Terisi otomatis dari pilihan vitamin';
+    let lastKesehatanTipe = tipeKegiatanInput?.value || '';
+
+    const isFormLocked = (element) => element?.hasAttribute('data-form-locked');
+
+    const syncVitaminSelection = (forceBiaya = false) => {
+        if (!vitaminSelect || !namaObatInput) return;
+        const selectedOption = vitaminSelect.selectedOptions[0];
+        if (!selectedOption) {
+            if (forceBiaya) {
+                namaObatInput.value = '';
+            }
+            return;
+        }
+        const label = selectedOption.dataset.label || selectedOption.textContent.trim();
+        namaObatInput.value = label;
+        const price = parseFloat(selectedOption.dataset.price);
+        if (biayaInput && (forceBiaya || !biayaInput.value) && !Number.isNaN(price)) {
+            biayaInput.value = price;
+        }
+    };
+
+    const handleKesehatanFieldState = (force = false) => {
+        const tipeValue = tipeKegiatanInput?.value || '';
+        const isVitamin = tipeValue === 'vitamin';
+        const isKarantina = tipeValue === 'karantina';
+
+        if (vitaminFieldWrapper) {
+            vitaminFieldWrapper.classList.toggle('d-none', !isVitamin);
+        }
+        if (vitaminSelect && !isFormLocked(vitaminSelect)) {
+            vitaminSelect.disabled = !isVitamin;
+            if (!isVitamin) {
+                vitaminSelect.value = '';
+            }
+        }
+
+        if (karantinaFieldWrapper) {
+            karantinaFieldWrapper.classList.toggle('d-none', !isKarantina);
+        }
+        if (karantinaSelect && !isFormLocked(karantinaSelect)) {
+            karantinaSelect.disabled = !isKarantina;
+            if (!isKarantina) {
+                karantinaSelect.value = '';
+            }
+        }
+
+        if (namaObatInput) {
+            namaObatInput.readOnly = isVitamin;
+            namaObatInput.required = !isVitamin;
+            namaObatInput.placeholder = isVitamin ? vitaminNamaObatPlaceholder : defaultNamaObatPlaceholder;
+            if (!isVitamin && (force || lastKesehatanTipe === 'vitamin')) {
+                namaObatInput.value = '';
+            }
+        }
+
+        if (isVitamin) {
+            syncVitaminSelection(force);
+        }
+        lastKesehatanTipe = tipeValue;
+    };
+
+    if (tipeKegiatanInput) {
+        tipeKegiatanInput.addEventListener('change', () => handleKesehatanFieldState());
+    }
+    if (vitaminSelect) {
+        vitaminSelect.addEventListener('change', () => syncVitaminSelection());
+    }
+    handleKesehatanFieldState();
+
     kesehatanForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const formData = new FormData(this);
         const tanggalKesehatan = formData.get('tanggal');
+        const jumlahBurung = parseInt(formData.get('jumlah_burung'), 10) || 0;
+        const maxPopulasi = Number(window.vigazaConfig?.populasi_aktif ?? window.vigazaConfig?.populasi_saat_ini ?? window.vigazaConfig?.populasi_awal ?? 0);
+        if (maxPopulasi > 0 && jumlahBurung > maxPopulasi) {
+            showToast(`Jumlah burung tidak boleh melebihi ${maxPopulasi.toLocaleString('id-ID')} ekor`, 'warning');
+            return;
+        }
         if (!validateBatchDate(tanggalKesehatan, 'Tanggal kesehatan')) return;
         const allowSubmit = await confirmDuplicateSubmission('kesehatan', tanggalKesehatan);
         if (!allowSubmit) return;
@@ -687,7 +1042,9 @@ if (kesehatanForm) {
             tanggal: tanggalKesehatan,
             tipe_kegiatan: formData.get('tipe_kegiatan'),
             nama_vaksin_obat: formData.get('nama_vaksin_obat'),
-            jumlah_burung: parseInt(formData.get('jumlah_burung')),
+            jumlah_burung: jumlahBurung,
+            kandang_tujuan_id: formData.get('kandang_tujuan_id') || null,
+            feed_vitamin_item_id: formData.get('feed_vitamin_item_id') || null,
             catatan: formData.get('catatan') || null,
             biaya: formData.get('biaya') ? parseFloat(formData.get('biaya')) : null,
             petugas: formData.get('petugas') || null
@@ -695,7 +1052,9 @@ if (kesehatanForm) {
         if (result.success) {
             showToast(result.message || 'Data kesehatan berhasil disimpan');
             this.reset();
+            handleKesehatanFieldState(true);
             registerLocalSubmission('kesehatan', result.data, tanggalKesehatan);
+            syncPopulationFromResponse(result);
             loadKesehatanData();
         } else {
             showToast(result.message, 'error');
@@ -735,7 +1094,7 @@ if (beratForm) {
             // Update metric if available
             if (result.data && result.data.berat_rata_rata) {
                 updateMetric('.bolopa-kai-green .bolopa-kai-value', 
-                    `${Math.round(result.data.berat_rata_rata)}g`);
+                    `${Math.round(result.data.berat_rata_rata)}<small class="kai-unit">gram</small>`);
             }
             
             loadBeratData(); // Reload chart
@@ -832,7 +1191,8 @@ if (btnGenerateCatatan) {
                         day: '2-digit',
                         month: 'short',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        hour12: false
                     });
                 }
                 return dateObj.toLocaleDateString('id-ID', {
@@ -1239,6 +1599,7 @@ async function loadKesehatanData() {
             if (Object.prototype.hasOwnProperty.call(result, 'total_biaya')) {
                 updateKesehatanSummary(result.total_biaya);
             }
+            syncPopulationFromResponse(result);
         } else {
             renderKesehatanHistory([]);
             setDatasetCache('kesehatan', []);
@@ -1443,13 +1804,15 @@ function renderPakanHistory(data) {
     
     if (!data || data.length === 0) {
         console.log('ℹ️ No pakan data to display');
-        container.innerHTML = '<p class="text-muted small mb-0">Belum ada data pakan</p>';
+        renderHistoryEmptyState(container, 'Belum ada data pakan', 'Data pakan kosong', 'pakan');
         return;
     }
     
     console.log('✅ Rendering', data.length, 'pakan records');
     console.log('📝 Sample record:', data[0]);
     
+    const actionHeader = canDeleteHistory ? '<th style="width:9%" class="text-center">Aksi</th>' : '';
+
     container.innerHTML = `
         <table class="table table-sm table-hover mb-0">
             <thead>
@@ -1460,35 +1823,52 @@ function renderPakanHistory(data) {
                     <th style="width:12%" class="text-end">Sisa Pakan</th>
                     <th style="width:14%" class="text-end">Biaya</th>
                     <th style="width:18%" class="text-start">Dicatat Oleh</th>
+                    ${actionHeader}
                 </tr>
             </thead>
             <tbody>
-                ${data.slice(0, 10).map(d => {
+                ${data.map(d => {
                     const feedLabel = d.feed_item?.name || d.stok_pakan?.nama_pakan || '-';
                     const hasSisaKg = d.sisa_pakan_kg !== null && d.sisa_pakan_kg !== undefined;
                     const sisaKg = hasSisaKg ? parseFloat(d.sisa_pakan_kg) : null;
                     const legacyKarung = d.jumlah_karung ?? d.jumlah_karung_sisa;
                     let sisaDisplay = '-';
                     if (hasSisaKg && !Number.isNaN(sisaKg) && sisaKg > 0) {
-                        sisaDisplay = `${sisaKg.toFixed(2)} kg`;
+                        sisaDisplay = `${formatSmartNumber(sisaKg, 2, '0')} kg`;
                     } else if (legacyKarung !== null && legacyKarung !== undefined && legacyKarung !== '') {
                         sisaDisplay = `${parseInt(legacyKarung, 10) || 0} karung`;
                     }
                     const totalBiaya = parseFloat(d.total_biaya);
+                    const tanggalKey = toDateKey(d.tanggal);
+                    const tanggalShort = new Date(d.tanggal).toLocaleDateString('id-ID', {day:'2-digit', month:'short'});
+                    const tanggalConfirm = formatDateForDisplay(tanggalKey);
+                    const deleteButton = canDeleteHistory ? `
+                        <td class="text-center history-action-cell">
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                title="Hapus catatan"
+                                data-history-delete="true"
+                                data-history-type="pakan"
+                                data-history-id="${d.id}"
+                                data-history-date="${escapeAttr(tanggalConfirm)}"
+                                data-history-label="${escapeAttr(feedLabel)}">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    ` : '';
                     return `
                         <tr>
-                            <td class="text-start">${new Date(d.tanggal).toLocaleDateString('id-ID', {day:'2-digit', month:'short'})}</td>
+                            <td class="text-start">${tanggalShort}</td>
                             <td class="text-start"><small>${feedLabel}</small></td>
-                            <td class="text-end">${parseFloat(d.jumlah_kg).toFixed(2)} kg</td>
+                            <td class="text-end">${formatSmartNumber(d.jumlah_kg, 2, '0')} kg</td>
                             <td class="text-end">${sisaDisplay}</td>
                             <td class="text-end"><small>Rp ${(Number.isNaN(totalBiaya) ? 0 : totalBiaya).toLocaleString('id-ID')}</small></td>
                             <td class="text-start"><small>${getRecorderName(d)}</small></td>
+                            ${deleteButton}
                         </tr>
                     `;
                 }).join('')}
             </tbody>
         </table>
-        ${data.length > 10 ? `<p class="text-muted small mt-2 mb-0 text-center">Menampilkan 10 dari ${data.length} data</p>` : ''}
     `;
 }
 
@@ -1503,12 +1883,14 @@ function renderKematianHistory(data) {
     
     if (!data || data.length === 0) {
         console.log('ℹ️ No kematian data to display');
-        container.innerHTML = '<p class="text-muted small mb-0">Belum ada data kematian</p>';
+        renderHistoryEmptyState(container, 'Belum ada data kematian', 'Data kematian kosong', 'kematian');
         return;
     }
     
     console.log('✅ Rendering', data.length, 'kematian records');
     
+    const actionHeader = canDeleteHistory ? '<th style="width:10%" class="text-center">Aksi</th>' : '';
+
     container.innerHTML = `
         <table class="table table-sm table-hover mb-0">
             <thead>
@@ -1518,24 +1900,40 @@ function renderKematianHistory(data) {
                     <th style="width:20%" class="text-start">Penyebab</th>
                     <th style="width:25%" class="text-start">Catatan</th>
                     <th style="width:20%" class="text-start">Dicatat Oleh</th>
+                    ${actionHeader}
                 </tr>
             </thead>
             <tbody>
-                ${data.slice(0, 10).map(d => {
+                ${data.map(d => {
                     const note = d.keterangan || d.catatan || '-';
+                    const tanggalKey = toDateKey(d.tanggal);
+                    const tanggalShort = new Date(d.tanggal).toLocaleDateString('id-ID', {day:'2-digit', month:'short'});
+                    const tanggalConfirm = formatDateForDisplay(tanggalKey);
+                    const deleteButton = canDeleteHistory ? `
+                        <td class="text-center history-action-cell">
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                data-history-delete="true"
+                                data-history-type="kematian"
+                                data-history-id="${d.id}"
+                                data-history-date="${escapeAttr(tanggalConfirm)}"
+                                data-history-label="${escapeAttr(d.penyebab || '-')}">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    ` : '';
                     return `
                         <tr>
-                            <td class="text-start">${new Date(d.tanggal).toLocaleDateString('id-ID', {day:'2-digit', month:'short'})}</td>
+                            <td class="text-start">${tanggalShort}</td>
                             <td class="text-end">${d.jumlah} ekor</td>
                             <td class="text-start"><small>${d.penyebab || '-'}</small></td>
                             <td class="text-start"><small>${note}</small></td>
                             <td class="text-start"><small>${getRecorderName(d)}</small></td>
+                            ${deleteButton}
                         </tr>
                     `;
                 }).join('')}
             </tbody>
         </table>
-        ${data.length > 10 ? `<p class="text-muted small mt-2 mb-0 text-center">Menampilkan 10 dari ${data.length} data</p>` : ''}
     `;
 }
 
@@ -1550,12 +1948,14 @@ function renderMonitoringHistory(data) {
     
     if (!data || data.length === 0) {
         console.log('ℹ️ No monitoring data to display');
-        container.innerHTML = '<p class="text-muted small mb-0">Belum ada data monitoring</p>';
+        renderHistoryEmptyState(container, 'Belum ada data monitoring', 'Data monitoring kosong', 'monitoring');
         return;
     }
     
     console.log('✅ Rendering', data.length, 'monitoring records');
     
+    const actionHeader = canDeleteHistory ? '<th style="width:10%" class="text-center">Aksi</th>' : '';
+
     container.innerHTML = `
         <table class="table table-sm table-hover mb-0">
             <thead>
@@ -1564,28 +1964,96 @@ function renderMonitoringHistory(data) {
                     <th style="width:12%" class="text-end">Suhu</th>
                     <th style="width:18%" class="text-end">Kelembaban</th>
                     <th style="width:18%">Ventilasi</th>
-                    <th style="width:15%">Catatan</th>
+                    <th style="width:15%" class="text-center">Detail</th>
                     <th style="width:15%">Dicatat Oleh</th>
+                    ${actionHeader}
                 </tr>
             </thead>
             <tbody>
-                ${data.slice(0, 10).map(d => {
+                ${data.map(d => {
                     const note = d.catatan || '-';
+                    const tanggalKey = toDateKey(d.waktu_pencatatan || d.tanggal);
+                    const tanggalConfirm = formatDateForDisplay(tanggalKey);
+                    const waktuDisplay = new Date(d.waktu_pencatatan || d.tanggal).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:false});
+                    const detailButton = `
+                        <button type="button" class="btn btn-sm btn-info" onclick="showMonitoringDetailModal('${escapeAttr(waktuDisplay)}', '${formatSmartNumber(d.suhu, 1, '0')}', '${formatSmartNumber(d.kelembaban, 1, '0')}', '${escapeAttr(d.kondisi_ventilasi || '-')}', '${escapeAttr(note)}', '${escapeAttr(getRecorderName(d))}')">
+                            Detail
+                        </button>
+                    `;
+                    const deleteButton = canDeleteHistory ? `
+                        <td class="text-center history-action-cell">
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                data-history-delete="true"
+                                data-history-type="monitoring"
+                                data-history-id="${d.id}"
+                                data-history-date="${escapeAttr(tanggalConfirm)}"
+                                data-history-label="${escapeAttr(d.kondisi_ventilasi || '-')}">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    ` : '';
                     return `
                         <tr>
-                            <td><small>${new Date(d.waktu_pencatatan || d.tanggal).toLocaleString('id-ID', {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}</small></td>
-                            <td class="text-end">${parseFloat(d.suhu).toFixed(1)}°C</td>
-                            <td class="text-end">${parseFloat(d.kelembaban).toFixed(1)}%</td>
+                            <td><small>${waktuDisplay}</small></td>
+                            <td class="text-end">${formatSmartNumber(d.suhu, 1, '0')}°C</td>
+                            <td class="text-end">${formatSmartNumber(d.kelembaban, 1, '0')}%</td>
                             <td><small>${d.kondisi_ventilasi || '-'}</small></td>
-                            <td><small>${note}</small></td>
+                            <td class="text-center">${detailButton}</td>
                             <td><small>${getRecorderName(d)}</small></td>
+                            ${deleteButton}
                         </tr>
                     `;
                 }).join('')}
             </tbody>
         </table>
-        ${data.length > 10 ? `<p class="text-muted small mt-2 mb-0 text-center">Menampilkan 10 dari ${data.length} data</p>` : ''}
     `;
+}
+
+// ========== MONITORING DETAIL POPUP ==========
+function showMonitoringDetailModal(waktu, suhu, kelembaban, ventilasi, catatan, pencatat) {
+    const catatanSafe = catatan && catatan.trim() !== '' ? catatan : '-';
+    if (window.Swal && typeof window.Swal.fire === 'function') {
+        window.Swal.fire({
+            title: 'Detail Monitoring Lingkungan',
+            html: `
+                <div class="text-start">
+                    <div class="d-flex flex-wrap gap-3 mb-3">
+                        <div class="flex-fill border rounded p-3 bg-light">
+                            <div class="text-muted small mb-1"><i class="fa-solid fa-clock me-1"></i>Waktu</div>
+                            <div class="fw-bold">${waktu}</div>
+                        </div>
+                        <div class="flex-fill border rounded p-3 bg-light">
+                            <div class="text-muted small mb-1"><i class="fa-solid fa-temperature-half me-1"></i>Suhu</div>
+                            <div class="fw-bold">${suhu}°C</div>
+                        </div>
+                        <div class="flex-fill border rounded p-3 bg-light">
+                            <div class="text-muted small mb-1"><i class="fa-solid fa-droplet me-1"></i>Kelembaban</div>
+                            <div class="fw-bold">${kelembaban}%</div>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-3 mb-3">
+                        <div class="flex-fill border rounded p-3">
+                            <div class="text-muted small mb-1"><i class="fa-solid fa-wind me-1"></i>Ventilasi</div>
+                            <div class="fw-bold">${ventilasi || '-'}</div>
+                        </div>
+                        <div class="flex-fill border rounded p-3">
+                            <div class="text-muted small mb-1"><i class="fa-solid fa-user me-1"></i>Dicatat Oleh</div>
+                            <div class="fw-bold">${pencatat || '-'}</div>
+                        </div>
+                    </div>
+                    <div class="border rounded p-3" style="max-height: 320px; overflow-y: auto;">
+                        <div class="text-muted small mb-2"><i class="fa-solid fa-file-lines me-1"></i>Catatan</div>
+                        <div style="white-space: pre-wrap; line-height: 1.5;">${catatanSafe}</div>
+                    </div>
+                </div>
+            `,
+            showConfirmButton: true,
+            confirmButtonText: 'Tutup',
+            width: '48rem'
+        });
+    } else {
+        alert(`Monitoring\nWaktu: ${waktu}\nSuhu: ${suhu}°C\nKelembaban: ${kelembaban}%\nVentilasi: ${ventilasi}\nCatatan: ${catatanSafe}\nPencatat: ${pencatat}`);
+    }
 }
 
 function renderLaporanHistory(data) {
@@ -1599,7 +2067,7 @@ function renderLaporanHistory(data) {
     
     if (!data || data.length === 0) {
         console.log('ℹ️ No laporan data to display');
-        container.innerHTML = '<p class="text-muted small mb-0">Belum ada laporan harian</p>';
+        renderHistoryEmptyState(container, 'Belum ada laporan harian', 'Data laporan kosong', 'laporan');
         return;
     }
     
@@ -1623,26 +2091,41 @@ function renderLaporanHistory(data) {
                 </tr>
             </thead>
             <tbody>
-                ${data.slice(0, 10).map((d) => `
+                ${data.map((d) => {
+                    const tanggalKey = toDateKey(d.tanggal);
+                    const tanggalConfirm = formatDateForDisplay(tanggalKey);
+                    const deleteButton = canDeleteHistory ? `
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                            data-history-delete="true"
+                            data-history-type="laporan"
+                            data-history-id="${d.id}"
+                            data-history-date="${escapeAttr(tanggalConfirm)}"
+                            data-history-label="${escapeAttr(d.catatan_kejadian || '-')}">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    ` : '';
+                    return `
                     <tr>
                         <td class="text-start"><small>${new Date(d.tanggal).toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'})}</small></td>
                         <td class="text-end">${parseInt(d.jumlah_burung || 0).toLocaleString('id-ID')}</td>
-                        <td class="text-end">${parseFloat(d.konsumsi_pakan_kg || 0).toFixed(2)}</td>
+                        <td class="text-end">${formatSmartNumber(d.konsumsi_pakan_kg || 0, 2, '0')}</td>
                         <td class="text-end">${parseInt(d.jumlah_kematian || 0)}</td>
                         <td class="text-start"><small class="text-muted">${(d.catatan_kejadian || '-').substring(0, 35)}${(d.catatan_kejadian || '').length > 35 ? '...' : ''}</small></td>
-                        <td class="text-center">
-                            <a href="${baseUrl}/admin/pembesaran/${pembesaranId}/laporan-harian/${d.id}"
-                               class="btn btn-sm btn-outline-primary text-decoration-none"
-                               aria-label="Detail Laporan"
-                               style="text-decoration:none">
-                                Detail
-                            </a>
+                        <td class="text-center history-action-cell">
+                            <div class="d-flex flex-column gap-1 align-items-center">
+                                <a href="${baseUrl}/admin/pembesaran/${pembesaranId}/laporan-harian/${d.id}"
+                                   class="btn btn-sm btn-outline-primary text-decoration-none"
+                                   aria-label="Detail Laporan"
+                                   style="text-decoration:none">
+                                    Detail
+                                </a>
+                                ${deleteButton}
+                            </div>
                         </td>
                     </tr>
-                `).join('')}
+                `; }).join('')}
             </tbody>
         </table>
-        ${data.length > 10 ? `<p class="text-muted small mt-2 mb-0 text-center">Menampilkan 10 dari ${data.length} data</p>` : ''}
     `;
 }
 
@@ -1656,7 +2139,7 @@ function renderKesehatanHistory(data) {
     }
     
     if (!data || data.length === 0) {
-        container.innerHTML = '<p class="text-muted small mb-0">ℹ️ Belum ada riwayat kesehatan & vaksinasi</p>';
+        renderHistoryEmptyState(container, 'Belum ada riwayat kesehatan & vaksinasi', 'Data kesehatan kosong', 'kesehatan');
         return;
     }
     
@@ -1674,6 +2157,7 @@ function renderKesehatanHistory(data) {
             'vaksinasi': '<span class="badge bg-primary">Vaksinasi</span>',
             'pengobatan': '<span class="badge bg-danger">Pengobatan</span>',
             'pemeriksaan_rutin': '<span class="badge bg-info">Pemeriksaan</span>',
+            'vitamin': '<span class="badge bg-success">Vitamin</span>',
             'karantina': '<span class="badge bg-warning">Karantina</span>'
         }[item.tipe_kegiatan] || `<span class="badge bg-secondary">${item.tipe_kegiatan}</span>`;
         
@@ -1684,34 +2168,90 @@ function renderKesehatanHistory(data) {
             `<button type="button" class="btn btn-sm btn-info btn-detail-catatan" onclick="showKesehatanCatatanModal('${tanggal}', '${getRecorderName(item)}', '${catatanText.replace(/'/g, "\\'").replace(/"/g, '\\"')}')" title="Lihat detail catatan">
                 Detail
             </button>` : '<span class="text-muted">-</span>';
+
+        // Prepare left-side content (karantina controls)
+        let leftContent = '<div class="text-start text-muted flex-shrink-0">-</div>';
+        if (item.tipe_kegiatan === 'karantina') {
+            if (item.karantina_dikembalikan) {
+                const kembaliTanggal = item.karantina_dikembalikan_pada
+                    ? new Date(item.karantina_dikembalikan_pada).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : null;
+                leftContent = `
+                    <div class="d-flex flex-column align-items-start text-start gap-1 flex-shrink-0">
+                        <span class="badge bg-success">Sudah kembali</span>
+                        ${kembaliTanggal ? `<small class="text-muted">${kembaliTanggal}</small>` : ''}
+                    </div>
+                `;
+            } else {
+                leftContent = `
+                    <div class="text-start flex-shrink-0">
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="releaseKarantina(${item.id})">
+                            Kembalikan
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        const detailLines = [];
+        if (item.tipe_kegiatan === 'karantina') {
+            detailLines.push(item.kandang_tujuan?.nama_kandang ? `Kandang: ${escapeAttr(item.kandang_tujuan.nama_kandang)}` : 'Kandang belum dipilih');
+        }
+        if (item.tipe_kegiatan === 'vitamin' && item.vitamin_item) {
+            detailLines.push(`Set Vitamin: ${escapeAttr(item.vitamin_item.name)}`);
+        }
+        const detailContent = detailLines.length
+            ? detailLines.map((line) => `<div>${line}</div>`).join('')
+            : '<span class="text-muted">-</span>';
+
+        const tanggalConfirm = formatDateForDisplay(toDateKey(item.tanggal));
+        const deleteButton = canDeleteHistory ? `
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                data-history-delete="true"
+                data-history-type="kesehatan"
+                data-history-id="${item.id}"
+                data-history-date="${escapeAttr(tanggalConfirm)}"
+                data-history-label="${escapeAttr(item.nama_vaksin_obat || '-')}">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
+        ` : '';
+
+        const rightContent = canDeleteHistory ? `<div class="text-end flex-shrink-0">${deleteButton}</div>` : '';
+        const actionCellContent = canDeleteHistory
+            ? `<div class="d-flex justify-content-between align-items-start gap-2 flex-nowrap w-100 mx-auto">${leftContent}${rightContent}</div>`
+            : `<div class="d-flex justify-content-center align-items-start w-100 mx-auto">${leftContent}</div>`;
         
         return `
             <tr>
                 <td class="text-start">${tanggal}</td>
-                <td class="text-start">${tipeKegiatan}</td>
+                <td class="text-center">${tipeKegiatan}</td>
                 <td class="text-start">${item.nama_vaksin_obat || '-'}</td>
                 <td class="text-end">${item.jumlah_burung || '-'}</td>
                 <td class="text-end">${biaya}</td>
                 <td class="text-start">${item.petugas || '-'}</td>
                 <td class="text-start">${getRecorderName(item)}</td>
-                <td class="text-start">${catatanButton}</td>
+                <td class="text-start">${detailContent}</td>
+                <td class="text-center">${catatanButton}</td>
+                <td class="text-center history-action-cell">${actionCellContent}</td>
             </tr>
         `;
     }).join('');
     
     container.innerHTML = `
-        <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
+        <div class="table-responsive kesehatan-history-table-container">
+            <table class="table table-sm table-hover mb-0 kesehatan-history-table">
                 <thead>
                     <tr>
                         <th class="text-start">Tanggal</th>
-                        <th class="text-start">Tipe</th>
+                        <th class="text-center">Tipe</th>
                         <th class="text-start">Vaksin/Obat</th>
                         <th class="text-end">Jumlah Burung</th>
                         <th class="text-end">Biaya</th>
                         <th class="text-start">Petugas</th>
                         <th class="text-start">Dicatat Oleh</th>
-                        <th class="text-start">Catatan</th>
+                        <th class="text-start">Detail</th>
+                        <th class="text-center">Catatan</th>
+                        <th class="text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1721,6 +2261,42 @@ function renderKesehatanHistory(data) {
         </div>
     `;
 }
+
+async function releaseKarantina(kesehatanId) {
+    if (!kesehatanId) return;
+
+    let confirmed = true;
+    if (window.Swal && typeof window.Swal.fire === 'function') {
+        const prompt = await window.Swal.fire({
+            title: 'Kembalikan burung karantina?',
+            html: 'Jumlah burung akan ditambahkan kembali ke populasi aktif.',
+            icon: 'question',
+            showCancelButton: true,
+            reverseButtons: true,
+            confirmButtonText: 'Ya, kembalikan',
+            cancelButtonText: 'Batal',
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#6c757d'
+        });
+        confirmed = prompt.isConfirmed;
+    } else {
+        confirmed = window.confirm('Kembalikan burung dari karantina ke populasi aktif?');
+    }
+
+    if (!confirmed) return;
+
+    const result = await submitAjax(`${baseUrl}/admin/pembesaran/${pembesaranId}/kesehatan/${kesehatanId}/release`, {});
+
+    if (result.success) {
+        showToast(result.message || 'Burung karantina berhasil dikembalikan');
+        syncPopulationFromResponse(result);
+        loadKesehatanData();
+    } else {
+        showToast(result.message || 'Gagal mengembalikan burung karantina', 'error');
+    }
+}
+
+window.releaseKarantina = releaseKarantina;
 
 // ========== KESEHATAN CATATAN MODAL ==========
 
@@ -1764,7 +2340,7 @@ function showKesehatanCatatanModal(tanggal, dibuatOleh, catatan) {
                                     <h6 class="text-muted mb-3">
                                         <i class="fa-solid fa-file-lines me-1"></i>Isi Catatan
                                     </h6>
-                                    <div id="modalCatatan" class="catatan-content" style="max-height: 300px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;"></div>
+                                    <div id="modalCatatan" class="catatan-content" style="max-height: 420px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5;"></div>
                                 </div>
                             </div>
                         </div>
@@ -1800,31 +2376,49 @@ function renderBeratHistory(data) {
     }
     
     if (!data || data.length === 0) {
-        container.innerHTML = '<p class="text-muted small mb-0">ℹ️ Belum ada riwayat sampling berat</p>';
+        renderHistoryEmptyState(container, 'Belum ada riwayat sampling berat', 'Data berat kosong', 'berat');
         return;
     }
     
     console.log('✅ Rendering', data.length, 'berat records');
     console.log('📝 Sample berat record:', data[0]);
     
-    const rows = data.slice(0, 50).map(item => {
+    const rows = data.map(item => {
         const tanggal = new Date(item.tanggal_sampling).toLocaleDateString('id-ID', {
             day: '2-digit',
             month: 'short',
             year: 'numeric'
         });
         
-        const beratGram = parseFloat(item.berat_rata_rata);
-        const beratKg = (beratGram / 1000).toFixed(3);
+        const beratGram = Number(item.berat_rata_rata);
+        const beratGramDisplay = Number.isFinite(beratGram)
+            ? `${formatSmartNumber(beratGram, 2, '0')} g`
+            : '-';
+        const beratKgDisplay = Number.isFinite(beratGram)
+            ? `${formatSmartNumber(beratGram / 1000, 3, '0')} kg`
+            : '-';
+        const tanggalConfirm = formatDateForDisplay(toDateKey(item.tanggal_sampling));
+        const deleteButton = canDeleteHistory ? `
+            <td class="text-center history-action-cell">
+                <button type="button" class="btn btn-sm btn-outline-danger"
+                    data-history-delete="true"
+                    data-history-type="berat"
+                    data-history-id="${item.id}"
+                    data-history-date="${escapeAttr(tanggalConfirm)}"
+                    data-history-label="${escapeAttr(beratGramDisplay || '-')}">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </td>
+        ` : '';
         
         return `
             <tr>
                 <td class="text-start">${tanggal}</td>
                 <td class="text-end">${item.umur_hari} hari</td>
-                <td class="text-end">${beratGram.toFixed(0)} g</td>
-                <td class="text-end">${beratKg} kg</td>
-                <td class="text-start">${item.catatan || '-'}</td>
+                <td class="text-end">${beratGramDisplay}</td>
+                <td class="text-end">${beratKgDisplay}</td>
                 <td class="text-start">${getRecorderName(item)}</td>
+                ${deleteButton}
             </tr>
         `;
     }).join('');
@@ -1838,8 +2432,8 @@ function renderBeratHistory(data) {
                         <th class="text-end">Umur</th>
                         <th class="text-end">Berat (gram)</th>
                         <th class="text-end">Berat (kg)</th>
-                        <th class="text-start">Catatan</th>
                         <th class="text-start">Dicatat Oleh</th>
+                        ${canDeleteHistory ? '<th class="text-center">Aksi</th>' : ''}
                     </tr>
                 </thead>
                 <tbody>
@@ -1847,7 +2441,6 @@ function renderBeratHistory(data) {
                 </tbody>
             </table>
         </div>
-        ${data.length > 50 ? `<p class="text-muted small mt-2 mb-0 text-center">Menampilkan 50 dari ${data.length} data</p>` : ''}
     `;
 }
 

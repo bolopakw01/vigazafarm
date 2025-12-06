@@ -14,18 +14,18 @@
             </div>
             <div class="col-md-6">
                 <label class="form-label lopa-form-label">Waktu <span class="text-danger">*</span></label>
-                <input type="time" class="form-control" name="waktu" {{ $disabledAttr }} required />
+                <input type="time" class="form-control" name="waktu" value="{{ now('Asia/Jakarta')->format('H:i') }}" data-fill-current-time="true" {{ $disabledAttr }} required />
                 <small class="form-text text-muted">Catat waktu pengambilan data untuk konsistensi.</small>
             </div>
             <div class="col-md-6">
                 <label class="form-label lopa-form-label">Suhu (°C) <span class="text-danger">*</span></label>
-                <input type="number" step="0.1" class="form-control" name="suhu" placeholder="28.0" {{ $disabledAttr }} required />
-                <small class="form-text text-muted">Isi suhu kandang saat pengukuran berlangsung.</small>
+                <input type="number" step="0.1" class="form-control" name="suhu" placeholder="23.0" {{ $disabledAttr }} required />
+                <small class="form-text text-muted">Catat suhu kandang (ideal 20°C - 25°C untuk puyuh).</small>
             </div>
             <div class="col-md-6">
                 <label class="form-label lopa-form-label">Kelembaban (%) <span class="text-danger">*</span></label>
-                <input type="number" step="0.1" class="form-control" name="kelembaban" placeholder="65.0" {{ $disabledAttr }} required />
-                <small class="form-text text-muted">Masukkan kelembaban udara saat pencatatan.</small>
+                <input type="number" step="0.1" class="form-control" name="kelembaban" placeholder="55.0" {{ $disabledAttr }} required />
+                <small class="form-text text-muted">Masukkan kelembaban udara (ideal 30% - 80%).</small>
             </div>
             <div class="col-md-6">
                 <label class="form-label lopa-form-label">Intensitas Cahaya (Lux)</label>

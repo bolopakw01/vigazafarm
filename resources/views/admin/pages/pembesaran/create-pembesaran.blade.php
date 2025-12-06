@@ -58,6 +58,17 @@
 @endpush
 
 @section('content')
+@php
+    $defaultTanggalMasuk = old('tanggal_masuk', date('Y-m-d'));
+    $defaultTanggalSiap = old('tanggal_siap');
+    if (empty($defaultTanggalSiap) && !empty($defaultTanggalMasuk)) {
+        try {
+            $defaultTanggalSiap = \Carbon\Carbon::parse($defaultTanggalMasuk)->addDays(27)->format('Y-m-d');
+        } catch (\Exception $e) {
+            $defaultTanggalSiap = null;
+        }
+    }
+@endphp
 <div class="bolopa-form-wrapper">
     <div class="bolopa-form-container">
         <!-- Header -->
@@ -185,7 +196,7 @@
                                 Tanggal Masuk <span class="text-danger">*</span>
                             </label>
                             <input type="date" name="tanggal_masuk" id="tanggal_masuk" class="form-control" 
-                                value="{{ old('tanggal_masuk', date('Y-m-d')) }}" required max="{{ date('Y-m-d') }}">
+                                value="{{ $defaultTanggalMasuk }}" required max="{{ date('Y-m-d') }}">
                             <small class="form-text">Tanggal DOQ masuk ke kandang pembesaran</small>
                         </div>
 
@@ -270,8 +281,8 @@
                                 Perkiraan Tanggal Siap
                             </label>
                             <input type="date" name="tanggal_siap" id="tanggal_siap" class="form-control" 
-                                value="{{ old('tanggal_siap') }}">
-                            <small class="form-text">Gunakan estimasi manual (disarankan 35-40 hari dari tanggal masuk) dan sesuaikan dengan kondisi lapangan.</small>
+                                value="{{ $defaultTanggalSiap }}">
+                            <small class="form-text">Gunakan estimasi manual (disarankan 27-28 hari dari tanggal masuk untuk puyuh) dan sesuaikan dengan kondisi lapangan.</small>
                             <small class="form-text">Penyelesaian batch akan mengikuti Perkiraan Tanggal Siap ini.</small>
                         </div>
 
@@ -382,6 +393,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const capacityInfoText = document.getElementById('kandangCapacityInfoText');
     let kapasitasSisaSaatIni = 0;
     let lastCapacityAlertValue = null;
+    const siapOffsetHari = 27;
+    let lastAutoTanggalSiap = tanggalSiap?.value || '';
 
     const formatCapacityNumber = (value) => {
         const numeric = Number.isFinite(value) ? value : parseInt(value ?? 0, 10) || 0;
@@ -602,6 +615,47 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (jumlahInput) {
         jumlahInput.addEventListener('input', () => enforceCapacityLimit(true));
+    }
+
+    function hitungTanggalSiapAwal(baseTanggal, offsetHari = siapOffsetHari) {
+        if (!baseTanggal) return '';
+        const baseDate = new Date(baseTanggal);
+        if (Number.isNaN(baseDate.getTime())) return '';
+        baseDate.setDate(baseDate.getDate() + offsetHari);
+        return baseDate.toISOString().slice(0, 10);
+    }
+
+    function autoIsiTanggalSiap(options = {}) {
+        if (!tanggalMasuk || !tanggalSiap) return;
+        const { respectUserEdit = true } = options;
+        if (respectUserEdit && tanggalSiap.dataset.userEdited === 'true') {
+            return;
+        }
+        const kandidat = hitungTanggalSiapAwal(tanggalMasuk.value, siapOffsetHari);
+        if (!kandidat) return;
+        tanggalSiap.value = kandidat;
+        delete tanggalSiap.dataset.userEdited;
+        lastAutoTanggalSiap = kandidat;
+    }
+
+    if (tanggalSiap) {
+        if (!tanggalSiap.value) {
+            autoIsiTanggalSiap({ respectUserEdit: false });
+        } else {
+            lastAutoTanggalSiap = tanggalSiap.value;
+        }
+
+        tanggalSiap.addEventListener('input', () => {
+            if (!tanggalSiap.value || tanggalSiap.value === lastAutoTanggalSiap) {
+                delete tanggalSiap.dataset.userEdited;
+            } else {
+                tanggalSiap.dataset.userEdited = 'true';
+            }
+        });
+    }
+
+    if (tanggalMasuk) {
+        tanggalMasuk.addEventListener('change', () => autoIsiTanggalSiap({ respectUserEdit: true }));
     }
 });
 </script>

@@ -24,7 +24,6 @@
                     <option value="penyakit">Penyakit</option>
                     <option value="stress">Stress</option>
                     <option value="kecelakaan">Kecelakaan</option>
-                    <option value="usia">Usia Tua</option>
                     <option value="tidak_diketahui">Tidak Diketahui</option>
                 </select>
                 <small class="form-text text-muted">Pilih penyebab dominan untuk memudahkan analisis.</small>

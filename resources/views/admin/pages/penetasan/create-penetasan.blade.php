@@ -217,7 +217,7 @@
                             <input type="number" name="suhu_penetasan" id="suhu_penetasan" 
                                    class="form-control" value="{{ old('suhu_penetasan') }}" 
                                    step="0.1" min="0" max="50" readonly>
-                            <small class="form-text">Suhu optimal: 37.0°C - 38.0°C</small>
+                            <small class="form-text">Suhu optimal: 20°C - 25°C</small>
                         </div>
                         <div class="form-group">
                             <label for="kelembaban_penetasan" class="form-label">
@@ -226,7 +226,7 @@
                             <input type="number" name="kelembaban_penetasan" id="kelembaban_penetasan" 
                                    class="form-control" value="{{ old('kelembaban_penetasan') }}" 
                                    step="0.1" min="0" max="100" readonly>
-                            <small class="form-text">Kelembaban optimal: 55% - 65%</small>
+                            <small class="form-text">Kelembaban optimal: 30% - 80%</small>
                         </div>
                         <div class="form-group">
                             <label class="form-label">&nbsp;</label>

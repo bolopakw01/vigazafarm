@@ -12,6 +12,7 @@ use App\Models\StokPakan;
 use App\Models\FeedVitaminItem;
 use App\Models\FeedHistory;
 use App\Models\ParameterStandar;
+use App\Models\BeratSampling;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -247,13 +248,21 @@ class PembesaranRecordingController extends Controller
     /**
      * Delete pakan
      */
-    public function destroyPakan($pakanId)
+    public function destroyPakan(Pembesaran $pembesaran, Pakan $pakan)
     {
         /**
          * Menghapus entri pakan dan mengembalikan stok jika diperlukan.
          */
-        $pakan = Pakan::findOrFail($pakanId);
+        if ($guard = $this->guardOwnerRole()) {
+            return $guard;
+        }
 
+        if ($pakan->batch_produksi_id !== $pembesaran->batch_produksi_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data pakan tidak ditemukan untuk batch ini.'
+            ], 404);
+        }
         if ($pakan->stok_pakan_id) {
             $stokPakan = StokPakan::find($pakan->stok_pakan_id);
             if ($stokPakan) {
@@ -385,6 +394,8 @@ class PembesaranRecordingController extends Controller
             $pembesaran->jumlah_anak_ayam
         );
 
+        $populationStats = $this->getBatchPopulationStats($pembesaran);
+
         // Periksa apakah mortalitas tinggi
         $isHighMortality = $mortalitas > 5;
 
@@ -396,6 +407,9 @@ class PembesaranRecordingController extends Controller
             'mortalitas' => $mortalitas,
             'is_high_mortality' => $isHighMortality,
             'alert' => $isHighMortality ? 'Perhatian! Mortalitas melebihi 5%' : null,
+            'populasi_awal' => $populationStats['populasi_awal'],
+            'populasi_saat_ini' => $populationStats['populasi_aktif'],
+            'karantina_aktif' => $populationStats['karantina_aktif'],
         ]);
     }
 
@@ -433,12 +447,22 @@ class PembesaranRecordingController extends Controller
     /**
      * Delete kematian
      */
-    public function destroyKematian($kematianId)
+    public function destroyKematian(Pembesaran $pembesaran, Kematian $kematian)
     {
         /**
          * Menghapus catatan kematian.
          */
-        $kematian = Kematian::findOrFail($kematianId);
+        if ($guard = $this->guardOwnerRole()) {
+            return $guard;
+        }
+
+        if ($kematian->batch_produksi_id !== $pembesaran->batch_produksi_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data kematian tidak ditemukan untuk batch ini.'
+            ], 404);
+        }
+
         $kematian->delete();
 
         return response()->json([
@@ -644,13 +668,8 @@ class PembesaranRecordingController extends Controller
             abort(404, 'Laporan tidak ditemukan untuk pembesaran ini');
         }
 
-        // Otorisasi: hanya pembuat atau owner
-        $user = Auth::user();
-        if ($laporan->pengguna_id !== $user->id && $user->peran !== 'owner') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Anda tidak memiliki izin untuk menghapus laporan ini'
-            ], 403);
+        if ($guard = $this->guardOwnerRole()) {
+            return $guard;
         }
 
         $laporan->delete();
@@ -674,6 +693,19 @@ class PembesaranRecordingController extends Controller
         }
 
         return Str::limit($trimmed, $limit, '');
+    }
+
+    protected function guardOwnerRole(): ?JsonResponse
+    {
+        $user = Auth::user();
+        if (!$user || !in_array($user->peran, ['owner', 'super_admin'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya owner yang dapat menghapus riwayat pembesaran.'
+            ], 403);
+        }
+
+        return null;
     }
 
     /**
@@ -786,6 +818,27 @@ class PembesaranRecordingController extends Controller
         ]);
     }
 
+    public function destroyMonitoring(Pembesaran $pembesaran, MonitoringLingkungan $monitoring)
+    {
+        if ($guard = $this->guardOwnerRole()) {
+            return $guard;
+        }
+
+        if ($monitoring->batch_produksi_id !== $pembesaran->batch_produksi_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data monitoring tidak ditemukan untuk batch ini.'
+            ], 404);
+        }
+
+        $monitoring->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data monitoring berhasil dihapus'
+        ]);
+    }
+
     /**
      * ==================================================
      * KESEHATAN & VAKSINASI
@@ -802,18 +855,70 @@ class PembesaranRecordingController extends Controller
          */
         $pembesaran = Pembesaran::findOrFail($pembesaranId);
         
+        $jumlahBurungRules = ['required', 'integer', 'min:1'];
+        $populasiAwal = (int) $pembesaran->jumlah_anak_ayam;
+        if ($populasiAwal > 0) {
+            $jumlahBurungRules[] = 'max:' . $populasiAwal;
+        }
+
+        $populationStats = $this->getBatchPopulationStats($pembesaran);
+
         $validated = $request->validate([
             'tanggal' => 'required|date',
-            'tipe_kegiatan' => 'required|in:vaksinasi,pengobatan,pemeriksaan_rutin,karantina',
+            'tipe_kegiatan' => 'required|in:vaksinasi,pengobatan,pemeriksaan_rutin,karantina,vitamin',
             'nama_vaksin_obat' => 'required|string',
-            'jumlah_burung' => 'required|integer|min:1',
+            'jumlah_burung' => $jumlahBurungRules,
             'catatan' => 'nullable|string|max:100',
             'biaya' => 'nullable|numeric|min:0',
             'petugas' => 'nullable|string|max:100',
+            'kandang_tujuan_id' => 'nullable|exists:vf_kandang,id',
+            'feed_vitamin_item_id' => 'nullable|exists:vf_feed_vitamin_items,id',
         ]);
 
         if ($guard = $this->guardBatchStartDate($pembesaran, $validated['tanggal'], 'Tanggal kesehatan')) {
             return $guard;
+        }
+
+        if ($validated['tipe_kegiatan'] === Kesehatan::TIPE_KARANTINA) {
+            $available = $populationStats['populasi_aktif'];
+            if ($available <= 0 || $validated['jumlah_burung'] > $available) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Jumlah burung karantina melebihi populasi aktif yang tersedia (' . number_format($available) . ').'
+                ], 422);
+            }
+            if (empty($validated['kandang_tujuan_id'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pilih kandang tujuan karantina terlebih dahulu.'
+                ], 422);
+            }
+        } else {
+            $validated['kandang_tujuan_id'] = null;
+        }
+
+        if ($validated['tipe_kegiatan'] === Kesehatan::TIPE_VITAMIN) {
+            if (empty($validated['feed_vitamin_item_id'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pilih vitamin dari set master terlebih dahulu.'
+                ], 422);
+            }
+
+            $vitaminItem = FeedVitaminItem::find($validated['feed_vitamin_item_id']);
+            if (!$vitaminItem) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data vitamin tidak ditemukan.'
+                ], 404);
+            }
+
+            $validated['nama_vaksin_obat'] = $vitaminItem->name;
+            if (empty($validated['biaya']) && $vitaminItem->price !== null) {
+                $validated['biaya'] = $vitaminItem->price;
+            }
+        } else {
+            $validated['feed_vitamin_item_id'] = null;
         }
 
         $kesehatan = Kesehatan::create([
@@ -822,16 +927,22 @@ class PembesaranRecordingController extends Controller
             'tipe_kegiatan' => $validated['tipe_kegiatan'],
             'nama_vaksin_obat' => $validated['nama_vaksin_obat'],
             'jumlah_burung' => $validated['jumlah_burung'],
+            'kandang_tujuan_id' => $validated['kandang_tujuan_id'],
             'catatan' => $this->normalizeNote($validated['catatan'] ?? null),
             'biaya' => $validated['biaya'],
             'petugas' => $this->normalizeNote($validated['petugas'] ?? null),
+            'feed_vitamin_item_id' => $validated['feed_vitamin_item_id'],
             'pengguna_id' => Auth::id(),
         ]);
+
+        $updatedStats = $this->getBatchPopulationStats($pembesaran);
 
         return response()->json([
             'success' => true,
             'message' => 'Data kesehatan berhasil disimpan',
-            'data' => $kesehatan->load('pengguna'),
+            'data' => $kesehatan->load(['pengguna', 'kandangTujuan', 'vitaminItem']),
+            'populasi_saat_ini' => $updatedStats['populasi_aktif'],
+            'karantina_aktif' => $updatedStats['karantina_aktif'],
         ]);
     }
 
@@ -846,7 +957,7 @@ class PembesaranRecordingController extends Controller
         $tanggal = $request->query('tanggal');
 
         $kesehatanQuery = Kesehatan::where('batch_produksi_id', $pembesaran->batch_produksi_id)
-            ->with('pengguna')
+            ->with(['pengguna', 'kandangTujuan', 'vitaminItem'])
             ->orderByDesc('tanggal');
 
         if ($tanggal) {
@@ -862,6 +973,7 @@ class PembesaranRecordingController extends Controller
         $reminders = Kesehatan::generateReminder($pembesaran->batch_produksi_id, $umurHari);
 
         $totalBiaya = Kesehatan::getTotalBiayaKesehatan($pembesaran->batch_produksi_id);
+        $populationStats = $this->getBatchPopulationStats($pembesaran);
 
         return response()->json([
             'success' => true,
@@ -869,7 +981,83 @@ class PembesaranRecordingController extends Controller
             'reminders' => $reminders,
             'umur_hari' => $umurHari,
             'total_biaya' => $totalBiaya,
+            'populasi_saat_ini' => $populationStats['populasi_aktif'],
+            'karantina_aktif' => $populationStats['karantina_aktif'],
         ]);
+    }
+
+    public function destroyKesehatan(Pembesaran $pembesaran, Kesehatan $kesehatan)
+    {
+        if ($guard = $this->guardOwnerRole()) {
+            return $guard;
+        }
+
+        if ($kesehatan->batch_produksi_id !== $pembesaran->batch_produksi_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data kesehatan tidak ditemukan untuk batch ini.'
+            ], 404);
+        }
+
+        $kesehatan->delete();
+
+        $populationStats = $this->getBatchPopulationStats($pembesaran);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data kesehatan berhasil dihapus',
+            'populasi_saat_ini' => $populationStats['populasi_aktif'],
+            'karantina_aktif' => $populationStats['karantina_aktif'],
+        ]);
+    }
+
+    public function releaseKarantina(Request $request, $pembesaranId, Kesehatan $kesehatan)
+    {
+        $pembesaran = Pembesaran::findOrFail($pembesaranId);
+
+        if ($kesehatan->batch_produksi_id !== $pembesaran->batch_produksi_id || $kesehatan->tipe_kegiatan !== Kesehatan::TIPE_KARANTINA) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data karantina tidak ditemukan untuk batch ini.'
+            ], 404);
+        }
+
+        if ($kesehatan->karantina_dikembalikan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Burung dari catatan ini sudah dikembalikan.'
+            ], 422);
+        }
+
+        $kesehatan->update([
+            'karantina_dikembalikan' => true,
+            'karantina_dikembalikan_pada' => now(),
+        ]);
+
+        $stats = $this->getBatchPopulationStats($pembesaran);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Burung karantina berhasil dikembalikan ke populasi.',
+            'data' => $kesehatan->fresh('pengguna'),
+            'populasi_saat_ini' => $stats['populasi_aktif'],
+            'karantina_aktif' => $stats['karantina_aktif'],
+        ]);
+    }
+
+    private function getBatchPopulationStats(Pembesaran $pembesaran): array
+    {
+        $populasiAwal = (int) $pembesaran->jumlah_anak_ayam;
+        $totalMati = Kematian::totalKematianByBatch($pembesaran->batch_produksi_id);
+        $karantinaAktif = Kesehatan::totalKarantinaAktif($pembesaran->batch_produksi_id);
+        $populasiAktif = max(0, $populasiAwal - $totalMati - $karantinaAktif);
+
+        return [
+            'populasi_awal' => $populasiAwal,
+            'total_mati' => $totalMati,
+            'karantina_aktif' => $karantinaAktif,
+            'populasi_aktif' => $populasiAktif,
+        ];
     }
 
     /**
@@ -1024,6 +1212,27 @@ class PembesaranRecordingController extends Controller
         return response()->json([
             'success' => true,
             'data' => $beratList,
+        ]);
+    }
+
+    public function destroyBerat(Pembesaran $pembesaran, BeratSampling $berat)
+    {
+        if ($guard = $this->guardOwnerRole()) {
+            return $guard;
+        }
+
+        if ($berat->batch_produksi_id !== $pembesaran->batch_produksi_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data sampling berat tidak ditemukan untuk batch ini.'
+            ], 404);
+        }
+
+        $berat->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Data sampling berat berhasil dihapus'
         ]);
     }
 }

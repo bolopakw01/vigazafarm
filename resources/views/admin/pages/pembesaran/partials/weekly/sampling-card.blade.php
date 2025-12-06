@@ -10,11 +10,15 @@
             <div class="col-md-6">
                 <label class="form-label lopa-form-label">Umur (hari) <span class="text-danger">*</span></label>
                 @php
-                    $tanggalMasuk = \Carbon\Carbon::parse($pembesaran->tanggal_masuk);
-                    $umurHari = floor($tanggalMasuk->diffInDays(now()));
+                    $tanggalMasuk = $pembesaran->tanggal_masuk ? \Carbon\Carbon::parse($pembesaran->tanggal_masuk) : null;
+                    $umurAwal = max(0, (int) ($pembesaran->umur_hari ?? 0));
+                    $hariBerlalu = $tanggalMasuk ? max(0, $tanggalMasuk->diffInDays(now())) : 0;
+                    $umurHari = $umurAwal + $hariBerlalu;
                 @endphp
                 <input type="number" class="form-control" name="umur_hari" value="{{ intval($umurHari) }}" min="0" required readonly />
-                <small class="text-muted">Otomatis dihitung dari tanggal masuk: {{ $tanggalMasuk->format('d/m/Y') }}</small>
+                <small class="text-muted">
+                    Umur awal {{ $umurAwal }} hari @if($tanggalMasuk) • dihitung sejak {{ $tanggalMasuk->format('d/m/Y') }} @endif
+                </small>
             </div>
             <div class="col-md-6">
                 <label class="form-label lopa-form-label">Berat Rata-rata (gram) <span class="text-danger">*</span></label>

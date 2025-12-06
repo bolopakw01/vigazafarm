@@ -68,6 +68,27 @@
 @endpush
 
 @section('content')
+@php
+    $defaultTanggalMasuk = old('tanggal_masuk', $pembesaran->tanggal_masuk ? $pembesaran->tanggal_masuk->format('Y-m-d') : date('Y-m-d'));
+    $defaultTanggalSiap = old('tanggal_siap', $pembesaran->tanggal_siap ? $pembesaran->tanggal_siap->format('Y-m-d') : null);
+    if (empty($defaultTanggalSiap) && !empty($defaultTanggalMasuk)) {
+        try {
+            $defaultTanggalSiap = \Carbon\Carbon::parse($defaultTanggalMasuk)->addDays(27)->format('Y-m-d');
+        } catch (\Exception $e) {
+            $defaultTanggalSiap = null;
+        }
+    }
+@endphp
+@php
+    $beratAwalValue = $pembesaran->berat_rata_rata;
+    if (is_null($beratAwalValue)) {
+        $beratAwalFormatted = null;
+    } elseif ($beratAwalValue == floor($beratAwalValue)) {
+        $beratAwalFormatted = number_format($beratAwalValue, 0);
+    } else {
+        $beratAwalFormatted = rtrim(rtrim(number_format($beratAwalValue, 2), '0'), '.');
+    }
+@endphp
 <div class="bolopa-form-wrapper">
     <div class="bolopa-form-container">
         <!-- Header -->
@@ -175,7 +196,7 @@
                                 Tanggal Masuk <span class="text-danger">*</span>
                             </label>
                             <input type="date" name="tanggal_masuk" id="tanggal_masuk" class="form-control" 
-                                value="{{ old('tanggal_masuk', $pembesaran->tanggal_masuk ? $pembesaran->tanggal_masuk->format('Y-m-d') : '') }}" 
+                                value="{{ $defaultTanggalMasuk }}" 
                                 required max="{{ date('Y-m-d') }}">
                             <small class="form-text">Tanggal DOQ masuk ke kandang pembesaran</small>
                         </div>
@@ -245,7 +266,7 @@
                                 Berat Rata-rata Awal (gram)
                             </label>
                             <input type="number" name="berat_rata_rata" id="berat_rata_rata" class="form-control" 
-                                value="{{ old('berat_rata_rata', $pembesaran->berat_rata_rata) }}" 
+                                value="{{ old('berat_rata_rata', $beratAwalFormatted) }}" 
                                 min="0" step="0.01" placeholder="Contoh: 8.5">
                             <small class="form-text">Berat rata-rata per ekor saat masuk (opsional)</small>
                         </div>
@@ -257,8 +278,8 @@
                                 Perkiraan Tanggal Siap
                             </label>
                             <input type="date" name="tanggal_siap" id="tanggal_siap" class="form-control" 
-                                value="{{ old('tanggal_siap', $pembesaran->tanggal_siap ? $pembesaran->tanggal_siap->format('Y-m-d') : '') }}">
-                            <small class="form-text">Isi dengan estimasi Anda (disarankan 35-40 hari dari tanggal masuk) dan sesuaikan sesuai kondisi lapangan.</small>
+                                value="{{ $defaultTanggalSiap }}">
+                            <small class="form-text">Isi dengan estimasi Anda (disarankan 27-28 hari dari tanggal masuk untuk puyuh) dan sesuaikan sesuai kondisi lapangan.</small>
                             <small class="form-text">Penyelesaian batch akan mengikuti Perkiraan Tanggal Siap ini.</small>
                         </div>
 
@@ -517,6 +538,37 @@ document.addEventListener('DOMContentLoaded', function() {
     const tanggalMasuk = document.getElementById('tanggal_masuk');
     const tanggalSiap = document.getElementById('tanggal_siap');
     const jumlahInput = document.getElementById('jumlah_anak_ayam');
+    const siapOffsetHari = 27;
+    let lastAutoTanggalSiap = tanggalSiap ? tanggalSiap.value : '';
+
+    const hitungTanggalSiapAwal = (baseTanggal, offsetHari = siapOffsetHari) => {
+        if (!baseTanggal) {
+            return '';
+        }
+        const baseDate = new Date(baseTanggal);
+        if (Number.isNaN(baseDate.getTime())) {
+            return '';
+        }
+        baseDate.setDate(baseDate.getDate() + offsetHari);
+        return baseDate.toISOString().slice(0, 10);
+    };
+
+    const autoIsiTanggalSiap = (options = {}) => {
+        if (!tanggalMasuk || !tanggalSiap) {
+            return;
+        }
+        const { respectUserEdit = true } = options;
+        if (respectUserEdit && tanggalSiap.dataset.userEdited === 'true') {
+            return;
+        }
+        const kandidat = hitungTanggalSiapAwal(tanggalMasuk.value, siapOffsetHari);
+        if (!kandidat) {
+            return;
+        }
+        tanggalSiap.value = kandidat;
+        delete tanggalSiap.dataset.userEdited;
+        lastAutoTanggalSiap = kandidat;
+    };
 
     // Form submission dengan SweetAlert2 confirmation
     form.addEventListener('submit', function(e) {
@@ -541,6 +593,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showCancelButton: true,
             confirmButtonColor: '#3b82f6',
             cancelButtonColor: '#6b7280',
+            reverseButtons: true,
             confirmButtonText: 'Ya, Update!',
             cancelButtonText: 'Periksa Lagi'
         }).then((result) => {
@@ -571,6 +624,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 form.reset();
+                if (tanggalSiap) {
+                    delete tanggalSiap.dataset.userEdited;
+                }
+                setTimeout(() => autoIsiTanggalSiap({ respectUserEdit: false }), 0);
                 triggerFlashToast('success', 'Berhasil!', 'Form pembesaran berhasil direset.', 2200);
             }
         });
@@ -596,6 +653,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+
+    if (tanggalSiap) {
+        if (!tanggalSiap.value) {
+            autoIsiTanggalSiap({ respectUserEdit: false });
+        } else {
+            lastAutoTanggalSiap = tanggalSiap.value;
+        }
+
+        tanggalSiap.addEventListener('input', () => {
+            if (!tanggalSiap.value || tanggalSiap.value === lastAutoTanggalSiap) {
+                delete tanggalSiap.dataset.userEdited;
+            } else {
+                tanggalSiap.dataset.userEdited = 'true';
+            }
+        });
+    }
+
+    if (tanggalMasuk) {
+        tanggalMasuk.addEventListener('change', () => autoIsiTanggalSiap({ respectUserEdit: true }));
+    }
     // Toggle Owner Override Section
     const ownerOverrideToggle = document.getElementById('ownerOverrideToggle');
     const ownerOverrideSection = document.getElementById('ownerOverrideSection');
