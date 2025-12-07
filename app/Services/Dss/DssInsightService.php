@@ -3,12 +3,14 @@
 namespace App\Services\Dss;
 
 use App\Models\Kematian;
+use App\Models\LaporanHarian;
 use App\Models\Pakan;
 use App\Models\Pembesaran;
 use App\Models\Penetasan;
 use App\Models\Produksi;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 
 class DssInsightService
 {
@@ -135,20 +137,66 @@ class DssInsightService
             return [];
         }
 
-        $selected = $contexts->values()
-            ->sortByDesc(function ($context) {
-                $value = $context['sort_key'];
-                if ($value instanceof Carbon) {
-                    return $value->timestamp;
-                }
+        $sorter = function ($context) {
+            $value = $context['sort_key'];
+            if ($value instanceof Carbon) {
+                return $value->timestamp;
+            }
 
-                if ($value) {
+            if ($value) {
+                try {
                     return Carbon::parse($value)->timestamp;
+                } catch (\Throwable $e) {
+                    return now()->timestamp;
                 }
+            }
 
-                return now()->timestamp;
-            })
-            ->take($limit);
+            return now()->timestamp;
+        };
+
+        $sorted = $contexts->values()
+            ->sortByDesc($sorter)
+            ->values();
+
+        $selected = $sorted->take($limit)->values();
+
+        $ensureSegmentCoverage = function (string $segment) use (&$selected, $sorted, $limit, $sorter) {
+            $hasSegment = $selected->contains(fn ($context) => $context['type'] === $segment);
+            $segmentAvailable = $sorted->contains(fn ($context) => $context['type'] === $segment);
+
+            if ($hasSegment || !$segmentAvailable) {
+                return;
+            }
+
+            $replacement = $sorted->first(fn ($context) => $context['type'] === $segment);
+            if (!$replacement) {
+                return;
+            }
+
+            $selectedArray = $selected->all();
+            $removed = false;
+
+            for ($i = count($selectedArray) - 1; $i >= 0; $i--) {
+                if ($selectedArray[$i]['type'] !== $segment) {
+                    array_splice($selectedArray, $i, 1);
+                    $removed = true;
+                    break;
+                }
+            }
+
+            if (!$removed && count($selectedArray) >= $limit) {
+                return;
+            }
+
+            $selectedArray[] = $replacement;
+            $selected = collect($selectedArray)
+                ->sortByDesc($sorter)
+                ->take($limit)
+                ->values();
+        };
+
+        $ensureSegmentCoverage('produksi');
+        $ensureSegmentCoverage('pembesaran');
 
         $batchIds = $selected
             ->map(fn ($context) => $context['record']->batch_produksi_id)
@@ -246,34 +294,197 @@ class DssInsightService
         $limit = (int) config('dss.mortality.max_items', 4);
         $startDate = $this->today->copy()->subDays($windowDays - 1);
 
-        $recentDeaths = Kematian::query()
-            ->whereNotNull('batch_produksi_id')
+        $recentRows = Kematian::query()
             ->where('tanggal', '>=', $startDate->toDateString())
-            ->selectRaw('batch_produksi_id, COALESCE(SUM(jumlah), 0) as total')
-            ->groupBy('batch_produksi_id')
+            ->where(function ($query) {
+                $query->whereNotNull('batch_produksi_id')
+                    ->orWhereNotNull('produksi_id');
+            })
+            ->selectRaw('batch_produksi_id, produksi_id, COALESCE(SUM(jumlah), 0) as total')
+            ->groupBy('batch_produksi_id', 'produksi_id')
             ->orderByDesc('total')
-            ->take($limit * 3)
+            ->take($limit * 6)
             ->get();
 
-        if ($recentDeaths->isEmpty()) {
+        $productionIds = $recentRows->pluck('produksi_id')->filter()->unique();
+
+        $productionLookup = $productionIds->isNotEmpty()
+            ? Produksi::query()
+                ->with(['kandang', 'pembesaran.kandang'])
+                ->whereIn('id', $productionIds)
+                ->get()
+                ->keyBy('id')
+            : collect();
+
+        $recentTotals = [];
+
+        foreach ($recentRows as $row) {
+            $production = $row->produksi_id ? $productionLookup->get($row->produksi_id) : null;
+            $batchLookupKey = $row->batch_produksi_id ?? ($production?->batch_produksi_id);
+            $displayBatch = $batchLookupKey
+                ?? ($production?->batch_produksi_id)
+                ?? ($row->produksi_id ? ('Produksi #' . $row->produksi_id) : null);
+
+            if (!$row->produksi_id && !$batchLookupKey) {
+                continue;
+            }
+
+            if ($row->produksi_id && $batchLookupKey) {
+                $key = 'batch:' . $batchLookupKey;
+            } elseif ($row->produksi_id) {
+                $key = 'produksi:' . $row->produksi_id;
+            } else {
+                $key = 'batch:' . $batchLookupKey;
+            }
+
+            if (!isset($recentTotals[$key])) {
+                $recentTotals[$key] = [
+                    'key' => $key,
+                    'batch_lookup_key' => $batchLookupKey,
+                    'display_batch' => $displayBatch,
+                    'recent_total' => 0,
+                    'production' => $production,
+                    'production_id' => $row->produksi_id,
+                    'context' => $row->produksi_id ? 'produksi' : 'pembesaran',
+                ];
+            }
+
+            $recentTotals[$key]['recent_total'] += (int) $row->total;
+
+            if ($row->produksi_id && $production) {
+                $recentTotals[$key]['production'] = $production;
+                $recentTotals[$key]['context'] = 'produksi';
+
+                if (empty($recentTotals[$key]['display_batch'])) {
+                    $recentTotals[$key]['display_batch'] = $production->batch_produksi_id
+                        ?? ('Produksi #' . $production->id);
+                }
+
+                if (empty($recentTotals[$key]['batch_lookup_key'])) {
+                    $recentTotals[$key]['batch_lookup_key'] = $production->batch_produksi_id;
+                }
+            }
+        }
+
+        $laporanRows = LaporanHarian::query()
+            ->where('tanggal', '>=', $startDate->toDateString())
+            ->where('jumlah_kematian', '>', 0)
+            ->selectRaw('batch_produksi_id, COALESCE(SUM(jumlah_kematian), 0) as total')
+            ->groupBy('batch_produksi_id')
+            ->orderByDesc('total')
+            ->take($limit * 6)
+            ->get();
+
+        foreach ($laporanRows as $row) {
+            $batchLookupKey = $row->batch_produksi_id;
+            if (!$batchLookupKey) {
+                continue;
+            }
+
+            $key = 'batch:' . $batchLookupKey;
+
+            if (!isset($recentTotals[$key])) {
+                $recentTotals[$key] = [
+                    'key' => $key,
+                    'batch_lookup_key' => $batchLookupKey,
+                    'display_batch' => $batchLookupKey,
+                    'recent_total' => 0,
+                    'production' => null,
+                    'production_id' => null,
+                    'context' => null,
+                ];
+            }
+
+            $recentTotals[$key]['recent_total'] += (int) $row->total;
+            $recentTotals[$key]['laporan_total'] = ($recentTotals[$key]['laporan_total'] ?? 0) + (int) $row->total;
+        }
+
+        if (empty($recentTotals)) {
             return [];
         }
 
-        $batchIds = $recentDeaths->pluck('batch_produksi_id')->filter()->unique();
-        $pembesaranMap = Pembesaran::whereIn('batch_produksi_id', $batchIds)
+        $batchLookupKeys = collect($recentTotals)
+            ->pluck('batch_lookup_key')
+            ->filter()
+            ->unique()
+            ->all();
+
+        $pembesaranMap = Pembesaran::whereIn('batch_produksi_id', $batchLookupKeys)
             ->with('kandang')
             ->get()
             ->keyBy('batch_produksi_id');
 
-        $produksiMap = Produksi::whereIn('batch_produksi_id', $batchIds)
+        $produksiCollection = Produksi::query()
             ->with(['kandang', 'pembesaran.kandang'])
-            ->get()
-            ->keyBy('batch_produksi_id');
+            ->where(function ($query) use ($batchLookupKeys, $productionIds) {
+                $query->whereIn('batch_produksi_id', $batchLookupKeys);
+                if ($productionIds->isNotEmpty()) {
+                    $query->orWhereIn('id', $productionIds);
+                }
+            })
+            ->get();
 
-        $totalDeaths = Kematian::whereIn('batch_produksi_id', $batchIds)
-            ->selectRaw('batch_produksi_id, COALESCE(SUM(jumlah), 0) as total')
-            ->groupBy('batch_produksi_id')
-            ->pluck('total', 'batch_produksi_id');
+        $produksiMapByBatch = $produksiCollection->filter(fn ($item) => !empty($item->batch_produksi_id))
+            ->keyBy('batch_produksi_id');
+        $productionLookup = $productionLookup->union($produksiCollection->keyBy('id'));
+
+        foreach ($recentTotals as $key => &$payload) {
+            if (($payload['context'] ?? null) === 'produksi') {
+                continue;
+            }
+
+            $batchKey = $payload['batch_lookup_key'] ?? null;
+            if (!$batchKey) {
+                continue;
+            }
+
+            if ($produksiMapByBatch->has($batchKey)) {
+                $production = $produksiMapByBatch->get($batchKey);
+                $payload['context'] = 'produksi';
+                $payload['production'] = $production;
+                $payload['production_id'] = $payload['production_id'] ?? $production->id;
+                continue;
+            }
+
+            if (Str::startsWith(Str::upper($batchKey), 'PROD')) {
+                $payload['context'] = 'produksi';
+            }
+        }
+        unset($payload);
+
+        $totalDeathRows = Kematian::query()
+            ->where(function ($query) use ($batchLookupKeys, $productionIds) {
+                $query->whereIn('batch_produksi_id', $batchLookupKeys);
+                if ($productionIds->isNotEmpty()) {
+                    $query->orWhereIn('produksi_id', $productionIds);
+                }
+            })
+            ->selectRaw('batch_produksi_id, produksi_id, COALESCE(SUM(jumlah), 0) as total')
+            ->groupBy('batch_produksi_id', 'produksi_id')
+            ->get();
+
+        $totalDeathsByKey = [];
+
+        foreach ($totalDeathRows as $row) {
+            $production = $row->produksi_id ? $productionLookup->get($row->produksi_id) : null;
+            $batchId = $row->batch_produksi_id ?? ($production?->batch_produksi_id);
+
+            if ($row->produksi_id) {
+                $key = 'produksi:' . $row->produksi_id;
+            } elseif ($batchId) {
+                $key = 'batch:' . $batchId;
+            } else {
+                continue;
+            }
+
+            $totalDeathsByKey[$key] = ($totalDeathsByKey[$key] ?? 0) + (int) $row->total;
+        }
+
+        foreach ($recentTotals as $entry) {
+            if (!empty($entry['laporan_total'])) {
+                $totalDeathsByKey[$entry['key']] = ($totalDeathsByKey[$entry['key']] ?? 0) + (int) $entry['laporan_total'];
+            }
+        }
 
         $warningPct = (float) config('dss.mortality.warning_pct', 3);
         $criticalPct = (float) config('dss.mortality.critical_pct', 5);
@@ -282,78 +493,171 @@ class DssInsightService
             'end' => $this->today->format('d/m/Y'),
         ];
 
-        return $recentDeaths
-            ->map(function ($row) use ($pembesaranMap, $produksiMap, $totalDeaths, $warningPct, $criticalPct, $windowDays, $dateRange) {
-                $batch = $pembesaranMap->get($row->batch_produksi_id) ?? $produksiMap->get($row->batch_produksi_id);
-                if (!$batch) {
+        $recentCollection = collect(array_values($recentTotals))
+            ->sortByDesc(fn ($item) => $item['recent_total'])
+            ->values();
+
+        $selected = $recentCollection->take($limit)->values();
+
+        $ensureContextCoverage = function (string $context) use (&$selected, $recentCollection, $limit) {
+            $hasContext = $selected->contains(fn ($item) => $item['context'] === $context);
+            $contextAvailable = $recentCollection->contains(fn ($item) => $item['context'] === $context);
+
+            if ($hasContext || !$contextAvailable) {
+                return;
+            }
+
+            $replacement = $recentCollection->first(fn ($item) => $item['context'] === $context);
+            if (!$replacement) {
+                return;
+            }
+
+            $selectedArray = $selected->all();
+            $removed = false;
+
+            for ($i = count($selectedArray) - 1; $i >= 0; $i--) {
+                if ($selectedArray[$i]['context'] !== $context) {
+                    array_splice($selectedArray, $i, 1);
+                    $removed = true;
+                    break;
+                }
+            }
+
+            if (!$removed && count($selectedArray) >= $limit) {
+                return;
+            }
+
+            $selectedArray[] = $replacement;
+            $selected = collect($selectedArray)
+                ->sortByDesc(fn ($item) => $item['recent_total'])
+                ->take($limit)
+                ->values();
+        };
+
+        $ensureContextCoverage('produksi');
+        $ensureContextCoverage('pembesaran');
+
+        return $selected
+            ->map(function ($data) use ($pembesaranMap, $produksiMapByBatch, $productionLookup, $totalDeathsByKey, $warningPct, $criticalPct, $windowDays, $dateRange) {
+                $lookupKey = $data['batch_lookup_key'];
+                $key = $data['key'];
+                $productionRef = $data['production']
+                    ?? (!empty($data['production_id']) ? $productionLookup->get($data['production_id']) : null);
+                $batch = ($lookupKey ? ($pembesaranMap->get($lookupKey)
+                    ?? $produksiMapByBatch->get($lookupKey)) : null)
+                    ?? $productionRef;
+
+                $recentTotal = (int) $data['recent_total'];
+                if ($recentTotal <= 0) {
                     return null;
                 }
 
+                $batchLabel = $data['display_batch']
+                    ?? ($lookupKey
+                        ?? ($productionRef?->batch_produksi_id
+                            ?? ($data['context'] === 'produksi'
+                                ? 'Produksi #' . ($data['production_id'] ?? '?')
+                                : 'Batch tidak diketahui')));
+
+                if (!$batch) {
+                    return [
+                        'batch' => $batchLabel,
+                        'kandang' => $data['context'] === 'produksi' ? 'Kandang produksi' : 'Kandang belum terdata',
+                        'fase' => $data['context'] === 'produksi' ? 'Produksi' : 'Growth',
+                        'date_range' => $dateRange,
+                        'total_kematian' => $recentTotal,
+                        'mortality_rate' => '-',
+                        'standard_rate' => $warningPct,
+                        'status' => [
+                            'level' => 'info',
+                            'message' => 'Detail batch tidak ditemukan, namun tercatat ' . $recentTotal . ' ekor.',
+                        ],
+                        'recommendation' => 'Lengkapi data batch untuk menghitung deviasi mortalitas.',
+                    ];
+                }
+
                 $fallbackBatch = $batch instanceof Produksi
-                    ? ($batch->pembesaran ?? $pembesaranMap->get($row->batch_produksi_id))
-                    : $pembesaranMap->get($row->batch_produksi_id);
+                    ? ($batch->pembesaran ?? ($lookupKey ? $pembesaranMap->get($lookupKey) : null))
+                    : ($lookupKey ? $pembesaranMap->get($lookupKey) : null);
+
                 $populationSource = $batch;
-                if ($this->resolvePopulasiAwal($batch) === 0 && $fallbackBatch) {
+                if ($this->resolvePopulasiAwal($populationSource) === 0 && $fallbackBatch) {
                     $populationSource = $fallbackBatch;
                 }
 
                 $populasiAwal = $this->resolvePopulasiAwal($populationSource);
-                $populasiSaatIni = max(0, $populasiAwal - (int) ($totalDeaths[$row->batch_produksi_id] ?? 0));
-                if ($populasiSaatIni <= 0) {
-                    return null;
+                $totalDeathsForKey = (int) ($totalDeathsByKey[$key] ?? $recentTotal);
+
+                $umurSource = $batch;
+                if (is_null($this->resolveUmurHari($umurSource)) && $fallbackBatch) {
+                    $umurSource = $fallbackBatch;
                 }
 
-                $recentTotal = (int) $row->total;
-                if ($recentTotal === 0) {
-                    return null;
-                }
-
-                $mortalitasPct = round(($recentTotal / $populasiSaatIni) * 100, 2);
-                $level = 'ok';
-
-                if ($mortalitasPct >= $criticalPct) {
-                    $level = 'critical';
-                } elseif ($mortalitasPct >= $warningPct) {
-                    $level = 'warning';
-                }
-
-                $recommendation = match ($level) {
-                    'critical' => 'Segera lakukan investigasi kesehatan dan cek biosecurity.',
-                    'warning' => 'Perketat monitoring harian dan review SOP pemberian pakan/vitamin.',
-                    default => 'Tidak ada deviasi berarti, lanjutkan monitoring rutin.',
-                };
-
-                $umurHari = $this->resolveUmurHari($batch);
+                $umurHari = $this->resolveUmurHari($umurSource);
                 $phase = $this->determinePhase($umurHari);
-                $faseLabel = Arr::get($phase, 'label', 'Growth');
+                $faseLabel = Arr::get($phase, 'label', $data['context'] === 'produksi' ? 'Produksi' : 'Growth');
+
+                if ($populasiAwal <= 0) {
+                    $statusLevel = 'info';
+                    $statusMessage = 'Populasi awal belum tercatat, ' . $recentTotal . ' ekor tercatat dalam ' . $windowDays . ' hari.';
+                    $recommendation = 'Lengkapi data populasi agar persentase mortalitas dapat dihitung.';
+                    $mortalitasPctDisplay = '-';
+                } else {
+                    $populasiSaatIni = max(0, $populasiAwal - $totalDeathsForKey);
+                    if ($populasiSaatIni <= 0) {
+                        $populasiSaatIni = $populasiAwal;
+                    }
+
+                    $mortalitasPctValue = round(($recentTotal / max($populasiSaatIni, 1)) * 100, 2);
+                    $statusLevel = 'ok';
+
+                    if ($mortalitasPctValue >= $criticalPct) {
+                        $statusLevel = 'critical';
+                    } elseif ($mortalitasPctValue >= $warningPct) {
+                        $statusLevel = 'warning';
+                    }
+
+                    $statusMessage = $statusLevel === 'ok'
+                        ? 'Mortalitas dalam batas wajar (' . $mortalitasPctValue . '%)'
+                        : 'Mortalitas ' . $mortalitasPctValue . '% dalam ' . $windowDays . ' hari';
+
+                    $recommendation = match ($statusLevel) {
+                        'critical' => 'Segera lakukan investigasi kesehatan dan cek biosecurity.',
+                        'warning' => 'Perketat monitoring harian dan review SOP pemberian pakan/vitamin.',
+                        default => 'Tidak ada deviasi berarti, lanjutkan monitoring rutin.',
+                    };
+
+                    $mortalitasPctDisplay = $mortalitasPctValue;
+                }
 
                 return [
-                    'batch' => $row->batch_produksi_id,
+                    'batch' => $batchLabel,
                     'kandang' => optional($batch->kandang)->nama_kandang
                         ?? optional(optional($fallbackBatch)->kandang)->nama_kandang
                         ?? 'Kandang ' . ($batch->kandang_id ?? optional($fallbackBatch)->kandang_id ?? '?'),
                     'fase' => $faseLabel,
                     'date_range' => $dateRange,
                     'total_kematian' => $recentTotal,
-                    'mortality_rate' => $mortalitasPct,
+                    'mortality_rate' => $mortalitasPctDisplay,
                     'standard_rate' => $warningPct,
                     'status' => [
-                        'level' => $level,
-                        'message' => $level === 'ok'
-                            ? 'Mortalitas dalam batas wajar (' . $mortalitasPct . '%)'
-                            : 'Mortalitas ' . $mortalitasPct . '% dalam ' . $windowDays . ' hari',
+                        'level' => $statusLevel,
+                        'message' => $statusMessage,
                     ],
                     'recommendation' => $recommendation,
                 ];
             })
             ->filter()
             ->values()
-            ->take($limit)
             ->all();
     }
 
-    protected function resolveUmurHari($batch): ?int
+    protected function resolveUmurHari(Pembesaran|Produksi|null $batch): ?int
     {
+        if (!$batch) {
+            return null;
+        }
+
         if ($batch instanceof Pembesaran) {
             if (!empty($batch->umur_hari)) {
                 return (int) $batch->umur_hari;
@@ -362,36 +666,31 @@ class DssInsightService
             if ($batch->tanggal_masuk) {
                 return Carbon::parse($batch->tanggal_masuk)->diffInDays($this->today) + 1;
             }
+
+            return null;
         }
 
-        if ($batch instanceof Produksi) {
-            $baseAge = null;
-            if ($batch->tanggal_mulai) {
-                $baseAge = Carbon::parse($batch->tanggal_mulai)->diffInDays($this->today) + 1;
-            }
+        if (!empty($batch->umur_mulai_produksi)) {
+            return (int) $batch->umur_mulai_produksi;
+        }
 
-            if (!empty($batch->umur_mulai_produksi)) {
-                return (int) $batch->umur_mulai_produksi + (int) ($baseAge ?? 0);
-            }
+        if ($batch->tanggal_mulai) {
+            return Carbon::parse($batch->tanggal_mulai)->diffInDays($this->today) + 1;
+        }
 
-            if (!is_null($baseAge)) {
-                return $baseAge;
-            }
-
-            if ($batch->relationLoaded('pembesaran') && $batch->pembesaran) {
-                return $this->resolveUmurHari($batch->pembesaran);
-            }
-
-            if ($batch->pembesaran_id && $batch->pembesaran) {
-                return $this->resolveUmurHari($batch->pembesaran);
-            }
+        if ($batch->pembesaran) {
+            return $this->resolveUmurHari($batch->pembesaran);
         }
 
         return null;
     }
 
-    protected function resolvePopulasiAwal($batch): int
+    protected function resolvePopulasiAwal(Pembesaran|Produksi|null $batch): int
     {
+        if (!$batch) {
+            return 0;
+        }
+
         if ($batch instanceof Pembesaran) {
             if (!empty($batch->jumlah_siap)) {
                 return (int) $batch->jumlah_siap;
@@ -404,30 +703,17 @@ class DssInsightService
             return 0;
         }
 
-        if ($batch instanceof Produksi) {
-            if (!empty($batch->jumlah_indukan)) {
-                return (int) $batch->jumlah_indukan;
-            }
+        if (!empty($batch->jumlah_indukan)) {
+            return (int) $batch->jumlah_indukan;
+        }
 
-            $betina = (int) ($batch->jumlah_betina ?? 0);
-            $jantan = (int) ($batch->jumlah_jantan ?? 0);
-            if (($betina + $jantan) > 0) {
-                return $betina + $jantan;
-            }
+        $genderSum = (int) ($batch->jumlah_jantan ?? 0) + (int) ($batch->jumlah_betina ?? 0);
+        if ($genderSum > 0) {
+            return $genderSum;
+        }
 
-            if (!empty($batch->jumlah_anak_ayam)) {
-                return (int) $batch->jumlah_anak_ayam;
-            }
-
-            if ($batch->relationLoaded('pembesaran') && $batch->pembesaran) {
-                return $this->resolvePopulasiAwal($batch->pembesaran);
-            }
-
-            if ($batch->pembesaran_id && $batch->pembesaran) {
-                return $this->resolvePopulasiAwal($batch->pembesaran);
-            }
-
-            return 0;
+        if ($batch->pembesaran) {
+            return $this->resolvePopulasiAwal($batch->pembesaran);
         }
 
         return 0;
