@@ -6,6 +6,7 @@ use App\Models\Kematian;
 use App\Models\Pakan;
 use App\Models\Pembesaran;
 use App\Models\Penetasan;
+use App\Models\Produksi;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
 
@@ -25,6 +26,16 @@ class DssInsightService
             'feed' => $this->buildFeedInsights(),
             'mortality' => $this->buildMortalityAlerts(),
         ];
+    }
+
+    public function getFeedInsights(): array
+    {
+        return $this->buildFeedInsights();
+    }
+
+    public function getMortalityAlerts(): array
+    {
+        return $this->buildMortalityAlerts();
     }
 
     protected function buildEggInsights(): array
@@ -73,24 +84,83 @@ class DssInsightService
     {
         $limit = (int) config('dss.feed.max_insights', 5);
 
-        $batches = Pembesaran::query()
+        $pembesaranRecords = Pembesaran::query()
             ->with('kandang')
             ->where(function ($query) {
                 $query->whereNull('status_batch')
                     ->orWhereNotIn('status_batch', ['selesai', 'closed', 'selesai_transfer']);
             })
             ->orderByDesc('tanggal_masuk')
-            ->take($limit * 2)
-            ->get()
-            ->filter(fn ($batch) => !empty($batch->batch_produksi_id))
-            ->values()
-            ->take($limit);
+            ->take($limit * 3)
+            ->get();
 
-        if ($batches->isEmpty()) {
+        $produksiRecords = Produksi::query()
+            ->with(['kandang', 'pembesaran.kandang'])
+            ->whereNotNull('batch_produksi_id')
+            ->where(function ($query) {
+                $query->whereNull('status')
+                    ->orWhereNotIn('status', ['selesai', 'closed']);
+            })
+            ->orderByDesc('tanggal_mulai')
+            ->take($limit * 3)
+            ->get();
+
+        $contexts = collect();
+
+        foreach ($pembesaranRecords as $batch) {
+            if (empty($batch->batch_produksi_id)) {
+                continue;
+            }
+
+            $contexts->put($batch->batch_produksi_id, [
+                'type' => 'pembesaran',
+                'record' => $batch,
+                'sort_key' => $batch->tanggal_masuk ?? $batch->dibuat_pada ?? $this->today,
+            ]);
+        }
+
+        foreach ($produksiRecords as $production) {
+            if (empty($production->batch_produksi_id)) {
+                continue;
+            }
+
+            $contexts->put($production->batch_produksi_id, [
+                'type' => 'produksi',
+                'record' => $production,
+                'sort_key' => $production->tanggal_mulai ?? $production->dibuat_pada ?? $this->today,
+            ]);
+        }
+
+        if ($contexts->isEmpty()) {
             return [];
         }
 
-        $batchIds = $batches->pluck('batch_produksi_id')->filter()->values();
+        $selected = $contexts->values()
+            ->sortByDesc(function ($context) {
+                $value = $context['sort_key'];
+                if ($value instanceof Carbon) {
+                    return $value->timestamp;
+                }
+
+                if ($value) {
+                    return Carbon::parse($value)->timestamp;
+                }
+
+                return now()->timestamp;
+            })
+            ->take($limit);
+
+        $batchIds = $selected
+            ->map(fn ($context) => $context['record']->batch_produksi_id)
+            ->filter()
+            ->values();
+
+        $pembesaranFallback = Pembesaran::query()
+            ->with('kandang')
+            ->whereIn('batch_produksi_id', $batchIds)
+            ->get()
+            ->keyBy('batch_produksi_id');
+
         $historyDays = max(1, (int) config('dss.feed.history_days', 7));
         $historyStart = $this->today->copy()->subDays($historyDays - 1)->startOfDay();
 
@@ -114,14 +184,30 @@ class DssInsightService
             ->groupBy('batch_produksi_id')
             ->pluck('total', 'batch_produksi_id');
 
-        return $batches->map(function (Pembesaran $batch) use ($feedHistoryTotals, $feedTodayTotals, $totalDeaths, $historyDays) {
-            $batchId = $batch->batch_produksi_id;
-            $umurHari = $this->resolveUmurHari($batch);
+        return $selected->map(function ($context) use ($feedHistoryTotals, $feedTodayTotals, $totalDeaths, $historyDays, $pembesaranFallback) {
+            $record = $context['record'];
+            $type = $context['type'];
+            $batchId = $record->batch_produksi_id;
+            $fallbackRecord = $record instanceof Produksi
+                ? ($record->pembesaran ?? $pembesaranFallback->get($batchId))
+                : $pembesaranFallback->get($batchId);
+
+            $umurSource = $record;
+            if ($type === 'produksi' && is_null($this->resolveUmurHari($record)) && $fallbackRecord) {
+                $umurSource = $fallbackRecord;
+            }
+
+            $popSource = $record;
+            if ($type === 'produksi' && $this->resolvePopulasiAwal($record) === 0 && $fallbackRecord) {
+                $popSource = $fallbackRecord;
+            }
+
+            $umurHari = $this->resolveUmurHari($umurSource);
             $phase = $this->determinePhase($umurHari);
-            $phaseLabel = Arr::get($phase, 'label', 'Growth');
+            $phaseLabel = Arr::get($phase, 'label', $type === 'produksi' ? 'Produksi' : 'Growth');
             $targetPerBird = (float) Arr::get($phase, 'target_feed_per_bird_kg', 0.02);
 
-            $populasiAwal = $this->resolvePopulasiAwal($batch);
+            $populasiAwal = $this->resolvePopulasiAwal($popSource);
             $populasiSaatIni = max(0, $populasiAwal - (int) ($totalDeaths[$batchId] ?? 0));
             if ($populasiSaatIni === 0 && $populasiAwal > 0) {
                 $populasiSaatIni = $populasiAwal;
@@ -138,8 +224,11 @@ class DssInsightService
 
             return [
                 'batch' => $batchId,
-                'kandang' => optional($batch->kandang)->nama_kandang ?? 'Kandang ' . ($batch->kandang_id ?? '?'),
+                'kandang' => optional($record->kandang)->nama_kandang
+                    ?? optional(optional($fallbackRecord)->kandang)->nama_kandang
+                    ?? 'Kandang ' . ($record->kandang_id ?? optional($fallbackRecord)->kandang_id ?? '?'),
                 'fase' => $phaseLabel,
+                'segment' => $type,
                 'umur_hari' => $umurHari,
                 'populasi' => $populasiSaatIni,
                 'target_kg' => $targetTotal,
@@ -155,11 +244,11 @@ class DssInsightService
     {
         $windowDays = max(1, (int) config('dss.mortality.window_days', 3));
         $limit = (int) config('dss.mortality.max_items', 4);
-        $startDate = $this->today->copy()->subDays($windowDays - 1)->toDateString();
+        $startDate = $this->today->copy()->subDays($windowDays - 1);
 
         $recentDeaths = Kematian::query()
             ->whereNotNull('batch_produksi_id')
-            ->where('tanggal', '>=', $startDate)
+            ->where('tanggal', '>=', $startDate->toDateString())
             ->selectRaw('batch_produksi_id, COALESCE(SUM(jumlah), 0) as total')
             ->groupBy('batch_produksi_id')
             ->orderByDesc('total')
@@ -171,8 +260,13 @@ class DssInsightService
         }
 
         $batchIds = $recentDeaths->pluck('batch_produksi_id')->filter()->unique();
-        $batchMap = Pembesaran::whereIn('batch_produksi_id', $batchIds)
+        $pembesaranMap = Pembesaran::whereIn('batch_produksi_id', $batchIds)
             ->with('kandang')
+            ->get()
+            ->keyBy('batch_produksi_id');
+
+        $produksiMap = Produksi::whereIn('batch_produksi_id', $batchIds)
+            ->with(['kandang', 'pembesaran.kandang'])
             ->get()
             ->keyBy('batch_produksi_id');
 
@@ -183,15 +277,27 @@ class DssInsightService
 
         $warningPct = (float) config('dss.mortality.warning_pct', 3);
         $criticalPct = (float) config('dss.mortality.critical_pct', 5);
+        $dateRange = [
+            'start' => $startDate->format('d/m/Y'),
+            'end' => $this->today->format('d/m/Y'),
+        ];
 
         return $recentDeaths
-            ->map(function ($row) use ($batchMap, $totalDeaths, $warningPct, $criticalPct, $windowDays) {
-                $batch = $batchMap->get($row->batch_produksi_id);
+            ->map(function ($row) use ($pembesaranMap, $produksiMap, $totalDeaths, $warningPct, $criticalPct, $windowDays, $dateRange) {
+                $batch = $pembesaranMap->get($row->batch_produksi_id) ?? $produksiMap->get($row->batch_produksi_id);
                 if (!$batch) {
                     return null;
                 }
 
-                $populasiAwal = $this->resolvePopulasiAwal($batch);
+                $fallbackBatch = $batch instanceof Produksi
+                    ? ($batch->pembesaran ?? $pembesaranMap->get($row->batch_produksi_id))
+                    : $pembesaranMap->get($row->batch_produksi_id);
+                $populationSource = $batch;
+                if ($this->resolvePopulasiAwal($batch) === 0 && $fallbackBatch) {
+                    $populationSource = $fallbackBatch;
+                }
+
+                $populasiAwal = $this->resolvePopulasiAwal($populationSource);
                 $populasiSaatIni = max(0, $populasiAwal - (int) ($totalDeaths[$row->batch_produksi_id] ?? 0));
                 if ($populasiSaatIni <= 0) {
                     return null;
@@ -211,22 +317,32 @@ class DssInsightService
                     $level = 'warning';
                 }
 
-                if ($level === 'ok') {
-                    return null;
-                }
+                $recommendation = match ($level) {
+                    'critical' => 'Segera lakukan investigasi kesehatan dan cek biosecurity.',
+                    'warning' => 'Perketat monitoring harian dan review SOP pemberian pakan/vitamin.',
+                    default => 'Tidak ada deviasi berarti, lanjutkan monitoring rutin.',
+                };
 
-                $recommendation = $level === 'critical'
-                    ? 'Segera lakukan investigasi kesehatan dan cek biosecurity.'
-                    : 'Perketat monitoring harian dan review SOP pemberian pakan/vitamin.';
+                $umurHari = $this->resolveUmurHari($batch);
+                $phase = $this->determinePhase($umurHari);
+                $faseLabel = Arr::get($phase, 'label', 'Growth');
 
                 return [
                     'batch' => $row->batch_produksi_id,
-                    'kandang' => optional($batch->kandang)->nama_kandang ?? 'Kandang ' . ($batch->kandang_id ?? '?'),
-                    'populasi' => $populasiSaatIni,
-                    'total_mati' => $recentTotal,
-                    'mortalitas_pct' => $mortalitasPct,
-                    'status' => $level,
-                    'message' => 'Mortalitas ' . $mortalitasPct . '% dalam ' . $windowDays . ' hari',
+                    'kandang' => optional($batch->kandang)->nama_kandang
+                        ?? optional(optional($fallbackBatch)->kandang)->nama_kandang
+                        ?? 'Kandang ' . ($batch->kandang_id ?? optional($fallbackBatch)->kandang_id ?? '?'),
+                    'fase' => $faseLabel,
+                    'date_range' => $dateRange,
+                    'total_kematian' => $recentTotal,
+                    'mortality_rate' => $mortalitasPct,
+                    'standard_rate' => $warningPct,
+                    'status' => [
+                        'level' => $level,
+                        'message' => $level === 'ok'
+                            ? 'Mortalitas dalam batas wajar (' . $mortalitasPct . '%)'
+                            : 'Mortalitas ' . $mortalitasPct . '% dalam ' . $windowDays . ' hari',
+                    ],
                     'recommendation' => $recommendation,
                 ];
             })
@@ -236,27 +352,82 @@ class DssInsightService
             ->all();
     }
 
-    protected function resolveUmurHari(Pembesaran $batch): ?int
+    protected function resolveUmurHari($batch): ?int
     {
-        if (!empty($batch->umur_hari)) {
-            return (int) $batch->umur_hari;
+        if ($batch instanceof Pembesaran) {
+            if (!empty($batch->umur_hari)) {
+                return (int) $batch->umur_hari;
+            }
+
+            if ($batch->tanggal_masuk) {
+                return Carbon::parse($batch->tanggal_masuk)->diffInDays($this->today) + 1;
+            }
         }
 
-        if ($batch->tanggal_masuk) {
-            return Carbon::parse($batch->tanggal_masuk)->diffInDays($this->today) + 1;
+        if ($batch instanceof Produksi) {
+            $baseAge = null;
+            if ($batch->tanggal_mulai) {
+                $baseAge = Carbon::parse($batch->tanggal_mulai)->diffInDays($this->today) + 1;
+            }
+
+            if (!empty($batch->umur_mulai_produksi)) {
+                return (int) $batch->umur_mulai_produksi + (int) ($baseAge ?? 0);
+            }
+
+            if (!is_null($baseAge)) {
+                return $baseAge;
+            }
+
+            if ($batch->relationLoaded('pembesaran') && $batch->pembesaran) {
+                return $this->resolveUmurHari($batch->pembesaran);
+            }
+
+            if ($batch->pembesaran_id && $batch->pembesaran) {
+                return $this->resolveUmurHari($batch->pembesaran);
+            }
         }
 
         return null;
     }
 
-    protected function resolvePopulasiAwal(Pembesaran $batch): int
+    protected function resolvePopulasiAwal($batch): int
     {
-        if (!empty($batch->jumlah_siap)) {
-            return (int) $batch->jumlah_siap;
+        if ($batch instanceof Pembesaran) {
+            if (!empty($batch->jumlah_siap)) {
+                return (int) $batch->jumlah_siap;
+            }
+
+            if (!empty($batch->jumlah_anak_ayam)) {
+                return (int) $batch->jumlah_anak_ayam;
+            }
+
+            return 0;
         }
 
-        if (!empty($batch->jumlah_anak_ayam)) {
-            return (int) $batch->jumlah_anak_ayam;
+        if ($batch instanceof Produksi) {
+            if (!empty($batch->jumlah_indukan)) {
+                return (int) $batch->jumlah_indukan;
+            }
+
+            $betina = (int) ($batch->jumlah_betina ?? 0);
+            $jantan = (int) ($batch->jumlah_jantan ?? 0);
+            if (($betina + $jantan) > 0) {
+                return $betina + $jantan;
+            }
+
+            if (!empty($batch->jumlah_anak_ayam)) {
+                return (int) $batch->jumlah_anak_ayam;
+            }
+
+            if ($batch->relationLoaded('pembesaran') && $batch->pembesaran) {
+                return $this->resolvePopulasiAwal($batch->pembesaran);
+            }
+
+            if ($batch->pembesaran_id && $batch->pembesaran) {
+                return $this->resolvePopulasiAwal($batch->pembesaran);
+            }
+
+            return 0;
         }
 
         return 0;

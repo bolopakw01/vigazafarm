@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Kematian;
-use App\Models\Pakan;
 use App\Models\Penetasan;
+use App\Services\Dss\DssInsightService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class DssController extends Controller
 {
+    public function __construct(private DssInsightService $dssInsightService)
+    {
+    }
+
     public function index(Request $request)
     {
         $dssMode = $request->get('mode', 'config');
@@ -39,7 +42,7 @@ class DssController extends Controller
     {
         return [
             'eggs' => $this->getEggInsights($settings['eggs']),
-            'feed' => $this->getFeedInsights($settings['feed']),
+            'feed' => $this->getFeedInsights(),
             'mortality' => $this->getMortalityInsights($settings['mortality']),
         ];
     }
@@ -102,20 +105,14 @@ class DssController extends Controller
         return $insights;
     }
 
-    private function getFeedInsights($feedSettings)
+    private function getFeedInsights(): array
     {
-        // TODO: Implement actual query to Pakan and Pembesaran models
-        $insights = [];
-
-        return $insights;
+        return $this->dssInsightService->getFeedInsights();
     }
 
     private function getMortalityInsights($mortalitySettings)
     {
-        // TODO: Implement actual query to Kematian model
-        $insights = [];
-
-        return $insights;
+        return $this->dssInsightService->getMortalityAlerts();
     }
 
     private function getSummary($insights)
