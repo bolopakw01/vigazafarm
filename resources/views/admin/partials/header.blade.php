@@ -336,6 +336,12 @@
       flex-shrink: 0;
     }
 
+    .bolopa-header-vigazafarm-date-time {
+      min-width: 250px;
+      /* font-family: monospace; */
+      text-align: right;
+    }
+
     .bolopa-header-vigazafarm-status {
       display: flex;
       align-items: center;
@@ -610,18 +616,27 @@
         pageContent.addEventListener('scroll', toggleHeaderShadow, { passive: true });
       }
 
+      const locale = 'id-ID';
+      const dateFormatter = new Intl.DateTimeFormat(locale, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+      const timeFormatter = new Intl.DateTimeFormat(locale, {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      });
+
       const runDateTime = () => {
         const now = new Date();
         if (dateEl) {
-          dateEl.textContent = now.toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          });
+          dateEl.textContent = dateFormatter.format(now);
         }
         if (clockEl) {
-          clockEl.textContent = now.toLocaleTimeString();
+          clockEl.textContent = timeFormatter.format(now);
         }
         if (mobileDateEl && dateEl) {
           mobileDateEl.textContent = dateEl.textContent;
