@@ -12,27 +12,6 @@
     $config = $configSettings ?? [];
     $ml = $mlSettings ?? [];
     $currentMode = old('mode', $mode ?? 'config');
-    $metricsRows = collect(old('ml.metrics'))->map(function ($row) {
-        return [
-            'label' => $row['label'] ?? '',
-            'value' => $row['value'] ?? '',
-        ];
-    })->values();
-
-    if ($metricsRows->isEmpty()) {
-        $metricsRows = collect($ml['metrics'] ?? [])->map(function ($value, $label) {
-            return [
-                'label' => is_string($label) ? $label : '',
-                'value' => $value,
-            ];
-        })->values();
-    }
-
-    if ($metricsRows->isEmpty()) {
-        $metricsRows = collect([
-            ['label' => '', 'value' => ''],
-        ]);
-    }
 @endphp
 
 @push('styles')
@@ -77,6 +56,27 @@
         color: #64748b;
         font-size: 14px;
         margin: 0;
+    }
+
+    .ml-note {
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        padding: 18px 20px;
+        margin-bottom: 18px;
+    }
+
+    .ml-note h5 {
+        margin-bottom: 8px;
+        font-size: 15px;
+        color: #0f172a;
+    }
+
+    .ml-note ul {
+        margin-bottom: 0;
+        padding-left: 20px;
+        color: #475569;
+        font-size: 13px;
     }
 
     .btn {
@@ -322,59 +322,6 @@
         color: #64748b;
     }
 
-    .metrics-builder {
-        border: 1px dashed #cbd5ff;
-        border-radius: 12px;
-        padding: 16px;
-        background: #f8fafc;
-    }
-
-    .metric-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        padding: 12px;
-        margin-bottom: 12px;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        background: #fff;
-    }
-
-    .metric-row:last-child {
-        margin-bottom: 0;
-    }
-
-    .metric-row .remove-metric {
-        border: none;
-        background: #fee2e2;
-        color: #b91c1c;
-        padding: 8px 12px;
-        border-radius: 8px;
-        font-size: 13px;
-        cursor: pointer;
-        align-self: flex-end;
-    }
-
-    .metrics-empty-hint {
-        font-size: 13px;
-        color: #94a3b8;
-        margin-top: 6px;
-    }
-
-    .add-metric-btn {
-        margin-top: 12px;
-        border: 1px dashed #2563eb;
-        color: #2563eb;
-        background: #eef2ff;
-        padding: 10px 16px;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-    }
-
     .form-actions {
         display: flex;
         align-items: center;
@@ -608,52 +555,20 @@
                 <div class="settings-section mode-panel mode-ml {{ $currentMode === 'ml' ? 'active' : '' }}" data-panel="ml">
                     <h4><i class="fas fa-robot"></i> Parameter Machine Learning</h4>
                     <p class="section-hint">
-                        <strong>Tampilkan rekomendasi model</strong><br>
-                        Gunakan pengenal artefak, catatan, serta contoh metrik agar admin memahami konteks model yang sedang aktif.
+                        <strong>Semua prediksi memakai data yang sudah dicatat di sistem.</strong><br>
+                        Tidak ada parameter tambahan yang perlu diisi ketika mode ML aktif.
                     </p>
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label>Default Phase</label>
-                            <input type="text" name="ml[default_phase]" class="form-control" value="{{ old('ml.default_phase', $ml['default_phase'] ?? 'grower') }}">
-                            <div class="form-help">Fase siklus ternak yang dipakai ketika payload ML tidak menyertakan fase.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Label Artefak</label>
-                            <input type="text" name="ml[artifact_label]" class="form-control" value="{{ old('ml.artifact_label', $ml['artifact_label'] ?? '') }}">
-                            <div class="form-help">Nama model atau artefak agar admin mudah mengenalinya.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Catatan</label>
-                            <input type="text" name="ml[notes]" class="form-control" value="{{ old('ml.notes', $ml['notes'] ?? '') }}">
-                            <div class="form-help">Catatan singkat mengenai perilaku atau asumsi model.</div>
-                        </div>
+                    <div class="ml-note">
+                        <h5>Apa saja yang otomatis dihitung?</h5>
+                        <ul>
+                            <li><strong>Produksi telur</strong> &ndash; forecasting harian dari histori pencatatan produksi.</li>
+                            <li><strong>Kebutuhan pakan</strong> &ndash; estimasi konsumsi per batch dari data pakan 7 hari terakhir.</li>
+                            <li><strong>Mortalitas / outbreak</strong> &ndash; deteksi anomali menggunakan log kematian.</li>
+                            <li><strong>Optimasi harga</strong> &ndash; rekomendasi harga jual berdasarkan forecast produksi dan biaya pakan.</li>
+                            <li><strong>Alert & explainability</strong> &ndash; rangkuman otomatis dari keempat analitik di atas.</li>
+                        </ul>
                     </div>
-                    <div class="form-group mt-3">
-                        <label>Ringkasan Metrik</label>
-                        <div class="metrics-builder">
-                            <div id="mlMetricsList" data-next-index="{{ $metricsRows->count() }}">
-                                @foreach($metricsRows as $index => $metric)
-                                    <div class="metric-row" data-metric-row>
-                                        <div style="flex:1; min-width:180px;">
-                                            <label class="form-label">Nama Metrik</label>
-                                            <input type="text" name="ml[metrics][{{ $index }}][label]" class="form-control" value="{{ $metric['label'] }}" placeholder="Contoh: Akurasi" />
-                                        </div>
-                                        <div style="flex:1; min-width:180px;">
-                                            <label class="form-label">Nilai / Catatan</label>
-                                            <input type="text" name="ml[metrics][{{ $index }}][value]" class="form-control" value="{{ $metric['value'] }}" placeholder="Misal: 92%" />
-                                        </div>
-                                        <button type="button" class="remove-metric" data-remove-metric>
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                @endforeach
-                            </div>
-                            <button type="button" class="add-metric-btn" id="addMetricRow">
-                                <i class="fas fa-plus"></i> Tambah Metrik
-                            </button>
-                            <div class="metrics-empty-hint">Tambahkan baris seperlunya untuk menuliskan performa model tanpa mengetik JSON.</div>
-                        </div>
-                    </div>
+                    <p class="form-help">Aktifkan mode ML, simpan, dan halaman DSS akan langsung menampilkan insight prediktif tersebut.</p>
                 </div>
 
                 <div class="form-actions">
@@ -695,54 +610,6 @@
             });
         });
 
-        const metricsList = document.getElementById('mlMetricsList');
-        const addMetricButton = document.getElementById('addMetricRow');
-
-        if (metricsList && addMetricButton) {
-            let nextIndex = parseInt(metricsList.dataset.nextIndex, 10) || metricsList.querySelectorAll('[data-metric-row]').length;
-
-            const buildMetricRow = (index) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'metric-row';
-                wrapper.setAttribute('data-metric-row', '');
-                wrapper.innerHTML = `
-                    <div style="flex:1; min-width:180px;">
-                        <label class="form-label">Nama Metrik</label>
-                        <input type="text" name="ml[metrics][${index}][label]" class="form-control" placeholder="Contoh: Akurasi" />
-                    </div>
-                    <div style="flex:1; min-width:180px;">
-                        <label class="form-label">Nilai / Catatan</label>
-                        <input type="text" name="ml[metrics][${index}][value]" class="form-control" placeholder="Misal: 92%" />
-                    </div>
-                    <button type="button" class="remove-metric" data-remove-metric>
-                        <i class="fas fa-times"></i>
-                    </button>
-                `;
-                return wrapper;
-            };
-
-            addMetricButton.addEventListener('click', () => {
-                const row = buildMetricRow(nextIndex++);
-                metricsList.appendChild(row);
-            });
-
-            metricsList.addEventListener('click', (event) => {
-                const trigger = event.target.closest('[data-remove-metric]');
-                if (!trigger) {
-                    return;
-                }
-
-                const rows = metricsList.querySelectorAll('[data-metric-row]');
-                if (rows.length <= 1) {
-                    return;
-                }
-
-                const row = trigger.closest('[data-metric-row]');
-                if (row) {
-                    row.remove();
-                }
-            });
-        }
     });
 </script>
 @endpush

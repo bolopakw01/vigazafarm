@@ -32,6 +32,13 @@ class DssSettingsService
             'ml' => array_replace_recursive($defaults['ml'], $payload['ml'] ?? []),
         ];
 
+        $settings['ml']['artifact_label'] = trim((string) Arr::get($settings, 'ml.artifact_label', '')) ?: null;
+        $settings['ml']['notes'] = trim((string) Arr::get($settings, 'ml.notes', ''));
+        $settings['ml']['capabilities'] = $this->normalizeCapabilities(
+            Arr::get($payload, 'ml.capabilities', Arr::get($settings, 'ml.capabilities', [])),
+            Arr::get($defaults, 'ml.capabilities', [])
+        );
+
         Storage::disk('local')->put(
             $this->storageFile,
             json_encode($settings, JSON_PRETTY_PRINT)
@@ -62,12 +69,6 @@ class DssSettingsService
         return $this->getSettings()['mode'] ?? 'config';
     }
 
-    public function getMlMetrics(): array
-    {
-        $metrics = Arr::get($this->getSettings(), 'ml.metrics', []);
-        return is_array($metrics) ? $metrics : [];
-    }
-
     public function defaultSettings(): array
     {
         return [
@@ -96,10 +97,13 @@ class DssSettingsService
             'ml' => [
                 'default_phase' => 'grower',
                 'artifact_label' => null,
-                'notes' => 'Isi catatan mengenai versi model, tanggal training, atau sumber data.',
-                'metrics' => [
-                    'fcr' => 1.8,
-                    'mortality_pct' => 0.4,
+                'notes' => 'Catat versi model, tanggal training, dan sumber dataset.',
+                'capabilities' => [
+                    'egg_forecast' => true,
+                    'feed_prediction' => true,
+                    'mortality_detection' => true,
+                    'pricing_optimizer' => true,
+                    'explainability' => true,
                 ],
             ],
         ];
@@ -115,5 +119,25 @@ class DssSettingsService
         $decoded = json_decode($raw, true);
 
         return is_array($decoded) ? $decoded : [];
+    }
+
+    protected function normalizeCapabilities($capabilities, array $fallback): array
+    {
+        if (empty($fallback)) {
+            return (array) $capabilities;
+        }
+
+        $normalized = [];
+
+        foreach ($fallback as $key => $defaultValue) {
+            $value = Arr::get((array) $capabilities, $key, $defaultValue);
+            $normalized[$key] = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+            if (is_null($normalized[$key])) {
+                $normalized[$key] = (bool) $defaultValue;
+            }
+        }
+
+        return $normalized;
     }
 }

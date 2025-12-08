@@ -4,38 +4,57 @@ namespace App\Http\Controllers;
 
 use App\Models\Penetasan;
 use App\Services\Dss\DssInsightService;
+use App\Services\Dss\DssSettingsService;
+use App\Services\Dss\Ml\DssMlService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class DssController extends Controller
 {
-    public function __construct(private DssInsightService $dssInsightService)
-    {
+    public function __construct(
+        private DssInsightService $dssInsightService,
+        private DssSettingsService $dssSettings,
+        private DssMlService $dssMlService
+    ) {
     }
 
     public function index(Request $request)
     {
-        $dssMode = $request->get('mode', 'config');
-        $settings = config('dss');
+        $storedSettings = $this->dssSettings->getSettings();
+        $dssMode = $request->get('mode', $storedSettings['mode'] ?? 'config');
+        $dssMode = in_array($dssMode, ['config', 'ml'], true) ? $dssMode : 'config';
+
+        $resolvedConfig = array_replace_recursive(config('dss'), $storedSettings['config'] ?? []);
+        $resolvedConfig['ml'] = $storedSettings['ml'] ?? [];
 
         if ($dssMode === 'ml') {
-            // ML response - to be implemented with actual ML service
-            $mlResponse = [
-                'recommendations' => [],
-                'metadata' => [],
-                'status' => 'waiting_for_training',
-                'model_version' => 'untrained'
-            ];
+            $mlResponse = $this->dssMlService->buildDashboardPayload($storedSettings);
 
-            return view('admin.pages.dss.index', compact('dssMode', 'mlResponse', 'settings'));
+            return view('admin.pages.dss.index', [
+                'dssMode' => $dssMode,
+                'mlResponse' => $mlResponse,
+                'settings' => $resolvedConfig,
+                'lastUpdated' => now(),
+                'trendSeries' => null,
+            ]);
         }
 
         // Config mode
-        $insights = $this->getInsights($settings);
+        $insights = $this->getInsights($resolvedConfig);
         $summary = $this->getSummary($insights);
+        $trendDays = (int) data_get($resolvedConfig, 'dashboard.trend_days', config('dss.dashboard.trend_days', 7));
+        $trendSeries = $this->dssInsightService->getTrendSeries($trendDays);
         $lastUpdated = now();
 
-        return view('admin.pages.dss.index', compact('dssMode', 'insights', 'summary', 'lastUpdated', 'settings'));
+        return view('admin.pages.dss.index', [
+            'dssMode' => $dssMode,
+            'insights' => $insights,
+            'summary' => $summary,
+            'trendSeries' => $trendSeries,
+            'lastUpdated' => $lastUpdated,
+            'settings' => $resolvedConfig,
+            'mlResponse' => null,
+        ]);
     }
 
     private function getInsights($settings)

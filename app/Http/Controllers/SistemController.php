@@ -115,28 +115,7 @@ class SistemController extends Controller
             'config.mortality.max_items' => ['required', 'integer', 'min:1', 'max:10'],
             'config.mortality.warning_pct' => ['required', 'numeric', 'min:0', 'max:100'],
             'config.mortality.critical_pct' => ['required', 'numeric', 'min:0', 'max:100'],
-            'ml.default_phase' => ['nullable', 'string', 'max:60'],
-            'ml.artifact_label' => ['nullable', 'string', 'max:120'],
-            'ml.notes' => ['nullable', 'string', 'max:500'],
-            'ml.metrics' => ['nullable', 'array'],
-            'ml.metrics.*.label' => ['nullable', 'string', 'max:60'],
-            'ml.metrics.*.value' => ['nullable', 'string', 'max:60'],
         ]);
-
-        $metricsRows = $request->input('ml.metrics', []);
-        $metrics = collect($metricsRows)
-            ->map(function ($row) {
-                return [
-                    'label' => trim((string) ($row['label'] ?? '')),
-                    'value' => trim((string) ($row['value'] ?? '')),
-                ];
-            })
-            ->filter(fn ($row) => $row['label'] !== '' && $row['value'] !== '')
-            ->mapWithKeys(fn ($row) => [$row['label'] => $row['value']])
-            ->toArray();
-
-        $validated['ml'] = $validated['ml'] ?? [];
-        $validated['ml']['metrics'] = $metrics;
 
         $this->dssSettings->save($validated);
 

@@ -364,6 +364,7 @@ class DssInsightService
                     $recentTotals[$key]['batch_lookup_key'] = $production->batch_produksi_id;
                 }
             }
+
         }
 
         $laporanRows = LaporanHarian::query()
@@ -866,5 +867,92 @@ class DssInsightService
             'level' => $level,
             'message' => implode(' ', $messages),
         ];
+    }
+
+    public function getTrendSeries(int $days = 7): array
+    {
+        $days = max(3, min(30, $days));
+        $endDate = $this->today->copy()->endOfDay();
+        $startDate = $endDate->copy()->subDays($days - 1)->startOfDay();
+
+        $dateKeys = [];
+        $labels = [];
+        for ($i = 0; $i < $days; $i++) {
+            $current = $startDate->copy()->addDays($i);
+            $dateKeys[] = $current->toDateString();
+            $labels[] = $current->format('d M');
+        }
+
+        $eggRows = Penetasan::query()
+            ->whereNotNull('tanggal_menetas')
+            ->whereBetween('tanggal_menetas', [$startDate->copy(), $endDate->copy()])
+            ->selectRaw('DATE(tanggal_menetas) as tanggal, COALESCE(SUM(jumlah_menetas), 0) as total')
+            ->groupBy('tanggal')
+            ->orderBy('tanggal')
+            ->get();
+
+        $feedRows = Pakan::query()
+            ->whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()])
+            ->selectRaw('tanggal as tanggal, COALESCE(SUM(jumlah_kg), 0) as total')
+            ->groupBy('tanggal')
+            ->orderBy('tanggal')
+            ->get();
+
+        $mortalityRows = Kematian::query()
+            ->whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()])
+            ->selectRaw('tanggal as tanggal, COALESCE(SUM(jumlah), 0) as total')
+            ->groupBy('tanggal')
+            ->orderBy('tanggal')
+            ->get();
+
+        $seriesData = [
+            'eggs' => $this->buildTrendSeriesFromRows($dateKeys, $eggRows, fn ($row) => (float) ($row->total ?? 0)),
+            'feed' => $this->buildTrendSeriesFromRows($dateKeys, $feedRows, fn ($row) => round((float) ($row->total ?? 0), 2)),
+            'mortality' => $this->buildTrendSeriesFromRows($dateKeys, $mortalityRows, fn ($row) => (float) ($row->total ?? 0)),
+        ];
+
+        $seriesMeta = [
+            'eggs' => ['label' => 'Penetasan Telur', 'unit' => 'butir', 'color' => '#f97316'],
+            'feed' => ['label' => 'Konsumsi Pakan', 'unit' => 'kg', 'color' => '#0ea5e9'],
+            'mortality' => ['label' => 'Kematian', 'unit' => 'ekor', 'color' => '#dc2626'],
+        ];
+
+        $hasData = collect($seriesData)
+            ->flatten()
+            ->some(fn ($value) => (float) $value !== 0.0);
+
+        return [
+            'labels' => $labels,
+            'data' => $seriesData,
+            'meta' => $seriesMeta,
+            'date_range' => [
+                'start' => $startDate->format('d M Y'),
+                'end' => $endDate->format('d M Y'),
+            ],
+            'has_data' => $hasData,
+        ];
+    }
+
+    protected function buildTrendSeriesFromRows(array $dateKeys, iterable $rows, callable $valueResolver): array
+    {
+        $lookup = [];
+        foreach ($rows as $row) {
+            $rawDate = is_array($row) ? ($row['tanggal'] ?? null) : ($row->tanggal ?? null);
+            if (!$rawDate) {
+                continue;
+            }
+
+            try {
+                $dateKey = Carbon::parse($rawDate)->toDateString();
+            } catch (\Throwable $exception) {
+                continue;
+            }
+
+            $lookup[$dateKey] = $valueResolver($row);
+        }
+
+        return array_map(static function ($dateKey) use ($lookup) {
+            return round((float) ($lookup[$dateKey] ?? 0), 2);
+        }, $dateKeys);
     }
 }

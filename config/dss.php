@@ -45,4 +45,8 @@ return [
         'critical_pct' => 5,
         'max_items' => 4,
     ],
+
+    'dashboard' => [
+        'trend_days' => 7,
+    ],
 ];
