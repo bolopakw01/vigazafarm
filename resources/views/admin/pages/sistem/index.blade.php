@@ -47,17 +47,12 @@
 
     .dashboard-settings-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 20px;
         margin-bottom: 30px;
-        max-width: 1200px;
+        width: 100%;
         margin-left: 0;
         margin-right: 0;
-        justify-content: flex-start;
-    }
-
-    .dashboard-settings-grid.compact {
-        max-width: 560px;
     }
 
     .goals-card {
@@ -70,9 +65,8 @@
         flex-direction: column;
         align-items: center;
         text-align: center;
-        height: 280px; /* Fixed height for consistency */
+        min-height: 280px;
         width: 100%;
-        max-width: 250px;
         margin: 0;
     }
 
@@ -110,8 +104,14 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 60px; /* Ensure consistent description height */
+        min-height: 60px;
         font-family: 'AlanSans', sans-serif;
+    }
+
+    @media (max-width: 1199px) {
+        .dashboard-settings-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
     }
 
     .goals-card-actions {
@@ -268,22 +268,6 @@
                 </div>
             </div>
 
-            <!-- Looker Export Card -->
-            <div class="goals-card">
-                <div class="goals-card-icon production">
-                    <i class="fas fa-file-export"></i>
-                </div>
-                <h3 class="goals-card-title">Export Looker Studio</h3>
-                <div class="goals-description">
-                    Unduh paket CSV siap pakai untuk disambungkan menuju master dashboard Looker Studio.
-                </div>
-                <div class="goals-card-actions">
-                    <a href="{{ route('admin.sistem.looker.export') }}" class="goals-btn goals-btn-primary">
-                        <i class="fas fa-arrow-up-right-from-square"></i>
-                        Buka Export
-                    </a>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -294,7 +278,7 @@
             Pengaturan IoT & DSS
         </h2>
 
-        <div class="dashboard-settings-grid compact">
+        <div class="dashboard-settings-grid">
             <div class="goals-card">
                 <div class="goals-card-icon efficiency">
                     <i class="fas fa-wifi"></i>
@@ -322,6 +306,21 @@
                     <a href="{{ route('admin.sistem.dss') }}" class="goals-btn goals-btn-primary">
                         <i class="fas fa-sliders-h"></i>
                         Pengaturan DSS
+                    </a>
+                </div>
+            </div>
+            <div class="goals-card">
+                <div class="goals-card-icon production">
+                    <i class="fas fa-file-export"></i>
+                </div>
+                <h3 class="goals-card-title">Export Looker Studio</h3>
+                <div class="goals-description">
+                    Unduh paket CSV siap pakai untuk disambungkan menuju master dashboard Looker Studio.
+                </div>
+                <div class="goals-card-actions">
+                    <a href="{{ route('admin.sistem.looker.export') }}" class="goals-btn goals-btn-primary">
+                        <i class="fas fa-arrow-up-right-from-square"></i>
+                        Buka Export
                     </a>
                 </div>
             </div>
