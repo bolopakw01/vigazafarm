@@ -259,6 +259,69 @@
         margin-top: 4px;
     }
 
+    .config-focus-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .config-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 18px;
+        padding: 20px;
+        background: linear-gradient(135deg, #f8fafc 0%, #ffffff 70%);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+    }
+
+    .config-card-head {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        margin-bottom: 18px;
+    }
+
+    .config-card-icon {
+        width: 54px;
+        height: 54px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+    }
+
+    .config-card-icon.eggs {
+        background: rgba(251, 146, 60, 0.18);
+        color: #ea580c;
+    }
+
+    .config-card-icon.feed {
+        background: rgba(74, 222, 128, 0.18);
+        color: #15803d;
+    }
+
+    .config-card-icon.mortality {
+        background: rgba(248, 113, 113, 0.18);
+        color: #b91c1c;
+    }
+
+    .config-card-body {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 18px;
+    }
+
+    .form-group.compact label {
+        font-size: 13px;
+        text-transform: none;
+    }
+
+    .config-card-foot {
+        margin-top: 14px;
+        font-size: 12px;
+        color: #64748b;
+    }
+
     .metrics-builder {
         border: 1px dashed #cbd5ff;
         border-radius: 12px;
@@ -435,117 +498,109 @@
                     </p>
                     <p class="form-help mb-3">Semua nilai di bawah ini akan menimpa konfigurasi default untuk seluruh pengguna.</p>
 
-                    <div class="form-grid">
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label style="text-transform:uppercase; font-size:0.78rem; letter-spacing:0.08em; color:#94a3b8;">Eggs Configuration</label>
+                    <div class="config-focus-grid">
+                        <div class="config-card">
+                            <div class="config-card-head">
+                                <div class="config-card-icon eggs"><i class="fas fa-egg"></i></div>
+                                <div>
+                                    <h5 class="mb-1">Penetasan Telur</h5>
+                                    <p class="form-help mb-0">Mengendalikan widget "Status Penetasan Telur" pada halaman DSS.</p>
+                                </div>
+                            </div>
+                            <div class="config-card-body">
+                                <div class="form-group compact">
+                                    <label>Batch yang dipantau</label>
+                                    <input type="number" name="config[eggs][max_batches]" class="form-control" min="1" max="10" value="{{ old('config.eggs.max_batches', data_get($config, 'eggs.max_batches')) }}">
+                                    <div class="form-help">Jumlah baris telur yang muncul sekaligus.</div>
+                                </div>
+                                <div class="form-group compact">
+                                    <label>Warning pindah hatcher (hari)</label>
+                                    <input type="number" name="config[eggs][hatcher_warning_days]" class="form-control" min="0" max="14" value="{{ old('config.eggs.hatcher_warning_days', data_get($config, 'eggs.hatcher_warning_days')) }}">
+                                    <div class="form-help">Berapa hari sebelum due date status menjadi kuning.</div>
+                                </div>
+                                <div class="form-group compact">
+                                    <label>Critical pindah hatcher (hari)</label>
+                                    <input type="number" name="config[eggs][hatcher_critical_days]" class="form-control" min="0" max="14" value="{{ old('config.eggs.hatcher_critical_days', data_get($config, 'eggs.hatcher_critical_days')) }}">
+                                    <div class="form-help">Lewat angka ini status merah.</div>
+                                </div>
+                                <div class="form-group compact">
+                                    <label>Warning hatch rate (%)</label>
+                                    <input type="number" step="0.1" name="config[eggs][hatch_rate_warning]" class="form-control" min="0" max="100" value="{{ old('config.eggs.hatch_rate_warning', data_get($config, 'eggs.hatch_rate_warning')) }}">
+                                    <div class="form-help">Persentase tetas minimum sebelum muncul peringatan.</div>
+                                </div>
+                                <div class="form-group compact">
+                                    <label>Critical hatch rate (%)</label>
+                                    <input type="number" step="0.1" name="config[eggs][hatch_rate_critical]" class="form-control" min="0" max="100" value="{{ old('config.eggs.hatch_rate_critical', data_get($config, 'eggs.hatch_rate_critical')) }}">
+                                    <div class="form-help">Di bawah angka ini dianggap gawat.</div>
+                                </div>
+                            </div>
+                            <div class="config-card-foot">Ideal untuk menyelaraskan SOP pindah setter → hatcher dengan indikator di DSS.</div>
                         </div>
-                        <div class="form-group">
-                            <label>Eggs • Max Batches</label>
-                            <input type="number" name="config[eggs][max_batches]" class="form-control" min="1" max="10" value="{{ old('config.eggs.max_batches', data_get($config, 'eggs.max_batches')) }}">
-                            <div class="form-help">Jumlah batch penetasan yang dianalisis sekaligus.</div>
+
+                        <div class="config-card">
+                            <div class="config-card-head">
+                                <div class="config-card-icon feed"><i class="fas fa-wheat-awn"></i></div>
+                                <div>
+                                    <h5 class="mb-1">Konsumsi Pakan</h5>
+                                    <p class="form-help mb-0">Mengatur tabel "Insight Konsumsi Pakan" agar mudah dibaca tim kandang.</p>
+                                </div>
+                            </div>
+                            <div class="config-card-body">
+                                <div class="form-group compact">
+                                    <label>Baris insight yang tampil</label>
+                                    <input type="number" name="config[feed][max_insights]" class="form-control" min="1" max="20" value="{{ old('config.feed.max_insights', data_get($config, 'feed.max_insights')) }}">
+                                    <div class="form-help">Berapa batch (pembesaran + produksi) diprioritaskan.</div>
+                                </div>
+                                <div class="form-group compact">
+                                    <label>Data historis (hari)</label>
+                                    <input type="number" name="config[feed][history_days]" class="form-control" min="1" max="30" value="{{ old('config.feed.history_days', data_get($config, 'feed.history_days')) }}">
+                                    <div class="form-help">Dipakai untuk rata-rata konsumsi harian.</div>
+                                </div>
+                                <div class="form-group compact">
+                                    <label>Batas warning (rasio)</label>
+                                    <input type="number" step="0.01" name="config[feed][warning_ratio]" class="form-control" min="0" max="1" value="{{ old('config.feed.warning_ratio', data_get($config, 'feed.warning_ratio')) }}">
+                                    <div class="form-help">Masukkan 0.10 untuk toleransi ±10%.</div>
+                                </div>
+                                <div class="form-group compact">
+                                    <label>Batas critical (rasio)</label>
+                                    <input type="number" step="0.01" name="config[feed][critical_ratio]" class="form-control" min="0" max="1" value="{{ old('config.feed.critical_ratio', data_get($config, 'feed.critical_ratio')) }}">
+                                    <div class="form-help">Di atas angka ini dianggap sangat janggal.</div>
+                                </div>
+                            </div>
+                            <div class="config-card-foot">Parameter ini memengaruhi target vs aktual pada widget pakan.</div>
                         </div>
-                        <div class="form-group">
-                            <label>Eggs • Hatcher Warning (Hari)</label>
-                            <input type="number" name="config[eggs][hatcher_warning_days]" class="form-control" min="0" max="14" value="{{ old('config.eggs.hatcher_warning_days', data_get($config, 'eggs.hatcher_warning_days')) }}">
-                            <div class="form-help">Batas hari menjelang hatcher untuk status warning.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Eggs • Hatcher Critical (Hari)</label>
-                            <input type="number" name="config[eggs][hatcher_critical_days]" class="form-control" min="0" max="14" value="{{ old('config.eggs.hatcher_critical_days', data_get($config, 'eggs.hatcher_critical_days')) }}">
-                            <div class="form-help">Jika lewat batas ini, status menjadi kritis.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Eggs • Hatch Rate Warning (%)</label>
-                            <input type="number" step="0.1" name="config[eggs][hatch_rate_warning]" class="form-control" min="0" max="100" value="{{ old('config.eggs.hatch_rate_warning', data_get($config, 'eggs.hatch_rate_warning')) }}">
-                            <div class="form-help">Persentase rasio tetas yang memicu warning.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Eggs • Hatch Rate Critical (%)</label>
-                            <input type="number" step="0.1" name="config[eggs][hatch_rate_critical]" class="form-control" min="0" max="100" value="{{ old('config.eggs.hatch_rate_critical', data_get($config, 'eggs.hatch_rate_critical')) }}">
-                            <div class="form-help">Persentase rasio tetas yang dianggap kritis.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Feed • Max Insights</label>
-                            <input type="number" name="config[feed][max_insights]" class="form-control" min="1" max="20" value="{{ old('config.feed.max_insights', data_get($config, 'feed.max_insights')) }}">
-                            <div class="form-help">Jumlah maksimal insight pakan yang ditampilkan pada dashboard DSS.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Feed • History Days</label>
-                            <input type="number" name="config[feed][history_days]" class="form-control" min="1" max="30" value="{{ old('config.feed.history_days', data_get($config, 'feed.history_days')) }}">
-                            <div class="form-help">Rentang hari data historis yang digunakan untuk analisis konsumsi pakan.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Feed • Warning Ratio</label>
-                            <input type="number" step="0.01" name="config[feed][warning_ratio]" class="form-control" min="0" max="1" value="{{ old('config.feed.warning_ratio', data_get($config, 'feed.warning_ratio')) }}">
-                            <div class="form-help">Persentase rasio konsumsi yang memicu status peringatan.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Feed • Critical Ratio</label>
-                            <input type="number" step="0.01" name="config[feed][critical_ratio]" class="form-control" min="0" max="1" value="{{ old('config.feed.critical_ratio', data_get($config, 'feed.critical_ratio')) }}">
-                            <div class="form-help">Persentase rasio konsumsi yang memicu status kritis.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Stock • Max Items</label>
-                            <input type="number" name="config[stock][max_items]" class="form-control" min="1" max="10" value="{{ old('config.stock.max_items', data_get($config, 'stock.max_items')) }}">
-                            <div class="form-help">Jumlah maksimum komoditas stok yang ingin ditampilkan.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Stock • Warning Cover (Hari)</label>
-                            <input type="number" step="0.1" name="config[stock][cover_warning_days]" class="form-control" min="0" max="60" value="{{ old('config.stock.cover_warning_days', data_get($config, 'stock.cover_warning_days')) }}">
-                            <div class="form-help">Batas hari cakupan stok ketika status berubah menjadi peringatan.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Stock • Critical Cover (Hari)</label>
-                            <input type="number" step="0.1" name="config[stock][cover_critical_days]" class="form-control" min="0" max="60" value="{{ old('config.stock.cover_critical_days', data_get($config, 'stock.cover_critical_days')) }}">
-                            <div class="form-help">Batas hari cakupan stok ketika status berubah menjadi kritis.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Environment • Max Items</label>
-                            <input type="number" name="config[environment][max_items]" class="form-control" min="1" max="10" value="{{ old('config.environment.max_items', data_get($config, 'environment.max_items')) }}">
-                            <div class="form-help">Jumlah parameter lingkungan (suhu, kelembapan, dsb) yang disorot.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Health • Window Days</label>
-                            <input type="number" name="config[health][window_days]" class="form-control" min="1" max="14" value="{{ old('config.health.window_days', data_get($config, 'health.window_days')) }}">
-                            <div class="form-help">Jendela hari yang dipakai menghitung tren kesehatan flok.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Health • Max Items</label>
-                            <input type="number" name="config[health][max_items]" class="form-control" min="1" max="10" value="{{ old('config.health.max_items', data_get($config, 'health.max_items')) }}">
-                            <div class="form-help">Jumlah insight kesehatan yang ditampilkan pada DSS.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Health • Warning %</label>
-                            <input type="number" step="0.1" name="config[health][warning_pct]" class="form-control" min="0" max="100" value="{{ old('config.health.warning_pct', data_get($config, 'health.warning_pct')) }}">
-                            <div class="form-help">Persentase mortalitas yang memicu status warning.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Health • Critical %</label>
-                            <input type="number" step="0.1" name="config[health][critical_pct]" class="form-control" min="0" max="100" value="{{ old('config.health.critical_pct', data_get($config, 'health.critical_pct')) }}">
-                            <div class="form-help">Persentase mortalitas yang memicu status critical.</div>
-                        </div>
-                        <div class="form-group" style="grid-column: 1 / -1; margin-top:12px;">
-                            <label style="text-transform:uppercase; font-size:0.78rem; letter-spacing:0.08em; color:#94a3b8;">Mortality Alerts</label>
-                        </div>
-                        <div class="form-group">
-                            <label>Mortality • Window Days</label>
-                            <input type="number" name="config[mortality][window_days]" class="form-control" min="1" max="14" value="{{ old('config.mortality.window_days', data_get($config, 'mortality.window_days')) }}">
-                            <div class="form-help">Rentang hari yang dipakai untuk menghitung deviasi mortalitas.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Mortality • Max Items</label>
-                            <input type="number" name="config[mortality][max_items]" class="form-control" min="1" max="10" value="{{ old('config.mortality.max_items', data_get($config, 'mortality.max_items')) }}">
-                            <div class="form-help">Jumlah alert mortalitas maksimum di dashboard.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Mortality • Warning %</label>
-                            <input type="number" step="0.1" name="config[mortality][warning_pct]" class="form-control" min="0" max="100" value="{{ old('config.mortality.warning_pct', data_get($config, 'mortality.warning_pct')) }}">
-                            <div class="form-help">Persentase mortalitas yang memicu status warning.</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Mortality • Critical %</label>
-                            <input type="number" step="0.1" name="config[mortality][critical_pct]" class="form-control" min="0" max="100" value="{{ old('config.mortality.critical_pct', data_get($config, 'mortality.critical_pct')) }}">
-                            <div class="form-help">Persentase mortalitas yang dianggap kritis.</div>
+
+                        <div class="config-card">
+                            <div class="config-card-head">
+                                <div class="config-card-icon mortality"><i class="fas fa-skull-crossbones"></i></div>
+                                <div>
+                                    <h5 class="mb-1">Alert Mortalitas</h5>
+                                    <p class="form-help mb-0">Langsung terkait bagian "Alert Mortalitas" yang memantau deviasi 3 hari terakhir.</p>
+                                </div>
+                            </div>
+                            <div class="config-card-body">
+                                <div class="form-group compact">
+                                    <label>Rentang hari pemantauan</label>
+                                    <input type="number" name="config[mortality][window_days]" class="form-control" min="1" max="14" value="{{ old('config.mortality.window_days', data_get($config, 'mortality.window_days')) }}">
+                                    <div class="form-help">Default 3 hari mengikuti tampilan DSS.</div>
+                                </div>
+                                <div class="form-group compact">
+                                    <label>Maksimum alert yang tampil</label>
+                                    <input type="number" name="config[mortality][max_items]" class="form-control" min="1" max="10" value="{{ old('config.mortality.max_items', data_get($config, 'mortality.max_items')) }}">
+                                    <div class="form-help">Batasi jumlah kartu agar mudah dipantau.</div>
+                                </div>
+                                <div class="form-group compact">
+                                    <label>Batas warning (% populasi)</label>
+                                    <input type="number" step="0.1" name="config[mortality][warning_pct]" class="form-control" min="0" max="100" value="{{ old('config.mortality.warning_pct', data_get($config, 'mortality.warning_pct')) }}">
+                                    <div class="form-help">Persentase mortalitas yang menyalakan warna kuning.</div>
+                                </div>
+                                <div class="form-group compact">
+                                    <label>Batas critical (% populasi)</label>
+                                    <input type="number" step="0.1" name="config[mortality][critical_pct]" class="form-control" min="0" max="100" value="{{ old('config.mortality.critical_pct', data_get($config, 'mortality.critical_pct')) }}">
+                                    <div class="form-help">Persentase mortalitas yang dianggap gawat.</div>
+                                </div>
+                            </div>
+                            <div class="config-card-foot">Gunakan angka ini untuk menyelaraskan SOP penanganan kematian produksi & pembesaran.</div>
                         </div>
                     </div>
                 </div>
