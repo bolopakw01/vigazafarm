@@ -13,201 +13,289 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-Route::get('/test-produksi', function () {
-    $kandangList = \App\Models\Kandang::whereIn('status', ['aktif', 'maintenance'])
-                              ->orderBy('nama_kandang')
-                              ->get();
+/*
+ *|==================================================================================
+ *| File        : routes/web.php                                                   
+ *| Deskripsi   : Konfigurasi routing utama sistem manajemen peternakan unggas     
+ *|                Mencakup seluruh modul operasional, master data, dan sistem      
+ *|                                                                                 
+ *| Modul Utama :                                                                  
+ *|  - Dashboard & Profil         : Pengelolaan dashboard dan profil pengguna      
+ *|  - Master Data (Owner Only)   : Kandang, karyawan, sistem konfigurasi          
+ *|  - Pembesaran (Growing)       : Manajemen fase pembesaran ayam                  
+ *|  - Penetasan (Hatching)       : Manajemen penetasan telur                       
+ *|  - Produksi (Production)      : Manajemen produksi telur                        
+ *|  - Sistem & Maintenance       : Backup, restore, IoT, dan konfigurasi sistem   
+ *|  - DSS & Machine Learning     : Sistem pendukung keputusan & prediksi          
+ *|                                                                                 
+ *| Hak Akses   :                                                                  
+ *|  - Public                     : Halaman login (/mimin)                                     
+ *|  - Authenticated              : Semua user yang login                                      
+ *|  - Owner Only                 : Master data dan konfigurasi sistem (middleware:owner)      
+ *|                                                                                
+ *|  Dibuat     : 10 November 2025                                                 
+ *|  Penulis    : Bolopa Kakungnge walinono                                
+ *|  Versi      : 3.0.0   
+ *|=================================================================================
+*/
 
-    $pembesaranList = \App\Models\Pembesaran::with('kandang')
-                                    ->where('status_batch', 'selesai')
-                                    ->whereRaw('(COALESCE(jumlah_siap, 0) - COALESCE(indukan_ditransfer, 0)) > 0')
-                                    ->orderBy('tanggal_siap', 'desc')
-                                    ->get();
-
-    $produksiSumberList = collect();
-
-    return view('admin.pages.produksi.create-produksi', compact('kandangList', 'pembesaranList', 'produksiSumberList'));
-});
-
+// ==============================
+// ROUTE DASHBOARD UTAMA
+// ==============================
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
 
+// ==============================
+// GRUP ROUTE DENGAN AUTHENTIKASI
+// ==============================
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    
+    // ==============================
+    // PROFIL USER
+    // ==============================
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');            // Form edit profil
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');      // Update profil
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');   // Hapus profil
 
-    // Admin Dashboard (All authenticated users)
-    Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
-    Route::get('/admin/dss', [DssController::class, 'index'])->name('admin.dss');
+    // ==============================
+    // ADMIN DASHBOARD (Semua user yang login)
+    // ==============================
+    Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');  // Dashboard admin
+    Route::get('/admin/dss', [DssController::class, 'index'])->name('admin.dss');                    // Decision Support System
 
+    // ==============================
+    // API MACHINE LEARNING
+    // ==============================
     Route::prefix('/api/ml')->name('api.ml.')->group(function () {
-        Route::post('/dss/predict', [MlPreviewController::class, 'predict'])->name('dss.predict');
+        Route::post('/dss/predict', [MlPreviewController::class, 'predict'])->name('dss.predict');  // Prediksi DSS
     });
 
-    // Master routes (Owner only)
+    // ==============================
+    // ROUTE KHUSUS OWNER (Master Data)
+    // ==============================
     Route::middleware('owner')->group(function () {
-        // Kandang CRUD
-        Route::get('/admin/kandang', [App\Http\Controllers\KandangController::class, 'index'])->name('admin.kandang');
-        Route::get('/admin/kandang/create', [App\Http\Controllers\KandangController::class, 'create'])->name('admin.kandang.create');
-        Route::post('/admin/kandang', [App\Http\Controllers\KandangController::class, 'store'])->name('admin.kandang.store');
-        Route::get('/admin/kandang/{kandang}', [App\Http\Controllers\KandangController::class, 'show'])->name('admin.kandang.show');
-        Route::get('/admin/kandang/{kandang}/edit', [App\Http\Controllers\KandangController::class, 'edit'])->name('admin.kandang.edit');
-        Route::patch('/admin/kandang/{kandang}', [App\Http\Controllers\KandangController::class, 'update'])->name('admin.kandang.update');
-        Route::delete('/admin/kandang/{kandang}', [App\Http\Controllers\KandangController::class, 'destroy'])->name('admin.kandang.destroy');
+        
+        // --------------------------
+        // MANAJEMEN KANDANG (CRUD)
+        // --------------------------
+        Route::get('/admin/kandang', [App\Http\Controllers\KandangController::class, 'index'])->name('admin.kandang');                    // List kandang
+        Route::get('/admin/kandang/create', [App\Http\Controllers\KandangController::class, 'create'])->name('admin.kandang.create');     // Form tambah kandang
+        Route::post('/admin/kandang', [App\Http\Controllers\KandangController::class, 'store'])->name('admin.kandang.store');             // Simpan kandang baru
+        Route::get('/admin/kandang/{kandang}', [App\Http\Controllers\KandangController::class, 'show'])->name('admin.kandang.show');      // Detail kandang
+        Route::get('/admin/kandang/{kandang}/edit', [App\Http\Controllers\KandangController::class, 'edit'])->name('admin.kandang.edit'); // Form edit kandang
+        Route::patch('/admin/kandang/{kandang}', [App\Http\Controllers\KandangController::class, 'update'])->name('admin.kandang.update');// Update kandang
+        Route::delete('/admin/kandang/{kandang}', [App\Http\Controllers\KandangController::class, 'destroy'])->name('admin.kandang.destroy'); // Hapus kandang
 
-        // Karyawan CRUD
-        Route::get('/admin/karyawan', [App\Http\Controllers\KaryawanController::class, 'index'])->name('admin.karyawan');
-        Route::get('/admin/karyawan/create', [App\Http\Controllers\KaryawanController::class, 'create'])->name('admin.karyawan.create');
-        Route::post('/admin/karyawan', [App\Http\Controllers\KaryawanController::class, 'store'])->name('admin.karyawan.store');
-        Route::get('/admin/karyawan/{karyawan}', [App\Http\Controllers\KaryawanController::class, 'show'])->name('admin.karyawan.show');
-        Route::get('/admin/karyawan/{karyawan}/edit', [App\Http\Controllers\KaryawanController::class, 'edit'])->name('admin.karyawan.edit');
-        Route::patch('/admin/karyawan/{karyawan}', [App\Http\Controllers\KaryawanController::class, 'update'])->name('admin.karyawan.update');
-        Route::delete('/admin/karyawan/{karyawan}', [App\Http\Controllers\KaryawanController::class, 'destroy'])->name('admin.karyawan.destroy');
+        // --------------------------
+        // MANAJEMEN KARYAWAN (CRUD)
+        // --------------------------
+        Route::get('/admin/karyawan', [App\Http\Controllers\KaryawanController::class, 'index'])->name('admin.karyawan');                     // List karyawan
+        Route::get('/admin/karyawan/create', [App\Http\Controllers\KaryawanController::class, 'create'])->name('admin.karyawan.create');      // Form tambah karyawan
+        Route::post('/admin/karyawan', [App\Http\Controllers\KaryawanController::class, 'store'])->name('admin.karyawan.store');              // Simpan karyawan baru
+        Route::get('/admin/karyawan/{karyawan}', [App\Http\Controllers\KaryawanController::class, 'show'])->name('admin.karyawan.show');      // Detail karyawan
+        Route::get('/admin/karyawan/{karyawan}/edit', [App\Http\Controllers\KaryawanController::class, 'edit'])->name('admin.karyawan.edit'); // Form edit karyawan
+        Route::patch('/admin/karyawan/{karyawan}', [App\Http\Controllers\KaryawanController::class, 'update'])->name('admin.karyawan.update');// Update karyawan
+        Route::delete('/admin/karyawan/{karyawan}', [App\Http\Controllers\KaryawanController::class, 'destroy'])->name('admin.karyawan.destroy'); // Hapus karyawan
 
-        // Sistem
-        Route::get('/admin/sistem', [App\Http\Controllers\SistemController::class, 'index'])->name('admin.sistem');
-        Route::get('/admin/sistem/dashboard', [App\Http\Controllers\SistemController::class, 'dashboard'])->name('admin.sistem.dashboard');
-        Route::put('/admin/sistem/dashboard', [App\Http\Controllers\SistemController::class, 'updateDashboard'])->name('admin.sistem.dashboard.update');
-        Route::get('/admin/sistem/matriks', [App\Http\Controllers\SistemController::class, 'matrix'])->name('admin.sistem.matriks');
-        Route::put('/admin/sistem/matriks', [App\Http\Controllers\SistemController::class, 'updateMatrix'])->name('admin.sistem.matriks.update');
-        Route::get('/admin/sistem/performance', [App\Http\Controllers\SistemController::class, 'performance'])->name('admin.sistem.performance');
-        Route::put('/admin/sistem/performance', [App\Http\Controllers\SistemController::class, 'updatePerformance'])->name('admin.sistem.performance.update');
-        Route::get('/admin/sistem/dss', [App\Http\Controllers\SistemController::class, 'dss'])->name('admin.sistem.dss');
-        Route::put('/admin/sistem/dss', [App\Http\Controllers\SistemController::class, 'updateDss'])->name('admin.sistem.dss.update');
-        Route::get('/admin/sistem/pakan-vitamin', [FeedVitaminController::class, 'index'])->name('admin.sistem.pakanvitamin');
-        Route::post('/admin/sistem/pakan-vitamin', [FeedVitaminController::class, 'store'])->name('admin.sistem.pakanvitamin.store');
-        Route::put('/admin/sistem/pakan-vitamin/{item}', [FeedVitaminController::class, 'update'])->name('admin.sistem.pakanvitamin.update');
-        Route::delete('/admin/sistem/pakan-vitamin/{item}', [FeedVitaminController::class, 'destroy'])->name('admin.sistem.pakanvitamin.destroy');
+        // ==============================
+        // SISTEM KONFIGURASI (Owner Only)
+        // ==============================
+        Route::get('/admin/sistem', [App\Http\Controllers\SistemController::class, 'index'])->name('admin.sistem'); // Halaman utama sistem
+        
+        // Dashboard Configuration
+        Route::get('/admin/sistem/dashboard', [App\Http\Controllers\SistemController::class, 'dashboard'])->name('admin.sistem.dashboard');          // Konfigurasi dashboard
+        Route::put('/admin/sistem/dashboard', [App\Http\Controllers\SistemController::class, 'updateDashboard'])->name('admin.sistem.dashboard.update'); // Update konfig dashboard
+        
+        // Matrix Configuration
+        Route::get('/admin/sistem/matriks', [App\Http\Controllers\SistemController::class, 'matrix'])->name('admin.sistem.matriks');          // Konfigurasi matriks
+        Route::put('/admin/sistem/matriks', [App\Http\Controllers\SistemController::class, 'updateMatrix'])->name('admin.sistem.matriks.update'); // Update matriks
+        
+        // Performance Configuration
+        Route::get('/admin/sistem/performance', [App\Http\Controllers\SistemController::class, 'performance'])->name('admin.sistem.performance');          // Konfigurasi performance
+        Route::put('/admin/sistem/performance', [App\Http\Controllers\SistemController::class, 'updatePerformance'])->name('admin.sistem.performance.update'); // Update performance
+        
+        // DSS Configuration
+        Route::get('/admin/sistem/dss', [App\Http\Controllers\SistemController::class, 'dss'])->name('admin.sistem.dss');          // Konfigurasi DSS
+        Route::put('/admin/sistem/dss', [App\Http\Controllers\SistemController::class, 'updateDss'])->name('admin.sistem.dss.update'); // Update DSS
+        
+        // PAKAN & VITAMIN MANAGEMENT
+        Route::get('/admin/sistem/pakan-vitamin', [FeedVitaminController::class, 'index'])->name('admin.sistem.pakanvitamin');            // List pakan & vitamin
+        Route::post('/admin/sistem/pakan-vitamin', [FeedVitaminController::class, 'store'])->name('admin.sistem.pakanvitamin.store');     // Tambah pakan/vitamin
+        Route::put('/admin/sistem/pakan-vitamin/{item}', [FeedVitaminController::class, 'update'])->name('admin.sistem.pakanvitamin.update'); // Update pakan/vitamin
+        Route::delete('/admin/sistem/pakan-vitamin/{item}', [FeedVitaminController::class, 'destroy'])->name('admin.sistem.pakanvitamin.destroy'); // Hapus pakan/vitamin
 
+        // ==============================
+        // DATABASE MAINTENANCE
+        // ==============================
         Route::prefix('/admin/sistem/database')->name('admin.sistem.database.')->controller(DatabaseMaintenanceController::class)->group(function () {
-            Route::get('/backup', 'showBackup')->name('backup');
-            Route::post('/backup', 'runBackup')->name('backup.run');
-            Route::get('/backup/download/{filename}', 'downloadBackup')->name('backup.download');
-            Route::delete('/backup/{filename}', 'deleteBackup')->name('backup.delete');
-
-            Route::get('/restore', 'showRestore')->name('restore');
-            Route::post('/restore', 'runRestore')->name('restore.run');
-
-            Route::get('/info', 'showInfo')->name('info');
-            Route::post('/koneksi', 'updateConnection')->name('connection.update');
-
-            Route::get('/optimasi', 'showOptimization')->name('optimization');
-            Route::post('/optimasi', 'runOptimization')->name('optimization.run');
+            // Backup Database
+            Route::get('/backup', 'showBackup')->name('backup');                          // Halaman backup
+            Route::post('/backup', 'runBackup')->name('backup.run');                      // Jalankan backup
+            Route::get('/backup/download/{filename}', 'downloadBackup')->name('backup.download'); // Download backup
+            Route::delete('/backup/{filename}', 'deleteBackup')->name('backup.delete');   // Hapus backup file
+            
+            // Restore Database
+            Route::get('/restore', 'showRestore')->name('restore');                       // Halaman restore
+            Route::post('/restore', 'runRestore')->name('restore.run');                   // Jalankan restore
+            
+            // Database Info & Connection
+            Route::get('/info', 'showInfo')->name('info');                                // Info database
+            Route::post('/koneksi', 'updateConnection')->name('connection.update');       // Update koneksi database
+            
+            // Optimization
+            Route::get('/optimasi', 'showOptimization')->name('optimization');            // Halaman optimasi
+            Route::post('/optimasi', 'runOptimization')->name('optimization.run');        // Jalankan optimasi
         });
 
-        Route::get('/admin/sistem/iot', [App\Http\Controllers\SistemController::class, 'iot'])->name('admin.sistem.iot');
-        Route::put('/admin/sistem/iot', [App\Http\Controllers\SistemController::class, 'updateIot'])->name('admin.sistem.iot.update');
+        // ==============================
+        // IOT CONFIGURATION
+        // ==============================
+        Route::get('/admin/sistem/iot', [App\Http\Controllers\SistemController::class, 'iot'])->name('admin.sistem.iot');          // Konfigurasi IoT
+        Route::put('/admin/sistem/iot', [App\Http\Controllers\SistemController::class, 'updateIot'])->name('admin.sistem.iot.update'); // Update IoT
 
-        Route::get('/admin/sistem/export/looker', [LookerExportController::class, 'index'])->name('admin.sistem.looker.export');
-        Route::get('/admin/sistem/export/looker/download', [LookerExportController::class, 'download'])->name('admin.sistem.looker.export.download');
-        Route::get('/admin/sistem/export/looker/download/csv', [LookerExportController::class, 'downloadSingleCsv'])->name('admin.sistem.looker.export.download.csv');
+        // ==============================
+        // LOOKER EXPORT
+        // ==============================
+        Route::get('/admin/sistem/export/looker', [LookerExportController::class, 'index'])->name('admin.sistem.looker.export');                    // Halaman export Looker
+        Route::get('/admin/sistem/export/looker/download', [LookerExportController::class, 'download'])->name('admin.sistem.looker.export.download'); // Download export
+        Route::get('/admin/sistem/export/looker/download/csv', [LookerExportController::class, 'downloadSingleCsv'])->name('admin.sistem.looker.export.download.csv'); // Download CSV
     });
 
+    // ==============================
+    // OPTIONS PAKAN & VITAMIN (Untuk semua user yang login)
+    // ==============================
     Route::get('/admin/sistem/pakan-vitamin/options', [FeedVitaminController::class, 'options'])->name('admin.sistem.pakanvitamin.options');
 
-    // Operational routes (All authenticated users)
+    // ==============================
+    // ROUTE OPERASIONAL (Semua user yang login)
+    // ==============================
     
-    // Pembesaran routes
-    Route::get('/admin/pembesaran', [App\Http\Controllers\PembesaranController::class, 'index'])->name('admin.pembesaran');
-    Route::get('/admin/pembesaran/create', [App\Http\Controllers\PembesaranController::class, 'create'])->name('admin.pembesaran.create');
-    Route::post('/admin/pembesaran', [App\Http\Controllers\PembesaranController::class, 'store'])->name('admin.pembesaran.store');
-    Route::get('/admin/pembesaran/from-penetasan/{penetasan}', [App\Http\Controllers\PembesaranController::class, 'createFromPenetasan'])->name('admin.pembesaran.createFromPenetasan');
-    Route::post('/admin/pembesaran/from-penetasan/{penetasan}', [App\Http\Controllers\PembesaranController::class, 'storeFromPenetasan'])->name('admin.pembesaran.storeFromPenetasan');
-    Route::get('/admin/pembesaran/{pembesaran}', [App\Http\Controllers\PembesaranController::class, 'show'])->name('admin.pembesaran.show');
-    Route::get('/admin/pembesaran/{pembesaran}/biaya', [App\Http\Controllers\PembesaranController::class, 'detailBiaya'])->name('admin.pembesaran.detail-biaya');
-    Route::get('/admin/pembesaran/{pembesaran}/edit', [App\Http\Controllers\PembesaranController::class, 'edit'])->name('admin.pembesaran.edit');
-    Route::patch('/admin/pembesaran/{pembesaran}', [App\Http\Controllers\PembesaranController::class, 'update'])->name('admin.pembesaran.update');
-    Route::post('/admin/pembesaran/{pembesaran}/selesaikan', [App\Http\Controllers\PembesaranController::class, 'selesaikanBatch'])->name('admin.pembesaran.selesaikan');
-    Route::delete('/admin/pembesaran/{pembesaran}', [App\Http\Controllers\PembesaranController::class, 'destroy'])->name('admin.pembesaran.destroy');
+    // ==============================
+    // MODUL PEMBESARAN (Growing)
+    // ==============================
+    Route::get('/admin/pembesaran', [App\Http\Controllers\PembesaranController::class, 'index'])->name('admin.pembesaran');                                // List pembesaran
+    Route::get('/admin/pembesaran/create', [App\Http\Controllers\PembesaranController::class, 'create'])->name('admin.pembesaran.create');                 // Form tambah pembesaran
+    Route::post('/admin/pembesaran', [App\Http\Controllers\PembesaranController::class, 'store'])->name('admin.pembesaran.store');                         // Simpan pembesaran baru
+    Route::get('/admin/pembesaran/from-penetasan/{penetasan}', [App\Http\Controllers\PembesaranController::class, 'createFromPenetasan'])->name('admin.pembesaran.createFromPenetasan'); // Form dari penetasan
+    Route::post('/admin/pembesaran/from-penetasan/{penetasan}', [App\Http\Controllers\PembesaranController::class, 'storeFromPenetasan'])->name('admin.pembesaran.storeFromPenetasan');  // Simpan dari penetasan
+    Route::get('/admin/pembesaran/{pembesaran}', [App\Http\Controllers\PembesaranController::class, 'show'])->name('admin.pembesaran.show');              // Detail pembesaran
+    Route::get('/admin/pembesaran/{pembesaran}/biaya', [App\Http\Controllers\PembesaranController::class, 'detailBiaya'])->name('admin.pembesaran.detail-biaya'); // Detail biaya
+    Route::get('/admin/pembesaran/{pembesaran}/edit', [App\Http\Controllers\PembesaranController::class, 'edit'])->name('admin.pembesaran.edit');          // Form edit pembesaran
+    Route::patch('/admin/pembesaran/{pembesaran}', [App\Http\Controllers\PembesaranController::class, 'update'])->name('admin.pembesaran.update');         // Update pembesaran
+    Route::post('/admin/pembesaran/{pembesaran}/selesaikan', [App\Http\Controllers\PembesaranController::class, 'selesaikanBatch'])->name('admin.pembesaran.selesaikan'); // Selesaikan batch
+    Route::delete('/admin/pembesaran/{pembesaran}', [App\Http\Controllers\PembesaranController::class, 'destroy'])->name('admin.pembesaran.destroy');      // Hapus pembesaran
     
-    // Pembesaran Recording routes (API-like for AJAX)
+    // ==============================
+    // RECORDING PEMBESARAN (API-like untuk AJAX)
+    // ==============================
     Route::prefix('admin/pembesaran/{pembesaran}')->name('admin.pembesaran.recording.')->group(function () {
-        // Pakan
-        Route::post('/pakan', [App\Http\Controllers\PembesaranRecordingController::class, 'storePakan'])->name('pakan');
-        Route::get('/pakan/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getPakanList'])->name('pakan.list');
-        Route::patch('/pakan/{pakan}', [App\Http\Controllers\PembesaranRecordingController::class, 'updatePakan'])->name('pakan.update');
-        Route::delete('/pakan/{pakan}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyPakan'])->name('pakan.destroy');
+        // Manajemen Pakan
+        Route::post('/pakan', [App\Http\Controllers\PembesaranRecordingController::class, 'storePakan'])->name('pakan');          // Tambah pakan
+        Route::get('/pakan/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getPakanList'])->name('pakan.list'); // List pakan
+        Route::patch('/pakan/{pakan}', [App\Http\Controllers\PembesaranRecordingController::class, 'updatePakan'])->name('pakan.update'); // Update pakan
+        Route::delete('/pakan/{pakan}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyPakan'])->name('pakan.destroy'); // Hapus pakan
         
-        // Kematian
-        Route::post('/kematian', [App\Http\Controllers\PembesaranRecordingController::class, 'storeKematian'])->name('kematian');
-        Route::get('/kematian/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getKematianList'])->name('kematian.list');
-        Route::patch('/kematian/{kematian}', [App\Http\Controllers\PembesaranRecordingController::class, 'updateKematian'])->name('kematian.update');
-        Route::delete('/kematian/{kematian}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyKematian'])->name('kematian.destroy');
+        // Manajemen Kematian
+        Route::post('/kematian', [App\Http\Controllers\PembesaranRecordingController::class, 'storeKematian'])->name('kematian');      // Tambah kematian
+        Route::get('/kematian/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getKematianList'])->name('kematian.list'); // List kematian
+        Route::patch('/kematian/{kematian}', [App\Http\Controllers\PembesaranRecordingController::class, 'updateKematian'])->name('kematian.update'); // Update kematian
+        Route::delete('/kematian/{kematian}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyKematian'])->name('kematian.destroy'); // Hapus kematian
         
         // Laporan Harian
-        Route::post('/laporan-harian', [App\Http\Controllers\PembesaranRecordingController::class, 'generateLaporanHarian'])->name('laporan');
-        Route::get('/laporan-harian/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getLaporanHarianList'])->name('laporan.list');
-        Route::get('/laporan-harian/{laporan}', [App\Http\Controllers\PembesaranRecordingController::class, 'showLaporanHarian'])->name('laporan.show');
-        Route::patch('/laporan-harian/{laporan}', [App\Http\Controllers\PembesaranRecordingController::class, 'updateLaporanHarian'])->name('laporan.update');
-        Route::delete('/laporan-harian/{laporan}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyLaporanHarian'])->name('laporan.destroy');
+        Route::post('/laporan-harian', [App\Http\Controllers\PembesaranRecordingController::class, 'generateLaporanHarian'])->name('laporan');      // Generate laporan
+        Route::get('/laporan-harian/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getLaporanHarianList'])->name('laporan.list'); // List laporan
+        Route::get('/laporan-harian/{laporan}', [App\Http\Controllers\PembesaranRecordingController::class, 'showLaporanHarian'])->name('laporan.show'); // Detail laporan
+        Route::patch('/laporan-harian/{laporan}', [App\Http\Controllers\PembesaranRecordingController::class, 'updateLaporanHarian'])->name('laporan.update'); // Update laporan
+        Route::delete('/laporan-harian/{laporan}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyLaporanHarian'])->name('laporan.destroy'); // Hapus laporan
         
         // Monitoring Lingkungan
-        Route::post('/monitoring', [App\Http\Controllers\PembesaranRecordingController::class, 'storeMonitoring'])->name('lingkungan');
-        Route::get('/monitoring/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getMonitoringList'])->name('lingkungan.list');
-        Route::delete('/monitoring/{monitoring}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyMonitoring'])->name('lingkungan.destroy');
+        Route::post('/monitoring', [App\Http\Controllers\PembesaranRecordingController::class, 'storeMonitoring'])->name('lingkungan');      // Tambah monitoring
+        Route::get('/monitoring/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getMonitoringList'])->name('lingkungan.list'); // List monitoring
+        Route::delete('/monitoring/{monitoring}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyMonitoring'])->name('lingkungan.destroy'); // Hapus monitoring
         
-        // Kesehatan
-        Route::post('/kesehatan', [App\Http\Controllers\PembesaranRecordingController::class, 'storeKesehatan'])->name('kesehatan');
-        Route::get('/kesehatan/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getKesehatanList'])->name('kesehatan.list');
-        Route::post('/kesehatan/{kesehatan}/release', [App\Http\Controllers\PembesaranRecordingController::class, 'releaseKarantina'])->name('kesehatan.release');
-        Route::delete('/kesehatan/{kesehatan}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyKesehatan'])->name('kesehatan.destroy');
+        // Manajemen Kesehatan
+        Route::post('/kesehatan', [App\Http\Controllers\PembesaranRecordingController::class, 'storeKesehatan'])->name('kesehatan');      // Tambah kesehatan
+        Route::get('/kesehatan/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getKesehatanList'])->name('kesehatan.list'); // List kesehatan
+        Route::post('/kesehatan/{kesehatan}/release', [App\Http\Controllers\PembesaranRecordingController::class, 'releaseKarantina'])->name('kesehatan.release'); // Release karantina
+        Route::delete('/kesehatan/{kesehatan}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyKesehatan'])->name('kesehatan.destroy'); // Hapus kesehatan
         
-        // Update Berat
-        Route::post('/berat', [App\Http\Controllers\PembesaranRecordingController::class, 'storeBeratRataRata'])->name('berat');
-        Route::get('/berat/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getBeratList'])->name('berat.list');
-        Route::delete('/berat/{berat}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyBerat'])->name('berat.destroy');
+        // Update Berat Rata-rata
+        Route::post('/berat', [App\Http\Controllers\PembesaranRecordingController::class, 'storeBeratRataRata'])->name('berat');      // Tambah berat
+        Route::get('/berat/list', [App\Http\Controllers\PembesaranRecordingController::class, 'getBeratList'])->name('berat.list'); // List berat
+        Route::delete('/berat/{berat}', [App\Http\Controllers\PembesaranRecordingController::class, 'destroyBerat'])->name('berat.destroy'); // Hapus berat
     });
     
-    // Penetasan routes
-    Route::get('/admin/penetasan', [AdminController::class, 'penetasan'])->name('admin.penetasan');
-    // resource-like routes for penetasan actions used by the UI
-    Route::get('/admin/penetasan/create', [App\Http\Controllers\PenetasanController::class, 'create'])->name('admin.penetasan.create');
-    Route::post('/admin/penetasan', [App\Http\Controllers\PenetasanController::class, 'store'])->name('admin.penetasan.store');
-    Route::get('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'show'])->name('admin.penetasan.show');
-    Route::get('/admin/penetasan/{penetasan}/edit', [App\Http\Controllers\PenetasanController::class, 'edit'])->name('admin.penetasan.edit');
-    Route::patch('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'update'])->name('admin.penetasan.update');
-    Route::patch('/admin/penetasan/{penetasan}/status', [App\Http\Controllers\PenetasanController::class, 'updateStatus'])->name('admin.penetasan.updateStatus');
-    Route::post('/admin/penetasan/{penetasan}/move-to-hatcher', [App\Http\Controllers\PenetasanController::class, 'moveToHatcher'])->name('admin.penetasan.moveToHatcher');
-    Route::post('/admin/penetasan/{penetasan}/finish', [App\Http\Controllers\PenetasanController::class, 'finish'])->name('admin.penetasan.finish');
-    Route::delete('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'destroy'])->name('admin.penetasan.destroy');
+    // ==============================
+    // MODUL PENETASAN (Hatching)
+    // ==============================
+    Route::get('/admin/penetasan', [AdminController::class, 'penetasan'])->name('admin.penetasan'); // List penetasan
     
-    // Transfer routes - Penetasan
-    Route::get('/admin/penetasan/{penetasan}/transfer', [App\Http\Controllers\TransferController::class, 'showTransferPenetasan'])->name('admin.penetasan.transfer');
-    Route::post('/admin/penetasan/{penetasan}/transfer/doc', [App\Http\Controllers\TransferController::class, 'transferDocToPembesaran'])->name('admin.penetasan.transfer.doc');
-    Route::post('/admin/penetasan/{penetasan}/transfer/telur-infertil', [App\Http\Controllers\TransferController::class, 'transferTelurInfertilToProduksi'])->name('admin.penetasan.transfer.telur');
+    // CRUD Penetasan
+    Route::get('/admin/penetasan/create', [App\Http\Controllers\PenetasanController::class, 'create'])->name('admin.penetasan.create');                 // Form tambah penetasan
+    Route::post('/admin/penetasan', [App\Http\Controllers\PenetasanController::class, 'store'])->name('admin.penetasan.store');                         // Simpan penetasan baru
+    Route::get('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'show'])->name('admin.penetasan.show');                // Detail penetasan
+    Route::get('/admin/penetasan/{penetasan}/edit', [App\Http\Controllers\PenetasanController::class, 'edit'])->name('admin.penetasan.edit');          // Form edit penetasan
+    Route::patch('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'update'])->name('admin.penetasan.update');         // Update penetasan
+    Route::patch('/admin/penetasan/{penetasan}/status', [App\Http\Controllers\PenetasanController::class, 'updateStatus'])->name('admin.penetasan.updateStatus'); // Update status
+    Route::post('/admin/penetasan/{penetasan}/move-to-hatcher', [App\Http\Controllers\PenetasanController::class, 'moveToHatcher'])->name('admin.penetasan.moveToHatcher'); // Pindah ke hatcher
+    Route::post('/admin/penetasan/{penetasan}/finish', [App\Http\Controllers\PenetasanController::class, 'finish'])->name('admin.penetasan.finish');    // Selesaikan penetasan
+    Route::delete('/admin/penetasan/{penetasan}', [App\Http\Controllers\PenetasanController::class, 'destroy'])->name('admin.penetasan.destroy');       // Hapus penetasan
     
-    // Transfer routes - Pembesaran
-    Route::get('/admin/pembesaran/{pembesaran}/transfer', [App\Http\Controllers\TransferController::class, 'showTransferPembesaran'])->name('admin.pembesaran.transfer');
-    Route::post('/admin/pembesaran/{pembesaran}/transfer/indukan', [App\Http\Controllers\TransferController::class, 'transferIndukanToProduksi'])->name('admin.pembesaran.transfer.indukan');
+    // ==============================
+    // TRANSFER DATA - PENETASAN
+    // ==============================
+    Route::get('/admin/penetasan/{penetasan}/transfer', [App\Http\Controllers\TransferController::class, 'showTransferPenetasan'])->name('admin.penetasan.transfer'); // Halaman transfer
+    Route::post('/admin/penetasan/{penetasan}/transfer/doc', [App\Http\Controllers\TransferController::class, 'transferDocToPembesaran'])->name('admin.penetasan.transfer.doc'); // Transfer DOC ke pembesaran
+    Route::post('/admin/penetasan/{penetasan}/transfer/telur-infertil', [App\Http\Controllers\TransferController::class, 'transferTelurInfertilToProduksi'])->name('admin.penetasan.transfer.telur'); // Transfer telur infertil ke produksi
     
-    // Produksi routes
-    Route::get('/admin/produksi', [AdminController::class, 'produksi'])->name('admin.produksi');
-    Route::get('/admin/produksi/create', [App\Http\Controllers\ProduksiController::class, 'create'])->name('admin.produksi.create');
-    Route::post('/admin/produksi', [App\Http\Controllers\ProduksiController::class, 'store'])->name('admin.produksi.store');
-    Route::get('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'show'])->name('admin.produksi.show');
-    Route::post('/admin/produksi/{produksi}/laporan-harian', [App\Http\Controllers\ProduksiController::class, 'storeDailyReport'])->name('admin.produksi.laporan.store');
-    Route::get('/admin/produksi/{produksi}/laporan/generate-summary', [App\Http\Controllers\ProduksiController::class, 'generateDailyReportSummary'])->name('admin.produksi.laporan.generate-summary');
-    Route::delete('/admin/produksi/{produksi}/laporan/{laporan}', [App\Http\Controllers\ProduksiController::class, 'destroyLaporan'])->name('admin.produksi.laporan.destroy');
-    Route::patch('/admin/produksi/{produksi}/laporan/{laporan}/reset', [App\Http\Controllers\ProduksiController::class, 'resetLaporan'])->name('admin.produksi.laporan.reset');
-    Route::patch('/admin/produksi/{produksi}/tray/{laporan}', [App\Http\Controllers\ProduksiController::class, 'updateTrayEntry'])->name('admin.produksi.tray.update');
-    Route::delete('/admin/produksi/{produksi}/tray/{laporan}', [App\Http\Controllers\ProduksiController::class, 'destroyTrayEntry'])->name('admin.produksi.tray.destroy');
-    Route::get('/admin/produksi/{produksi}/edit', [App\Http\Controllers\ProduksiController::class, 'edit'])->name('admin.produksi.edit');
-    Route::patch('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'update'])->name('admin.produksi.update');
-    Route::patch('/admin/produksi/{produksi}/status', [App\Http\Controllers\ProduksiController::class, 'updateStatus'])->name('admin.produksi.updateStatus');
-    Route::delete('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'destroy'])->name('admin.produksi.destroy');
+    // ==============================
+    // TRANSFER DATA - PEMBESARAN
+    // ==============================
+    Route::get('/admin/pembesaran/{pembesaran}/transfer', [App\Http\Controllers\TransferController::class, 'showTransferPembesaran'])->name('admin.pembesaran.transfer'); // Halaman transfer
+    Route::post('/admin/pembesaran/{pembesaran}/transfer/indukan', [App\Http\Controllers\TransferController::class, 'transferIndukanToProduksi'])->name('admin.pembesaran.transfer.indukan'); // Transfer indukan ke produksi
     
-    // Pencatatan Produksi routes (nested under produksi)
+    // ==============================
+    // MODUL PRODUKSI
+    // ==============================
+    Route::get('/admin/produksi', [AdminController::class, 'produksi'])->name('admin.produksi'); // List produksi
+    
+    // CRUD Produksi
+    Route::get('/admin/produksi/create', [App\Http\Controllers\ProduksiController::class, 'create'])->name('admin.produksi.create');                 // Form tambah produksi
+    Route::post('/admin/produksi', [App\Http\Controllers\ProduksiController::class, 'store'])->name('admin.produksi.store');                         // Simpan produksi baru
+    Route::get('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'show'])->name('admin.produksi.show');                // Detail produksi
+    Route::get('/admin/produksi/{produksi}/edit', [App\Http\Controllers\ProduksiController::class, 'edit'])->name('admin.produksi.edit');          // Form edit produksi
+    Route::patch('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'update'])->name('admin.produksi.update');         // Update produksi
+    Route::patch('/admin/produksi/{produksi}/status', [App\Http\Controllers\ProduksiController::class, 'updateStatus'])->name('admin.produksi.updateStatus'); // Update status
+    Route::delete('/admin/produksi/{produksi}', [App\Http\Controllers\ProduksiController::class, 'destroy'])->name('admin.produksi.destroy');       // Hapus produksi
+    
+    // Laporan Harian Produksi
+    Route::post('/admin/produksi/{produksi}/laporan-harian', [App\Http\Controllers\ProduksiController::class, 'storeDailyReport'])->name('admin.produksi.laporan.store'); // Simpan laporan harian
+    Route::get('/admin/produksi/{produksi}/laporan/generate-summary', [App\Http\Controllers\ProduksiController::class, 'generateDailyReportSummary'])->name('admin.produksi.laporan.generate-summary'); // Generate summary
+    Route::delete('/admin/produksi/{produksi}/laporan/{laporan}', [App\Http\Controllers\ProduksiController::class, 'destroyLaporan'])->name('admin.produksi.laporan.destroy'); // Hapus laporan
+    Route::patch('/admin/produksi/{produksi}/laporan/{laporan}/reset', [App\Http\Controllers\ProduksiController::class, 'resetLaporan'])->name('admin.produksi.laporan.reset'); // Reset laporan
+    
+    // Tray Management
+    Route::patch('/admin/produksi/{produksi}/tray/{laporan}', [App\Http\Controllers\ProduksiController::class, 'updateTrayEntry'])->name('admin.produksi.tray.update'); // Update tray
+    Route::delete('/admin/produksi/{produksi}/tray/{laporan}', [App\Http\Controllers\ProduksiController::class, 'destroyTrayEntry'])->name('admin.produksi.tray.destroy'); // Hapus tray
+    
+    // ==============================
+    // PENCATATAN PRODUKSI (Nested)
+    // ==============================
     Route::prefix('admin/produksi/{produksi}/pencatatan')->name('admin.produksi.pencatatan.')->group(function () {
-        Route::get('/', [App\Http\Controllers\PencatatanProduksiController::class, 'index'])->name('index');
-        Route::post('/', [App\Http\Controllers\PencatatanProduksiController::class, 'store'])->name('store');
-        Route::patch('/{pencatatan}', [App\Http\Controllers\PencatatanProduksiController::class, 'update'])->name('update');
-        Route::delete('/{pencatatan}', [App\Http\Controllers\PencatatanProduksiController::class, 'destroy'])->name('destroy');
-        Route::get('/statistics', [App\Http\Controllers\PencatatanProduksiController::class, 'getStatistics'])->name('statistics');
+        Route::get('/', [App\Http\Controllers\PencatatanProduksiController::class, 'index'])->name('index');          // List pencatatan
+        Route::post('/', [App\Http\Controllers\PencatatanProduksiController::class, 'store'])->name('store');         // Tambah pencatatan
+        Route::patch('/{pencatatan}', [App\Http\Controllers\PencatatanProduksiController::class, 'update'])->name('update'); // Update pencatatan
+        Route::delete('/{pencatatan}', [App\Http\Controllers\PencatatanProduksiController::class, 'destroy'])->name('destroy'); // Hapus pencatatan
+        Route::get('/statistics', [App\Http\Controllers\PencatatanProduksiController::class, 'getStatistics'])->name('statistics'); // Statistik
     });
 });
 
+// ==============================
+// ROUTE AUTHENTICATION (external)
+// ==============================
 require __DIR__.'/auth.php';
 
-// Custom access path for admin login
-Route::get('/mimin', [AuthenticatedSessionController::class, 'create'])->name('mimin.login');
-Route::post('/mimin', [AuthenticatedSessionController::class, 'store'])->name('mimin.store');
+// ==============================
+// CUSTOM LOGIN PATH UNTUK ADMIN
+// ==============================
+Route::get('/mimin', [AuthenticatedSessionController::class, 'create'])->name('mimin.login');  // Form login admin
+Route::post('/mimin', [AuthenticatedSessionController::class, 'store'])->name('mimin.store');  // Proses login admin
