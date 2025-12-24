@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Kesehatan;
+use App\Models\LaporanHarian;
 use App\Models\Pakan;
 use App\Models\Pembesaran;
 use App\Models\Penetasan;
@@ -731,31 +732,70 @@ class SistemController extends Controller
 
     protected function resolvePendapatanAggregate(): array
     {
-        $pendapatanProduksi = (float) PencatatanProduksi::select(DB::raw('COALESCE(SUM(jumlah_produksi * COALESCE(harga_per_unit, 0)), 0) as total'))
+        [$activeBatchIds, $activeProduksiIds] = $this->getActiveBatchAndProduksiIds();
+
+        // Pendapatan dari pencatatan produksi (telur/puyuh) – fallback ke harga_per_pcs pada produksi jika harga_per_unit kosong
+        $pendapatanProduksi = (float) PencatatanProduksi::whereIn('produksi_id', $activeProduksiIds)
+            ->leftJoin('vf_produksi as prod', 'prod.id', '=', 'vf_pencatatan_produksi.produksi_id')
+            ->select(DB::raw('COALESCE(SUM(vf_pencatatan_produksi.jumlah_produksi * COALESCE(vf_pencatatan_produksi.harga_per_unit, prod.harga_per_pcs, 0)), 0) as total'))
             ->value('total');
 
+        // Pendapatan langsung yang dicatat per-batch (grower/produksi) melalui laporan harian
+        $pendapatanBatch = (float) LaporanHarian::whereIn('batch_produksi_id', $activeBatchIds)
+            ->where(function ($q) {
+                $q->whereNotNull('pendapatan_harian')
+                    ->orWhere('penjualan_telur_butir', '>', 0)
+                    ->orWhere('penjualan_puyuh_ekor', '>', 0);
+            })
+            ->select(DB::raw('
+                COALESCE(
+                    SUM(
+                        COALESCE(pendapatan_harian,
+                            (COALESCE(penjualan_telur_butir, 0) * COALESCE(harga_per_butir, 0))
+                        )
+                    ), 0
+                ) as total
+            '))
+            ->value('total');
+
+        $totalPendapatan = $pendapatanProduksi + $pendapatanBatch;
+
         return [
-            'total' => $pendapatanProduksi,
+            'total' => $totalPendapatan,
             'breakdown' => [
-                'produksi' => $pendapatanProduksi,
+                'produksi_telur' => $pendapatanProduksi,
+                'penjualan_batch' => $pendapatanBatch,
             ],
         ];
     }
 
     protected function resolvePengeluaranAggregate(): array
     {
-        $pengeluaranPembesaran = (float) Pakan::whereNotNull('batch_produksi_id')
+        [$activeBatchIds, $activeProduksiIds] = $this->getActiveBatchAndProduksiIds();
+
+        // Biaya pakan di fase pembesaran (berbasis batch_produksi_id)
+        $pengeluaranPembesaran = (float) Pakan::whereNotNull('vf_pakan.batch_produksi_id')
+            ->whereIn('vf_pakan.batch_produksi_id', $activeBatchIds)
             ->select(DB::raw('COALESCE(SUM(total_biaya), 0) as total'))
             ->value('total');
 
-        $pengeluaranProduksi = (float) Pakan::whereNotNull('produksi_id')
+        // Biaya pakan di fase produksi (berbasis produksi_id)
+        $pengeluaranProduksi = (float) Pakan::whereNotNull('vf_pakan.produksi_id')
+            ->whereIn('vf_pakan.produksi_id', $activeProduksiIds)
             ->select(DB::raw('COALESCE(SUM(total_biaya), 0) as total'))
             ->value('total');
 
-        $biayaKesehatan = (float) Kesehatan::select(DB::raw('COALESCE(SUM(biaya), 0) as total'))
+        // Biaya kesehatan per batch
+        $biayaKesehatan = (float) Kesehatan::whereIn('batch_produksi_id', $activeBatchIds)
+            ->select(DB::raw('COALESCE(SUM(biaya), 0) as total'))
             ->value('total');
 
-        $totalPengeluaran = $pengeluaranPembesaran + $pengeluaranProduksi + $biayaKesehatan;
+        // Biaya operasional harian (pakan/vitamin) yang dicatat di laporan harian – berguna jika tidak ada record di tabel pakan
+        $biayaHarian = (float) LaporanHarian::whereIn('batch_produksi_id', $activeBatchIds)
+            ->select(DB::raw('COALESCE(SUM(COALESCE(biaya_pakan_harian, 0) + COALESCE(biaya_vitamin_harian, 0)), 0) as total'))
+            ->value('total');
+
+        $totalPengeluaran = $pengeluaranPembesaran + $pengeluaranProduksi + $biayaKesehatan + $biayaHarian;
 
         return [
             'total' => $totalPengeluaran,
@@ -763,6 +803,7 @@ class SistemController extends Controller
                 'pembesaran_feed' => $pengeluaranPembesaran,
                 'produksi_feed' => $pengeluaranProduksi,
                 'kesehatan' => $biayaKesehatan,
+                'operasional_harian' => $biayaHarian,
             ],
         ];
     }
@@ -907,5 +948,56 @@ class SistemController extends Controller
         }
 
         return 'up';
+    }
+
+    /**
+     * Status yang dianggap aktif untuk pembesaran/produksi.
+     */
+    protected function activeStatusValues(): array
+    {
+        return [
+            'aktif',
+            'active',
+            'berjalan',
+            'proses',
+            'ongoing',
+            'sedang berjalan',
+            'running',
+            'in_progress',
+        ];
+    }
+
+    /**
+     * Ambil daftar batch_produksi_id aktif (pembesaran) dan produksi_id aktif (produksi) untuk perhitungan finansial.
+     */
+    protected function getActiveBatchAndProduksiIds(): array
+    {
+        $activeStatuses = $this->activeStatusValues();
+
+        // Produksi aktif
+        $activeProduksi = Produksi::query()
+            ->whereIn(DB::raw('LOWER(COALESCE(status, ""))'), $activeStatuses)
+            ->get(['id', 'batch_produksi_id']);
+
+        $activeProduksiIds = $activeProduksi->pluck('id')->unique()->values()->all();
+        $activeProductionBatchIds = $activeProduksi->pluck('batch_produksi_id')->filter()->unique()->values()->all();
+
+        // Pembesaran aktif
+        $activeGrowerBatchIds = Pembesaran::query()
+            ->whereIn(DB::raw('LOWER(COALESCE(status_batch, ""))'), $activeStatuses)
+            ->pluck('batch_produksi_id')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        // Final batch ids: gabungan batch produksi aktif + pembesaran aktif
+        $activeBatchIds = collect($activeProductionBatchIds)
+            ->merge($activeGrowerBatchIds)
+            ->unique()
+            ->values()
+            ->all();
+
+        return [$activeBatchIds, $activeProduksiIds];
     }
 }

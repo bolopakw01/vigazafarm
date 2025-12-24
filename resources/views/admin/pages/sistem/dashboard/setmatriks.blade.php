@@ -155,7 +155,12 @@
 
                 <div class="form-footer">
                     <div class="helper-text"><i class="fas fa-lightbulb text-warning"></i> Target akan mempengaruhi indikator pada dashboard utama.</div>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Simpan Target</button>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" class="btn btn-secondary" name="reset_matrix" value="1" onclick="return confirm('Reset semua angka matriks dan ambil ulang dari data aktif?');">
+                            <i class="fas fa-rotate"></i> Reset Angka
+                        </button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Simpan Target</button>
+                    </div>
                 </div>
             </form>
         </div>

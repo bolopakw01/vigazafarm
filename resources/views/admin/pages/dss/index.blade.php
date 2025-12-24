@@ -35,6 +35,16 @@
 		'feed' => ['label' => 'Konsumsi Pakan', 'icon' => 'fa-wheat-awn'],
 		'mortality' => ['label' => 'Kematian', 'icon' => 'fa-skull-crossbones'],
 	];
+	$summaryChartPayload = collect($summaryMeta)
+		->map(function ($meta, $key) use ($summary) {
+			$datum = $summary[$key] ?? ['total' => 0, 'alerts' => 0];
+			return [
+				'label' => $meta['label'],
+				'alerts' => $datum['alerts'] ?? 0,
+				'total' => $datum['total'] ?? 0,
+			];
+		})
+		->values();
 	$trendSeries = $mode === 'config' ? ($trendSeries ?? []) : [];
 	$trendLabels = data_get($trendSeries, 'labels', []);
 	$trendData = data_get($trendSeries, 'data', []);
@@ -358,6 +368,22 @@
 						<p class="mb-0 text-muted" style="font-size:0.85rem;">{{ $data['alerts'] > 0 ? 'Perlu perhatian' : 'Semua dalam batas wajar' }}</p>
 					</div>
 				@endforeach
+			</div>
+
+			<div class="section-card chart-card">
+				<div class="card-head">
+					<div>
+						<h2 class="card-title mb-0">Diagram Ringkasan Alert</h2>
+						<small class="text-muted">Telur, pakan, dan kematian dalam satu grafik.</small>
+					</div>
+					<div class="text-end">
+						<span class="status-pill info">Bar Chart</span>
+						<div class="text-muted" style="font-size:0.8rem;">Sumber dari ringkasan terkini</div>
+					</div>
+				</div>
+				<div class="chart-wrap mt-3">
+					<canvas id="dss-summary-chart" data-summary='@json($summaryChartPayload)'></canvas>
+				</div>
 			</div>
 
 			<div class="section-card chart-card">
@@ -758,85 +784,153 @@
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 	<script>
 		document.addEventListener('DOMContentLoaded', function () {
+			if (typeof Chart === 'undefined') {
+				return;
+			}
+
+			const summaryCanvas = document.getElementById('dss-summary-chart');
+			if (summaryCanvas) {
+				let summaryData = [];
+				try {
+					summaryData = JSON.parse(summaryCanvas.dataset.summary || '[]');
+				} catch (error) {
+					summaryData = [];
+				}
+				if (Array.isArray(summaryData) && summaryData.length) {
+					const summaryLabels = summaryData.map((item) => item.label || '-');
+					const alertValues = summaryData.map((item) => Number(item.alerts || 0));
+					const totalValues = summaryData.map((item) => Number(item.total || 0));
+					const ctxSummary = summaryCanvas.getContext('2d');
+					new Chart(ctxSummary, {
+						type: 'bar',
+						data: {
+							labels: summaryLabels,
+							datasets: [
+								{
+									label: 'Alert',
+									data: alertValues,
+									backgroundColor: '#ef4444',
+									borderColor: '#dc2626',
+									borderWidth: 1,
+								},
+								{
+									label: 'Total Data',
+									data: totalValues,
+									backgroundColor: '#3b82f6',
+									borderColor: '#1d4ed8',
+									borderWidth: 1,
+								},
+							],
+						},
+						options: {
+							maintainAspectRatio: false,
+							responsive: true,
+							scales: {
+								y: {
+									beginAtZero: true,
+									precision: 0,
+								},
+								x: {
+									grid: {
+										display: false,
+									},
+								},
+							},
+							plugins: {
+								legend: {
+									position: 'top',
+								},
+								tooltip: {
+									callbacks: {
+										label(context) {
+											return `${context.dataset.label}: ${context.formattedValue}`;
+										},
+									},
+								},
+							},
+						},
+					});
+				}
+			}
+
 			const trendCanvas = document.getElementById('dss-trend-chart');
-			if (!trendCanvas || typeof Chart === 'undefined') {
-				return;
-			}
-			let labels = [];
-			let series = [];
-			try {
-				labels = JSON.parse(trendCanvas.dataset.labels || '[]');
-				series = JSON.parse(trendCanvas.dataset.series || '[]');
-			} catch (error) {
-				labels = [];
-				series = [];
-			}
-			if (!Array.isArray(labels) || labels.length === 0 || !Array.isArray(series) || series.length === 0) {
-				return;
-			}
-			const ctx = trendCanvas.getContext('2d');
-			const datasets = series.map((item) => ({
-				label: item.label,
-				data: item.data || [],
-				borderColor: item.color || '#2563eb',
-				backgroundColor: (item.color || '#2563eb') + '33',
-				borderWidth: 2,
-				tension: 0.35,
-				fill: 'start',
-				pointRadius: 3,
-				pointHoverRadius: 5,
-				pointBackgroundColor: item.color || '#2563eb',
-				pointBorderColor: '#fff',
-				unit: item.unit || '',
-			}));
-			new Chart(ctx, {
-				type: 'line',
-				data: {
-					labels,
-					datasets,
-				},
-				options: {
-					maintainAspectRatio: false,
-					responsive: true,
-					interaction: {
-						mode: 'index',
-						intersect: false,
+			if (trendCanvas) {
+				let labels = [];
+				let series = [];
+				try {
+					labels = JSON.parse(trendCanvas.dataset.labels || '[]');
+					series = JSON.parse(trendCanvas.dataset.series || '[]');
+				} catch (error) {
+					labels = [];
+					series = [];
+				}
+				if (!Array.isArray(labels) || labels.length === 0 || !Array.isArray(series) || series.length === 0) {
+					return;
+				}
+				const ctx = trendCanvas.getContext('2d');
+				const datasets = series.map((item) => ({
+					label: item.label,
+					data: item.data || [],
+					borderColor: item.color || '#2563eb',
+					backgroundColor: (item.color || '#2563eb') + '33',
+					borderWidth: 2,
+					tension: 0.35,
+					fill: 'start',
+					pointRadius: 3,
+					pointHoverRadius: 5,
+					pointBackgroundColor: item.color || '#2563eb',
+					pointBorderColor: '#fff',
+					unit: item.unit || '',
+				}));
+				new Chart(ctx, {
+					type: 'line',
+					data: {
+						labels,
+						datasets,
 					},
-					scales: {
-						y: {
-							beginAtZero: true,
-							grid: {
-								color: 'rgba(226, 232, 240, 0.6)',
+					options: {
+						maintainAspectRatio: false,
+						responsive: true,
+						interaction: {
+							mode: 'index',
+							intersect: false,
+						},
+						scales: {
+							y: {
+								beginAtZero: true,
+								grid: {
+									color: 'rgba(226, 232, 240, 0.6)',
+								},
+								ticks: {
+									precision: 0,
+								},
 							},
-							ticks: {
-								precision: 0,
+							x: {
+								grid: {
+									color: 'rgba(248, 250, 252, 0.8)',
+								},
 							},
 						},
-						x: {
-							grid: {
-								color: 'rgba(248, 250, 252, 0.8)',
+						plugins: {
+							legend: {
+								position: 'bottom',
+								labels: {
+									usePointStyle: true,
+								},
 							},
-						},
-					},
-					plugins: {
-						legend: {
-							position: 'bottom',
-							labels: {
-								usePointStyle: true,
-							},
-						},
-						tooltip: {
-							callbacks: {
-								label(context) {
-									const dataset = context.dataset || {};
-									const suffix = dataset.unit ? ` ${dataset.unit}` : '';
-									return `${dataset.label}: ${context.formattedValue}${suffix}`;
+							tooltip: {
+								callbacks: {
+									label(context) {
+										const dataset = context.dataset || {};
+										const suffix = dataset.unit ? ` ${dataset.unit}` : '';
+										return `${dataset.label}: ${context.formattedValue}${suffix}`;
+									},
 								},
 							},
 						},
 					},
-				},
-			});
+				});
+			}
 		});
 	</script>
 @endpush
