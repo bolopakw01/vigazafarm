@@ -333,16 +333,12 @@
                 </div>
 
                 <div class="download-buttons">
-                    <a href="{{ route('admin.sistem.looker.export.download') }}" class="btn-download">
-                        <i class="fa-solid fa-file-zipper"></i>
-                        Unduh Paket Standar (ZIP)
-                    </a>
-                    <a href="{{ route('admin.sistem.looker.export.download.csv') }}" class="btn-download btn-download-outline">
+                    <a href="{{ route('admin.sistem.looker.export.download.flat') }}" class="btn-download">
                         <i class="fa-solid fa-file-csv"></i>
-                        Unduh Paket CSV Profesional
+                        Unduh Satu CSV (Looker)
                     </a>
                 </div>
-                <p class="download-hint">Paket profesional menghasilkan file ZIP berisi tiga CSV utama untuk analisis harian, snapshot populasi, dan stok inventaris.</p>
+                <p class="download-hint">Satu file CSV siap upload ke Looker Studio (laporan operasional harian). Gunakan bila ingin proses paling sederhana.</p>
 
                 <div class="tips-section">
                     <h4><i class="fa-solid fa-lightbulb"></i> Tips Penggunaan</h4>
