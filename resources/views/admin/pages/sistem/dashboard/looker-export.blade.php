@@ -262,6 +262,111 @@
         line-height: 1.5;
     }
 
+    .embed-card {
+        margin-top: 28px;
+        background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid #c7d2fe;
+        box-shadow: 0 10px 30px rgba(79, 70, 229, 0.12);
+        color: #1f2937;
+    }
+
+    .embed-card h5 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #111827;
+    }
+
+    .embed-card .embed-lead {
+        color: #374151;
+        margin-bottom: 14px;
+        font-size: 0.95rem;
+    }
+
+    /* Ensure this single description line is left aligned only (overrides parent center alignment) */
+    .embed-card .embed-lead {
+        text-align: left;
+        width: 100%;
+        margin: 0 0 14px 0;
+    }
+
+    .embed-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        background: rgba(255, 255, 255, 0.6);
+        border: 1px solid #c7d2fe;
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 14px;
+    }
+
+    /* Left-align the status text block only */
+    .embed-row > div:first-child {
+        text-align: left;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .toggle-switch { position: relative; display: inline-block; width: 52px; height: 28px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #cbd5e1; transition: .3s; border-radius: 28px; }
+    .toggle-slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background: #fff; transition: .3s; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+    input:checked + .toggle-slider { background: #4338ca; }
+    input:checked + .toggle-slider:before { transform: translateX(24px); }
+    .toggle-label { font-size: 0.95rem; font-weight: 600; color: #111827; margin-left: 12px; }
+
+    .embed-form-label { font-weight: 600; color: #111827; display: block; margin-bottom: 6px; }
+
+    .embed-input {
+        width: 100%;
+        border: 2px solid #c7d2fe;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 0.95rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        background: rgba(255, 255, 255, 0.9);
+    }
+
+    .embed-input:focus {
+        outline: none;
+        border-color: #4338ca;
+        box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.2);
+    }
+
+    .btn-embed {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: #4338ca;
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        padding: 12px 20px;
+        font-weight: 700;
+        box-shadow: 0 10px 25px rgba(67, 56, 202, 0.25);
+        transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    }
+
+    .btn-embed:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 30px rgba(67, 56, 202, 0.3);
+        opacity: 0.95;
+    }
+
+    .embed-hint {
+        margin-top: 8px;
+        color: #4b5563;
+        font-size: 0.9rem;
+    }
+
     @media (max-width: 768px) {
         .export-wrapper {
             padding: 16px;
@@ -286,6 +391,8 @@
         .tips-list {
             grid-template-columns: 1fr;
         }
+
+        .embed-row { align-items: flex-start; }
     }
 </style>
 @endpush
@@ -311,7 +418,7 @@
         <div class="card-body">
             <div class="download-section">
                 <h3><i class="fa-solid fa-download"></i> Unduh Paket Data</h3>
-                <p>Pilih antara paket standar (semua dataset mentah per tabel) atau paket profesional berisi tiga CSV kurasi (D1-D3) dalam satu file ZIP siap pakai untuk Looker Studio.</p>
+                <p>Unduh satu CSV terkurasi siap pakai di Looker Studio. Tidak perlu ekstrak ZIP atau menggabungkan dataset secara manual.</p>
 
                 <div class="download-info">
                     <div class="download-info-item">
@@ -319,12 +426,12 @@
                         <span>Data Aman</span>
                     </div>
                     <div class="download-info-item">
-                        <i class="fa-solid fa-file-zipper"></i>
-                        <span>Paket Multi CSV Standar (ZIP)</span>
+                        <i class="fa-solid fa-file-csv"></i>
+                        <span>CSV Tunggal Siap Upload</span>
                     </div>
                     <div class="download-info-item">
-                        <i class="fa-solid fa-file-csv"></i>
-                        <span>3 CSV Profesional (D1-D3)</span>
+                        <i class="fa-solid fa-diagram-project"></i>
+                        <span>Schema & header konsisten</span>
                     </div>
                     <div class="download-info-item">
                         <i class="fa-solid fa-layer-group"></i>
@@ -335,10 +442,42 @@
                 <div class="download-buttons">
                     <a href="{{ route('admin.sistem.looker.export.download.flat') }}" class="btn-download">
                         <i class="fa-solid fa-file-csv"></i>
-                        Unduh Satu CSV (Looker)
+                        Unduh CSV (Looker Ready)
                     </a>
                 </div>
-                <p class="download-hint">Satu file CSV siap upload ke Looker Studio (laporan operasional harian). Gunakan bila ingin proses paling sederhana.</p>
+                <p class="download-hint">CSV ini sudah mencakup kolom meta dan nilai terhitung untuk laporan operasional harian. Langsung sambungkan ke Looker Studio via Google Sheets atau upload file.</p>
+
+            @php $embedEnabled = data_get($embedConfig, 'enabled'); @endphp
+            <form action="{{ route('admin.sistem.looker.export.embed') }}" method="POST" class="mt-4">
+                @csrf
+                <div class="embed-card">
+                    <h5><i class="fa-solid fa-window-maximize"></i> Embed Looker Studio di Dashboard</h5>
+                    <p class="embed-lead">Aktifkan untuk menampilkan iframe Looker Studio menggantikan dashboard bawaan.</p>
+
+                    <div class="embed-row">
+                        <div>
+                            <h6 class="mb-1 fw-semibold">Status Embed</h6>
+                            <small class="text-muted">Klik toggle untuk mengaktifkan/menonaktifkan.</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <input type="hidden" name="enabled" value="0">
+                            <label class="toggle-switch mb-0" aria-label="Toggle Looker embed">
+                                <input type="checkbox" name="enabled" value="1" id="embedToggle" {{ $embedEnabled ? 'checked' : '' }}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label" id="embedToggleLabel">{{ $embedEnabled ? 'Aktif' : 'Nonaktif' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="embed-form-label" for="embedUrl">URL Looker Studio</label>
+                        <input id="embedUrl" type="url" name="url" class="embed-input" value="{{ data_get($embedConfig, 'url') }}" placeholder="https://lookerstudio.google.com/embed/..." required>
+                        <div class="embed-hint">Gunakan URL embed (bukan editor). Contoh: link yang berisi /embed/reporting/.</div>
+                    </div>
+
+                    <button class="btn-embed" type="submit"><i class="fa-solid fa-floppy-disk"></i> Simpan Embed</button>
+                </div>
+            </form>
 
                 <div class="tips-section">
                     <h4><i class="fa-solid fa-lightbulb"></i> Tips Penggunaan</h4>
@@ -366,3 +505,16 @@
     </div>
 </div>
 @endsection
+
+            @push('scripts')
+            <script>
+            document.addEventListener('DOMContentLoaded', function(){
+                const toggle = document.getElementById('embedToggle');
+                const label = document.getElementById('embedToggleLabel');
+                if (!toggle || !label) return;
+                toggle.addEventListener('change', function(){
+                    label.textContent = toggle.checked ? 'Aktif' : 'Nonaktif';
+                });
+            });
+            </script>
+            @endpush

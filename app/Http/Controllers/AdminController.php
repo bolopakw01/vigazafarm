@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * ==========================================
@@ -41,8 +42,53 @@ class AdminController extends Controller
         $matrixEnabled = $sistemController->isMatrixEnabled();
         $activityDatasets = $this->prepareActivityDatasets();
         $performanceChart = $sistemController->getPerformanceChartConfig();
+        $performanceHasData = $this->hasPerformanceData($performanceChart);
 
-        return view('admin.dashboard-admin', compact('goals', 'matrixCards', 'matrixEnabled', 'activityDatasets', 'performanceChart'));
+        $lookerEmbed = $this->getLookerEmbedConfig();
+
+        return view('admin.dashboard-admin', compact('goals', 'matrixCards', 'matrixEnabled', 'activityDatasets', 'performanceChart', 'performanceHasData', 'lookerEmbed'));
+    }
+
+    protected function hasPerformanceData(array $chart): bool
+    {
+        if (!($chart['enabled'] ?? false)) {
+            return false;
+        }
+
+        $series = $chart['series'] ?? [];
+
+        foreach ($series as $item) {
+            $dataPoints = $item['data'] ?? [];
+            foreach ($dataPoints as $value) {
+                if (is_numeric($value) && (float) $value !== 0.0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    protected function getLookerEmbedConfig(): array
+    {
+        $default = [
+            'enabled' => false,
+            'url' => 'https://lookerstudio.google.com/embed/reporting/5bed3c6a-124c-4618-808c-3e8b4844281b/page/IPljF',
+        ];
+
+        if (!Storage::disk('local')->exists('looker_embed.json')) {
+            return $default;
+        }
+
+        $data = json_decode(Storage::disk('local')->get('looker_embed.json'), true);
+        if (!is_array($data)) {
+            return $default;
+        }
+
+        return [
+            'enabled' => (bool) ($data['enabled'] ?? false),
+            'url' => $data['url'] ?? $default['url'],
+        ];
     }
 
     public function kandang()

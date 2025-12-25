@@ -170,6 +170,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/sistem/export/looker/download', [LookerExportController::class, 'download'])->name('admin.sistem.looker.export.download'); // Download export
         Route::get('/admin/sistem/export/looker/download/csv', [LookerExportController::class, 'downloadSingleCsv'])->name('admin.sistem.looker.export.download.csv'); // Download CSV
         Route::get('/admin/sistem/export/looker/download/flat', [LookerExportController::class, 'downloadFlatSingle'])->name('admin.sistem.looker.export.download.flat'); // Download single CSV siap Looker
+        Route::post('/admin/sistem/export/looker/embed', [LookerExportController::class, 'toggleEmbed'])->name('admin.sistem.looker.export.embed'); // Toggle embed Looker
     });
 
     // ==============================

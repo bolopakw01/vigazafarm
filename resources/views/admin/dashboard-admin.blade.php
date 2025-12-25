@@ -96,6 +96,19 @@
 
 @section('content')
 
+	@if(data_get($lookerEmbed ?? [], 'enabled'))
+		<div class="app-card section-gap mb-3" style="border:1px solid #e2e8f0;">
+			<div class="card-head d-flex justify-content-between align-items-center">
+				{{-- <h2 class="card-title mb-0">BolopaKW</h2> --}}
+				<span class="status-dot status-green" title="Looker embed aktif"></span>
+			</div>
+			<div class="ratio ratio-16x9" style="min-height:400px;">
+				<iframe src="{{ data_get($lookerEmbed, 'url') }}" frameborder="0" style="border:0;width:100%;height:100%;" allowfullscreen sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
+			</div>
+		</div>
+	@endif
+
+	@if(!data_get($lookerEmbed ?? [], 'enabled'))
 	<div class="container-app container">
 		<!-- Header Card -->
 		{{-- <div class="app-card section-gap header-with-rt">
@@ -556,6 +569,7 @@
 		</div>
 
 	</div>
+	@endif
 
 @endsection
 

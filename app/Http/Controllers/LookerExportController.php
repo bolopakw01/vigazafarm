@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Services\LookerMasterExportBuilder;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use ZipArchive;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class LookerExportController extends Controller
 {
@@ -12,6 +15,8 @@ class LookerExportController extends Controller
     {
         $builder = new LookerMasterExportBuilder();
         $datasets = $builder->datasets();
+
+        $embedConfig = $this->getEmbedConfig();
 
         $stats = collect($datasets)->map(function (array $rows, string $key) {
             return [
@@ -23,7 +28,22 @@ class LookerExportController extends Controller
         return view('admin.pages.sistem.dashboard.looker-export', [
             'datasetStats' => $stats,
             'generatedAt' => now(),
+            'embedConfig' => $embedConfig,
         ]);
+    }
+
+    public function toggleEmbed(Request $request): RedirectResponse
+    {
+        $data = $this->getEmbedConfig();
+        $enabled = (bool) $request->get('enabled', false);
+        $url = $request->get('url', $data['url']);
+
+        Storage::disk('local')->put('looker_embed.json', json_encode([
+            'enabled' => $enabled,
+            'url' => $url,
+        ]));
+
+        return back()->with('status', 'Konfigurasi embed Looker diperbarui');
     }
 
     public function download(): BinaryFileResponse
@@ -183,6 +203,28 @@ class LookerExportController extends Controller
             '',
             'Jika kolom kosong, header tetap ada agar mapping tidak berubah.',
         ]);
+    }
+
+    protected function getEmbedConfig(): array
+    {
+        $default = [
+            'enabled' => false,
+            'url' => 'https://lookerstudio.google.com/embed/reporting/5bed3c6a-124c-4618-808c-3e8b4844281b/page/IPljF',
+        ];
+
+        if (!Storage::disk('local')->exists('looker_embed.json')) {
+            return $default;
+        }
+
+        $data = json_decode(Storage::disk('local')->get('looker_embed.json'), true);
+        if (!is_array($data)) {
+            return $default;
+        }
+
+        return [
+            'enabled' => (bool) ($data['enabled'] ?? false),
+            'url' => $data['url'] ?? $default['url'],
+        ];
     }
 
     protected function convertRowsToCsv(array $columns, array $rows): string
