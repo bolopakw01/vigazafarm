@@ -12,8 +12,10 @@
 
 @php
 	$performance = $performance ?? [];
-	$series = $performance['series'] ?? [];
-	$categories = $performance['categories'] ?? [];
+	$startMonth = $performance['start_month'] ?? now()->startOfMonth()->subMonths(5)->format('Y-m');
+	$endMonth = $performance['end_month'] ?? now()->format('Y-m');
+	$colors = $performance['colors'] ?? ['#0d6efd', '#ffc107', '#198754'];
+	$enabled = $performance['enabled'] ?? true;
 @endphp
 
 @push('styles')
@@ -52,6 +54,13 @@
 	.btn:hover { opacity:0.9; transform:translateY(-1px); }
 	.form-footer { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:12px; }
 	.helper-text { font-size:0.85rem; color:#475569; display:flex; align-items:center; gap:6px; }
+	.toggle-switch { position:relative; display:inline-block; width:52px; height:28px; }
+	.toggle-switch input { opacity:0; width:0; height:0; }
+	.toggle-slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#ccc; transition:.3s; border-radius:28px; }
+	.toggle-slider:before { position:absolute; content:""; height:20px; width:20px; left:4px; bottom:4px; background:#fff; transition:.3s; border-radius:50%; }
+	input:checked + .toggle-slider { background:#2563eb; }
+	input:checked + .toggle-slider:before { transform:translateX(24px); }
+	.toggle-label { font-size:0.9rem; font-weight:600; color:#0f172a; margin-left:12px; }
 	@media (max-width:768px){ .performance-card .card-header, .form-footer { flex-direction:column; align-items:flex-start; } .series-meta { flex-direction:column; } .series-color { max-width:100%; } }
 </style>
 @endpush
@@ -61,18 +70,18 @@
 	<div class="performance-card">
 		<div class="card-header">
 			<div>
-				<h1 class="performance-title"><i class="fas fa-chart-radar"></i> Konfigurasi Grafik Performance</h1>
-				<p class="performance-sub">Sesuaikan label seri dan nilai radar chart agar mencerminkan performa operasional terbaru.</p>
+				<h1 class="performance-title"><i class="fas fa-chart-radar"></i> Rentang Grafik Performance</h1>
+				<p class="performance-sub">Pilih bulan mulai dan selesai untuk grafik pendapatan, pengeluaran, dan laba.</p>
 			</div>
 			<a href="{{ route('admin.sistem') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali</a>
 		</div>
 		<div class="card-body">
 			@if(session('success'))
-				<div class="alert-msg alert-success">{{ session('success') }}</div>
+				<div class="alert-msg alert-success" role="alert">{{ session('success') }}</div>
 			@endif
 			@if ($errors->any())
-				<div class="alert-msg alert-error">
-					<strong>Periksa input Anda:</strong>
+				<div class="alert-msg alert-error" role="alert">
+					<strong>Periksa input:</strong>
 					<ul class="mb-0 mt-2 ps-4">
 						@foreach ($errors->all() as $error)
 							<li>{{ $error }}</li>
@@ -81,76 +90,81 @@
 				</div>
 			@endif
 
-			<form method="POST" action="{{ route('admin.sistem.performance.update') }}" id="performanceForm">
+			<div class="alert-msg alert-success" role="alert">
+				<i class="fas fa-info-circle me-2"></i>
+				Grafik performance di dashboard menarik data finansial otomatis. Anda hanya memilih rentang bulan (maksimal 6 bulan) dan warna legendanya, serta bisa menonaktifkannya.
+			</div>
+
+			<form method="POST" action="{{ route('admin.sistem.performance.update') }}" id="performanceRangeForm">
 				@csrf
 				@method('PUT')
 
 				<div class="section-box">
-					<h2 class="section-title"><i class="fas fa-layer-group"></i> Pengaturan Seri</h2>
-					<p class="helper-text"><i class="fas fa-info-circle text-primary"></i> Nama seri akan muncul di legenda radar chart. Maksimal 4 seri.</p>
-					<div class="form-grid">
-						@foreach($series as $index => $serie)
-							<div class="series-row">
-								<input type="hidden" name="series[{{ $index }}][key]" value="{{ $serie['key'] }}">
-								<div class="form-label">Seri {{ $index + 1 }}</div>
-								<div class="series-meta">
-									<div class="flex-1">
-										<label class="form-label">Nama Seri</label>
-										<input type="text" name="series[{{ $index }}][label]" value="{{ $serie['label'] }}" class="form-control series-label-input" data-series-key="{{ $serie['key'] }}" maxlength="50" required>
-									</div>
-									<div class="series-color">
-										<label class="form-label">Warna</label>
-										<input type="color" name="series[{{ $index }}][color]" value="{{ $serie['color'] }}" class="form-control" required>
-									</div>
-								</div>
-							</div>
-						@endforeach
+					<h2 class="section-title"><i class="fas fa-calendar-alt"></i> Rentang Bulan</h2>
+					@php
+						$currentStatus = filter_var(old('enabled', $enabled), FILTER_VALIDATE_BOOLEAN);
+					@endphp
+					<div class="d-flex align-items-center justify-content-between mb-3 p-3 rounded border bg-light flex-wrap gap-3">
+						<div>
+							<h6 class="mb-1 fw-semibold">Status Grafik Performance</h6>
+							<small class="text-muted">Aktifkan atau nonaktifkan tampilan grafik pada dashboard utama</small>
+						</div>
+						<div class="d-flex align-items-center gap-3">
+							<input type="hidden" name="enabled" value="0">
+							<label class="toggle-switch mb-0" aria-label="Toggle performance chart">
+								<input type="checkbox" name="enabled" value="1" id="enabledToggle" {{ $currentStatus ? 'checked' : '' }}>
+								<span class="toggle-slider"></span>
+							</label>
+							<span class="toggle-label" id="enabledLabel">{{ $currentStatus ? 'Aktif' : 'Nonaktif' }}</span>
+						</div>
 					</div>
+					<div class="form-grid">
+						<div>
+							<label class="form-label">Mulai</label>
+							<input type="month" name="start_month" id="startMonth" class="form-control" value="{{ old('start_month', $startMonth) }}" required>
+						</div>
+						<div>
+							<label class="form-label">Selesai</label>
+							<input type="month" name="end_month" id="endMonth" class="form-control" value="{{ old('end_month', $endMonth) }}" required>
+						</div>
+					</div>
+					<p class="helper-text" style="margin-top:12px;"><i class="fas fa-lightbulb text-warning"></i> Rentang maksimal 6 bulan. Jika lebih, sistem otomatis memotong ke 6 bulan terakhir.</p>
 				</div>
 
-				<div class="section-box dark">
-					<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
-						<h2 class="section-title mb-0"><i class="fas fa-chart-pie"></i> Nilai Radar Chart</h2>
-						<button type="button" class="btn btn-primary" id="addCategoryRow"><i class="fas fa-plus"></i> Tambah Kategori</button>
+				<div class="section-box">
+					<h2 class="section-title"><i class="fas fa-palette"></i> Warna Legenda</h2>
+					<div class="form-grid">
+						<div>
+							<label class="form-label">Revenue</label>
+							<input type="color" class="form-control" name="colors[0]" value="{{ old('colors.0', $colors[0] ?? '#0d6efd') }}">
+						</div>
+						<div>
+							<label class="form-label">Expenses</label>
+							<input type="color" class="form-control" name="colors[1]" value="{{ old('colors.1', $colors[1] ?? '#ffc107') }}">
+						</div>
+						<div>
+							<label class="form-label">Profit</label>
+							<input type="color" class="form-control" name="colors[2]" value="{{ old('colors.2', $colors[2] ?? '#198754') }}">
+						</div>
 					</div>
-					<p class="helper-text"><i class="fas fa-info-circle text-primary"></i> Nilai berada pada rentang 0 - 200. Gunakan nama kategori singkat agar mudah dibaca.</p>
-					<div class="category-table-wrap">
-						<table class="category-table">
-							<thead>
-								<tr>
-									<th style="min-width:180px;">Nama Kategori</th>
-									@foreach($series as $serie)
-										<th data-header-series="{{ $serie['key'] }}">{{ $serie['label'] }}</th>
-									@endforeach
-									<th class="table-actions">Aksi</th>
-								</tr>
-							</thead>
-							<tbody id="categoryTableBody" data-last-index="{{ count($categories) ? count($categories) - 1 : -1 }}">
-								@foreach($categories as $catIndex => $category)
-								<tr>
-									<td>
-										<input type="text" name="categories[{{ $catIndex }}][label]" value="{{ $category['label'] }}" class="form-control" maxlength="60" required>
-									</td>
-									@foreach($series as $serie)
-									<td>
-										<input type="number" name="categories[{{ $catIndex }}][values][{{ $serie['key'] }}]" value="{{ $category['values'][$serie['key']] ?? 0 }}" class="form-control" min="0" max="200" step="1" required>
-									</td>
-									@endforeach
-									<td class="text-center">
-										<button type="button" class="btn btn-outline remove-category"><i class="fas fa-trash"></i></button>
-									</td>
-								</tr>
-								@endforeach
-							</tbody>
-						</table>
-					</div>
+					<p class="helper-text" style="margin-top:12px;"><i class="fas fa-info-circle text-primary"></i> Warna dipakai untuk legenda dan garis grafik di dashboard.</p>
+				</div>
+
+				<div class="section-box">
+					<h2 class="section-title"><i class="fas fa-chart-line"></i> Cara kerja</h2>
+					<ul class="mb-0" style="padding-left:18px; color:#475569;">
+						<li>Label bulan memakai format MMM YYYY sesuai rentang yang Anda pilih.</li>
+						<li>Pendapatan: pencatatan produksi aktif + pendapatan harian batch aktif.</li>
+						<li>Pengeluaran: pakan (batch & produksi) + kesehatan + biaya pakan/vitamin harian batch aktif.</li>
+						<li>Laba: pendapatan dikurangi pengeluaran per bulan.</li>
+					</ul>
 				</div>
 
 				<div class="form-footer">
-					<div class="helper-text"><i class="fas fa-lightbulb text-warning"></i> Simpan perubahan sebelum meninggalkan halaman.</div>
+					<div class="helper-text"><i class="fas fa-lightbulb text-warning"></i> Ubah data produksi/pembesaran untuk mempengaruhi angka grafik.</div>
 					<div class="d-flex gap-2 flex-wrap">
-						<a href="{{ route('admin.sistem') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali</a>
-						<button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Simpan Konfigurasi</button>
+						<a href="{{ route('admin.dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Dashboard</a>
+						<button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Simpan Rentang</button>
 					</div>
 				</div>
 			</form>
@@ -161,58 +175,40 @@
 
 @push('scripts')
 <script>
-	document.addEventListener('DOMContentLoaded', function(){
-		const seriesMeta = @json($series);
-		const categoryBody = document.getElementById('categoryTableBody');
-		const addCategoryBtn = document.getElementById('addCategoryRow');
-		if(!categoryBody) { return; }
-		const maxCategories = 8;
-		let lastIndex = parseInt(categoryBody.dataset.lastIndex ?? (categoryBody.rows.length - 1));
+document.addEventListener('DOMContentLoaded', function(){
+  const startInput = document.getElementById('startMonth');
+  const endInput = document.getElementById('endMonth');
+  const form = document.getElementById('performanceRangeForm');
+	const maxMonths = 6;
+	const enabledToggle = document.getElementById('enabledToggle');
+	const enabledLabel = document.getElementById('enabledLabel');
 
-		function updateHeaderLabel(seriesKey, value){
-			const header = document.querySelector(`[data-header-series="${seriesKey}"]`);
-			if(header){ header.textContent = value || 'Seri'; }
-		}
+  function clampRange(){
+    if(!startInput.value || !endInput.value){ return; }
+    const start = new Date(startInput.value + '-01');
+    const end = new Date(endInput.value + '-01');
 
-		document.querySelectorAll('.series-label-input').forEach(input => {
-			input.addEventListener('input', (e)=> updateHeaderLabel(e.target.dataset.seriesKey, e.target.value.trim()));
-		});
+    if(start > end){
+      endInput.value = startInput.value;
+    }
 
-		function buildCategoryRow(index){
-			let cells = seriesMeta.map((serie) => {
-				return `<td><input type="number" name="categories[${index}][values][${serie.key}]" class="form-control" min="0" max="200" step="1" value="0" required></td>`;
-			}).join('');
+    const diffMonths = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
+    if(diffMonths > maxMonths){
+      const adjusted = new Date(end.getFullYear(), end.getMonth() - (maxMonths - 1), 1);
+      const ym = `${adjusted.getFullYear()}-${String(adjusted.getMonth() + 1).padStart(2,'0')}`;
+      startInput.value = ym;
+    }
+  }
 
-			return `
-				<tr>
-					<td><input type="text" name="categories[${index}][label]" class="form-control" maxlength="60" placeholder="Nama kategori" required></td>
-					${cells}
-					<td class="text-center"><button type="button" class="btn btn-outline remove-category"><i class="fas fa-trash"></i></button></td>
-				</tr>
-			`;
-		}
+  startInput?.addEventListener('change', clampRange);
+  endInput?.addEventListener('change', clampRange);
+  form?.addEventListener('submit', clampRange);
 
-		function attachRemoveHandlers(){
-			categoryBody.querySelectorAll('.remove-category').forEach(btn => {
-				btn.onclick = function(){
-					btn.closest('tr').remove();
-				};
-			});
-		}
-
-		attachRemoveHandlers();
-
-		addCategoryBtn?.addEventListener('click', function(){
-			const currentRows = categoryBody.querySelectorAll('tr').length;
-			if(currentRows >= maxCategories){
-				alert('Maksimal 8 kategori.');
-				return;
-			}
-			lastIndex += 1;
-			categoryBody.insertAdjacentHTML('beforeend', buildCategoryRow(lastIndex));
-			attachRemoveHandlers();
-		});
+	enabledToggle?.addEventListener('change', function(){
+		if(!enabledLabel) return;
+		enabledLabel.textContent = enabledToggle.checked ? 'Aktif' : 'Nonaktif';
 	});
+});
 </script>
 @endpush
 

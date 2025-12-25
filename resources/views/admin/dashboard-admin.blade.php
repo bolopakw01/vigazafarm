@@ -23,6 +23,9 @@
 		.performance-empty { border: 1px dashed #e5e7eb; border-radius: 12px; padding: 28px 16px; width: 100%; min-height: 220px; background: #f8fafc; }
 		.performance-empty i { color: #cbd5f5; }
 		.performance-empty p, .performance-empty small { color: #94a3b8; }
+		.performance-section .app-card { overflow: visible; }
+		.performance-section .box-body { min-height: 420px; padding: 16px; }
+		#radarChart { min-height: 380px; padding: 12px; overflow: visible; }
 		.table-filter-panel { display: none; margin-top: 10px; }
 		.table-filter-panel.show { display: block; }
 		.table-filter-panel .input-group-text { background: #fff; border-right: 0; }
@@ -238,9 +241,10 @@
 			$matrixCards = $matrixCards ?? [];
 			$matrixEnabled = $matrixEnabled ?? true;
 			$activityDatasets = $activityDatasets ?? [];
-			$performanceChart = $performanceChart ?? ['labels' => [], 'series' => [], 'colors' => []];
+			$performanceChart = $performanceChart ?? ['labels' => [], 'series' => [], 'colors' => [], 'enabled' => true];
+			$performanceEnabled = $performanceChart['enabled'] ?? true;
 			$performanceSeries = $performanceChart['series'] ?? [];
-			$performanceHasData = !empty($performanceChart['labels']) && collect($performanceSeries)->contains(fn ($serie) => !empty($serie['data']));
+			$performanceHasData = $performanceEnabled && !empty($performanceChart['labels']) && collect($performanceSeries)->contains(fn ($serie) => !empty($serie['data']));
 		@endphp
 		@if($matrixEnabled)
 			<div class="app-card section-gap kpi-card kpi-matrix-section">

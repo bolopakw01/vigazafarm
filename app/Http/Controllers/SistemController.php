@@ -12,6 +12,7 @@ use App\Models\Produksi;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -248,56 +249,24 @@ class SistemController extends Controller
          * Memperbarui pengaturan grafik performance dan menyimpannya.
          */
         $validated = $request->validate([
-            'series' => 'required|array|min:1|max:4',
-            'series.*.key' => 'nullable|string|max:60',
-            'series.*.label' => 'required|string|max:50',
-            'series.*.color' => ['required', 'regex:/^#([0-9a-fA-F]{3}){1,2}$/'],
-            'categories' => 'nullable|array|max:8',
-            'categories.*.label' => 'required|string|max:60',
-            'categories.*.values' => 'required|array',
-            'categories.*.values.*' => 'nullable|numeric|min:0|max:200',
+            'start_month' => ['required', 'date_format:Y-m'],
+            'end_month' => ['required', 'date_format:Y-m'],
+            'enabled' => ['nullable', 'boolean'],
+            'colors' => ['nullable', 'array', 'size:3'],
+            'colors.*' => ['nullable', 'regex:/^#([0-9a-fA-F]{3}){1,2}$/'],
         ]);
 
-        $series = collect($validated['series'])
-            ->map(function ($item) {
-                $label = trim($item['label']);
-                $rawKey = $item['key'] ?? $label;
-                $key = Str::slug($rawKey ?: $label ?: Str::random(4), '_');
-                if (!$key) {
-                    $key = Str::slug(Str::random(8), '_');
-                }
-                return [
-                    'key' => $key,
-                    'label' => $label ?: 'Series',
-                    'color' => $item['color'],
-                ];
-            })
-            ->unique('key')
-            ->values();
+        [$start, $end] = $this->resolvePerformanceRange($validated['start_month'], $validated['end_month']);
 
-        $seriesKeys = $series->pluck('key');
+        $colors = $this->normalizePerformanceColors($validated['colors'] ?? null);
+        $enabled = (bool) ($validated['enabled'] ?? false);
 
-        $categories = collect($validated['categories'] ?? [])
-            ->map(function ($item) use ($seriesKeys) {
-                $values = collect($item['values'] ?? [])
-                    ->map(fn ($value) => (float) $value)
-                    ->all();
-
-                $normalized = $seriesKeys->mapWithKeys(function ($key) use ($values) {
-                    return [$key => (float) ($values[$key] ?? 0)];
-                });
-
-                return [
-                    'label' => trim($item['label']) ?: 'Kategori',
-                    'values' => $normalized->all(),
-                ];
-            })
-            ->values();
-
-        $payload = [
-            'series' => $series->all(),
-            'categories' => $categories->all(),
-        ];
+        $payload = array_merge($this->loadPerformanceSettings(), [
+            'enabled' => $enabled,
+            'start_month' => $start->format('Y-m'),
+            'end_month' => $end->format('Y-m'),
+            'colors' => $colors,
+        ]);
 
         Storage::disk('local')->put(
             $this->performanceStorage,
@@ -307,12 +276,19 @@ class SistemController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Konfigurasi grafik performance berhasil diperbarui!'
+                'message' => 'Rentang grafik performance berhasil diperbarui!',
+                'range' => [
+                    'start_month' => $payload['start_month'],
+                    'end_month' => $payload['end_month'],
+                ],
+                'enabled' => $payload['enabled'],
+                'colors' => $payload['colors'],
+                'chart' => $this->buildMonthlyPerformanceChart($payload),
             ]);
         }
 
         return redirect()->route('admin.sistem.performance')
-            ->with('success', 'Konfigurasi grafik performance berhasil diperbarui!');
+            ->with('success', 'Rentang grafik performance berhasil diperbarui!');
     }
 
     public function getDashboardGoals()
@@ -450,31 +426,128 @@ class SistemController extends Controller
     public function getPerformanceChartConfig(): array
     {
         $settings = $this->loadPerformanceSettings();
-        $series = $settings['series'] ?? [];
-        $categories = $settings['categories'] ?? [];
 
-        $labels = collect($categories)->pluck('label')->map(fn ($label) => $label ?: 'Kategori')->values()->all();
-
-        $seriesData = collect($series)->map(function ($serie) use ($categories) {
-            $key = $serie['key'];
-            $data = collect($categories)
-                ->map(fn ($category) => (float) ($category['values'][$key] ?? 0))
-                ->values()
-                ->all();
-
+        if (!($settings['enabled'] ?? true)) {
             return [
-                'name' => $serie['label'],
-                'data' => $data,
+                'enabled' => false,
+                'labels' => [],
+                'series' => [],
+                'colors' => $settings['colors'] ?? [],
+                'range' => [
+                    'start_month' => $settings['start_month'] ?? null,
+                    'end_month' => $settings['end_month'] ?? null,
+                ],
             ];
-        })->values()->all();
+        }
 
-        $colors = collect($series)->pluck('color')->values()->all();
+        return $this->buildMonthlyPerformanceChart($settings);
+    }
+
+    /**
+        * Build performance chart for selected month range: Pendapatan, Pengeluaran, Laba.
+     */
+    protected function buildMonthlyPerformanceChart(array $settings): array
+    {
+        $startMonth = $settings['start_month'] ?? null;
+        $endMonth = $settings['end_month'] ?? null;
+        [$rangeStart, $rangeEnd] = $this->resolvePerformanceRange($startMonth, $endMonth);
+
+        [$activeBatchIds, $activeProduksiIds] = $this->getActiveBatchAndProduksiIds();
+
+        $months = collect();
+        $cursor = $rangeStart->copy();
+        while ($cursor->lessThanOrEqualTo($rangeEnd)) {
+            $start = $cursor->copy()->startOfMonth();
+            $end = $cursor->copy()->endOfMonth();
+
+            $months->push([
+                'label' => $start->format('M Y'),
+                'start' => $start->toDateString(),
+                'end' => $end->toDateString(),
+            ]);
+
+            $cursor->addMonth();
+        }
+
+        $pendapatanData = [];
+        $pengeluaranData = [];
+
+        foreach ($months as $range) {
+            $pendapatanData[] = $this->resolvePendapatanByPeriod($range['start'], $range['end'], $activeBatchIds, $activeProduksiIds);
+            $pengeluaranData[] = $this->resolvePengeluaranByPeriod($range['start'], $range['end'], $activeBatchIds, $activeProduksiIds);
+        }
+
+        $labaData = collect($pendapatanData)->zip($pengeluaranData)->map(fn ($pair) => $pair[0] - $pair[1])->all();
+
+        $colors = $this->normalizePerformanceColors($settings['colors'] ?? null);
 
         return [
-            'labels' => $labels,
-            'series' => $seriesData,
+            'enabled' => true,
+            'labels' => $months->pluck('label')->all(),
+            'series' => [
+                ['name' => 'Revenue', 'data' => $pendapatanData],
+                ['name' => 'Expenses', 'data' => $pengeluaranData],
+                ['name' => 'Profit', 'data' => $labaData],
+            ],
             'colors' => $colors,
+            'range' => [
+                'start_month' => $rangeStart->format('Y-m'),
+                'end_month' => $rangeEnd->format('Y-m'),
+            ],
         ];
+    }
+
+    /**
+     * Normalisasi rentang bulan untuk grafik performance dengan fallback default.
+     */
+    protected function resolvePerformanceRange(?string $startMonth, ?string $endMonth): array
+    {
+        $defaultStart = Carbon::now()->startOfMonth()->subMonths(5);
+        $defaultEnd = Carbon::now()->startOfMonth();
+
+        $start = $this->parseMonthOrFallback($startMonth, $defaultStart);
+        $end = $this->parseMonthOrFallback($endMonth, $defaultEnd);
+
+        if ($start->greaterThan($end)) {
+            [$start, $end] = [$end, $start];
+        }
+
+        $maxMonths = 6;
+        $diffMonths = $start->diffInMonths($end) + 1;
+        if ($diffMonths > $maxMonths) {
+            $start = $end->copy()->subMonths($maxMonths - 1);
+        }
+
+        return [$start, $end];
+    }
+
+    protected function normalizePerformanceColors($colors): array
+    {
+        $fallback = ['#0d6efd', '#ffc107', '#198754'];
+        if (!is_array($colors) || count($colors) !== 3) {
+            return $fallback;
+        }
+
+        return collect($colors)
+            ->take(3)
+            ->map(function ($color, $idx) use ($fallback) {
+                $valid = is_string($color) && preg_match('/^#([0-9a-fA-F]{3}){1,2}$/', $color);
+                return $valid ? $color : ($fallback[$idx] ?? $fallback[0]);
+            })
+            ->values()
+            ->all();
+    }
+
+    protected function parseMonthOrFallback(?string $value, Carbon $fallback): Carbon
+    {
+        if ($value) {
+            try {
+                return Carbon::createFromFormat('Y-m', $value)->startOfMonth();
+            } catch (\Exception $e) {
+            }
+        }
+
+        return $fallback->copy();
     }
 
     protected function loadPerformanceSettings(): array
@@ -493,10 +566,14 @@ class SistemController extends Controller
     protected function defaultPerformanceSettings(): array
     {
         return [
+            'enabled' => true,
+            'start_month' => Carbon::now()->startOfMonth()->subMonths(5)->format('Y-m'),
+            'end_month' => Carbon::now()->startOfMonth()->format('Y-m'),
+            'colors' => ['#0d6efd', '#ffc107', '#198754'],
             'series' => [
-                ['key' => 'produksi', 'label' => 'Produksi', 'color' => '#198754'],
-                ['key' => 'pendapatan', 'label' => 'Pendapatan', 'color' => '#0d6efd'],
-                ['key' => 'pengeluaran', 'label' => 'Pengeluaran', 'color' => '#ffc107'],
+                ['key' => 'revenue', 'label' => 'Revenue', 'color' => '#0d6efd'],
+                ['key' => 'expenses', 'label' => 'Expenses', 'color' => '#ffc107'],
+                ['key' => 'profit', 'label' => 'Profit', 'color' => '#198754'],
             ],
             'categories' => [
                 ['label' => 'Kualitas', 'values' => ['produksi' => 80, 'pendapatan' => 20, 'pengeluaran' => 44]],
@@ -512,6 +589,16 @@ class SistemController extends Controller
     protected function normalizePerformanceSettings(array $settings): array
     {
         $defaults = $this->defaultPerformanceSettings();
+        [$rangeStart, $rangeEnd] = $this->resolvePerformanceRange(
+            $settings['start_month'] ?? $defaults['start_month'] ?? null,
+            $settings['end_month'] ?? $defaults['end_month'] ?? null
+        );
+
+        $range = [
+            'start_month' => $rangeStart->format('Y-m'),
+            'end_month' => $rangeEnd->format('Y-m'),
+        ];
+        $enabled = (bool) ($settings['enabled'] ?? $defaults['enabled']);
         $hasCustomSeries = array_key_exists('series', $settings);
         $seriesSource = $hasCustomSeries ? ($settings['series'] ?? []) : $defaults['series'];
 
@@ -560,6 +647,10 @@ class SistemController extends Controller
         }
 
         return [
+            'enabled' => $enabled,
+            'start_month' => $range['start_month'],
+            'end_month' => $range['end_month'],
+            'colors' => $this->normalizePerformanceColors($settings['colors'] ?? $defaults['colors']),
             'series' => $series->all(),
             'categories' => $categories->all(),
         ];
@@ -806,6 +897,68 @@ class SistemController extends Controller
                 'operasional_harian' => $biayaHarian,
             ],
         ];
+    }
+
+    /**
+     * Pendapatan per periode (inclusive start/end) untuk batch/produksi aktif.
+     */
+    protected function resolvePendapatanByPeriod(string $startDate, string $endDate, array $activeBatchIds, array $activeProduksiIds): float
+    {
+        $prodTotal = (float) PencatatanProduksi::whereIn('produksi_id', $activeProduksiIds)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->leftJoin('vf_produksi as prod', 'prod.id', '=', 'vf_pencatatan_produksi.produksi_id')
+            ->select(DB::raw('COALESCE(SUM(vf_pencatatan_produksi.jumlah_produksi * COALESCE(vf_pencatatan_produksi.harga_per_unit, prod.harga_per_pcs, 0)), 0) as total'))
+            ->value('total');
+
+        $batchIncome = (float) LaporanHarian::whereIn('batch_produksi_id', $activeBatchIds)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->where(function ($q) {
+                $q->whereNotNull('pendapatan_harian')
+                    ->orWhere('penjualan_telur_butir', '>', 0)
+                    ->orWhere('penjualan_puyuh_ekor', '>', 0);
+            })
+            ->select(DB::raw('
+                COALESCE(
+                    SUM(
+                        COALESCE(pendapatan_harian,
+                            (COALESCE(penjualan_telur_butir, 0) * COALESCE(harga_per_butir, 0))
+                        )
+                    ), 0
+                ) as total
+            '))
+            ->value('total');
+
+        return $prodTotal + $batchIncome;
+    }
+
+    /**
+     * Pengeluaran per periode (inclusive start/end) untuk batch/produksi aktif.
+     */
+    protected function resolvePengeluaranByPeriod(string $startDate, string $endDate, array $activeBatchIds, array $activeProduksiIds): float
+    {
+        $pengeluaranPembesaran = (float) Pakan::whereNotNull('vf_pakan.batch_produksi_id')
+            ->whereIn('vf_pakan.batch_produksi_id', $activeBatchIds)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->select(DB::raw('COALESCE(SUM(total_biaya), 0) as total'))
+            ->value('total');
+
+        $pengeluaranProduksi = (float) Pakan::whereNotNull('vf_pakan.produksi_id')
+            ->whereIn('vf_pakan.produksi_id', $activeProduksiIds)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->select(DB::raw('COALESCE(SUM(total_biaya), 0) as total'))
+            ->value('total');
+
+        $biayaKesehatan = (float) Kesehatan::whereIn('batch_produksi_id', $activeBatchIds)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->select(DB::raw('COALESCE(SUM(biaya), 0) as total'))
+            ->value('total');
+
+        $biayaHarian = (float) LaporanHarian::whereIn('batch_produksi_id', $activeBatchIds)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->select(DB::raw('COALESCE(SUM(COALESCE(biaya_pakan_harian, 0) + COALESCE(biaya_vitamin_harian, 0)), 0) as total'))
+            ->value('total');
+
+        return $pengeluaranPembesaran + $pengeluaranProduksi + $biayaKesehatan + $biayaHarian;
     }
 
     protected function buildMatrixSnapshot(array $targets, array $metrics): array
