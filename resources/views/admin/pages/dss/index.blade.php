@@ -9,6 +9,7 @@
 	];
 
 	$mode = $dssMode ?? 'config';
+	$summary = $summary ?? [];
 	$eggInsights = $mode === 'config' ? ($insights['eggs'] ?? []) : [];
 	$feedInsights = $mode === 'config' ? ($insights['feed'] ?? []) : [];
 	$mortalityAlerts = $mode === 'config' ? ($insights['mortality'] ?? []) : [];
@@ -35,6 +36,7 @@
 		'feed' => ['label' => 'Konsumsi Pakan', 'icon' => 'fa-wheat-awn'],
 		'mortality' => ['label' => 'Kematian', 'icon' => 'fa-skull-crossbones'],
 	];
+	$dataSource = $mode === 'ml' ? data_get($mlResponse, 'predictions.eggs.data_source', 'live') : 'live';
 	$summaryChartPayload = collect($summaryMeta)
 		->map(function ($meta, $key) use ($summary) {
 			$datum = $summary[$key] ?? ['total' => 0, 'alerts' => 0];
@@ -67,6 +69,12 @@
 			];
 		})
 		->values();
+
+		$mlMetaBadges = [
+			['label' => 'Sumber Data', 'value' => strtoupper($dataSource)],
+			['label' => 'Window', 'value' => (data_get($mlResponse, 'predictions.eggs.window_days') ?? 14) . ' hari'],
+			['label' => 'Dicetak', 'value' => data_get($mlResponse, 'metadata.generated_at')],
+		];
 @endphp
 
 @push('styles')
@@ -243,6 +251,14 @@
 			padding-left: 18px;
 			font-size: 0.86rem;
 			color: #475569;
+		}
+		.quick-list {
+			margin: 0;
+			padding-left: 18px;
+			color: #0f172a;
+		}
+		.quick-list li {
+			margin-bottom: 6px;
 		}
 		.ml-alert-stack {
 			display: flex;
@@ -635,6 +651,12 @@
 						<div class="label">Rekam Data</div>
 						<div class="value">{{ number_format(data_get($mlMetadata, 'records_used', 0)) }} baris</div>
 					</div>
+					@foreach($mlMetaBadges as $badge)
+						<div class="ml-meta-item">
+							<div class="label">{{ $badge['label'] }}</div>
+							<div class="value">{{ $badge['value'] ?? '-' }}</div>
+						</div>
+					@endforeach
 				</div>
 				<div class="capability-pills">
 					@foreach($mlCapabilityMap as $key => $label)
@@ -652,6 +674,7 @@
 						<small>butir / hari</small>
 					</div>
 					<p class="text-muted mb-2">Confidence {{ $eggPrediction ? number_format((float) data_get($eggPrediction, 'confidence', 0), 2) : '0.00' }} • Tren {{ strtoupper(data_get($eggPrediction, 'trend', 'FLAT')) }}</p>
+					<p class="text-muted mb-2">Window {{ data_get($eggPrediction, 'window_days', 14) }} hari • Sumber {{ strtoupper($dataSource) }}</p>
 					@if($eggPrediction && !empty($eggPrediction['drivers']))
 						<ul class="mini-list">
 							@foreach($eggPrediction['drivers'] as $driver)
@@ -705,6 +728,27 @@
 						<p class="text-muted mb-0">Butuh histori harga dan pakan untuk rekomendasi harga.</p>
 					@endif
 				</div>
+			</div>
+
+			<div class="section-card mt-3">
+				<div class="card-head">
+					<div>
+						<h2 class="card-title mb-0">Ringkasan Cepat</h2>
+						<small class="text-muted">Interpretasi singkat agar mudah dibaca tim operasional.</small>
+					</div>
+				</div>
+				<ul class="quick-list mt-3">
+					<li><strong>Telur:</strong> {{ $eggPrediction ? number_format((float) data_get($eggPrediction, 'forecast', 0)) . ' butir/hari (' . strtoupper(data_get($eggPrediction, 'trend', 'FLAT')) . ', confidence ' . number_format((float) data_get($eggPrediction, 'confidence', 0), 2) . ')' : 'Belum ada data, isi catatan produksi.' }}</li>
+					@php
+						$feedBatches = collect(data_get($feedPrediction, 'per_batch'));
+						$feedTop = $feedBatches->take(1)->map(function ($b) {
+							return 'Batch ' . data_get($b, 'batch', '?') . ' (' . number_format((float) data_get($b, 'required_kg', 0), 2) . ' kg)';
+						})->join(', ');
+					@endphp
+					<li><strong>Pakan:</strong> {{ $feedPrediction ? number_format((float) data_get($feedPrediction, 'total_required_kg', 0), 2) . ' kg/hari' . ($feedTop ? '. Batch utama: ' . $feedTop : '') : 'Belum ada konsumsi pakan yang tercatat.' }}</li>
+					<li><strong>Mortalitas:</strong> @php $topMortality = collect(data_get($mortalityPrediction, 'alerts', []))->first(); @endphp {{ $topMortality ? 'Batch ' . data_get($topMortality, 'batch', '?') . ' risiko ' . strtoupper(data_get($topMortality, 'risk', 'low')) . ' (score ' . number_format((float) data_get($topMortality, 'score', 0), 2) . ')' : 'Tidak ada lonjakan pada jendela ' . (data_get($mortalityPrediction, 'window_days', 7)) . ' hari.' }}</li>
+					<li><strong>Harga jual:</strong> {{ $pricingPrediction ? 'Rekomendasi Rp ' . number_format((float) data_get($pricingPrediction, 'optimal_price', 0), 2) . ' per butir.' : 'Lengkapi histori harga & pakan untuk rekomendasi harga.' }}</li>
+				</ul>
 			</div>
 
 			<div class="section-card mt-4">

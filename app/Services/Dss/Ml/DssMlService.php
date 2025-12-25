@@ -7,6 +7,8 @@ use App\Models\Pakan;
 use App\Models\PencatatanProduksi;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\File;
 
 class DssMlService
 {
@@ -75,6 +77,7 @@ class DssMlService
     {
         $window = 14;
         $startDate = $this->today->copy()->subDays($window - 1)->startOfDay();
+        $usedSample = false;
 
         $dailyRows = PencatatanProduksi::query()
             ->selectRaw('DATE(tanggal) as tanggal, COALESCE(SUM(jumlah_produksi), 0) as total, AVG(harga_per_unit) as avg_price')
@@ -83,6 +86,15 @@ class DssMlService
             ->orderBy('tanggal')
             ->get()
             ->keyBy('tanggal');
+
+        // Fallback to packaged training data when live data is not present
+        if ($dailyRows->isEmpty() || $dailyRows->sum('total') <= 0) {
+            $dailyRows = $this->loadSampleEggTraining();
+            // Re-anchor the window to the end of the sample
+            $startDate = Carbon::parse($dailyRows->keys()->first());
+            $this->today = Carbon::parse($dailyRows->keys()->last());
+            $usedSample = true;
+        }
 
         $series = [];
         $x = [];
@@ -134,7 +146,33 @@ class DssMlService
             'series_count' => $seriesCount,
             'drivers' => $drivers,
             'avg_price' => $avgPrice ? round($avgPrice, 2) : null,
+            'data_source' => $usedSample ? 'training_sample' : 'live',
         ];
+    }
+
+    protected function loadSampleEggTraining(): Collection
+    {
+        $path = base_path('ml/data/egg_training_sample.csv');
+        if (!File::exists($path)) {
+            return collect();
+        }
+
+        $raw = collect(array_map('str_getcsv', explode("\n", trim(File::get($path)))));
+        $header = $raw->shift();
+        $rows = $raw->filter()->map(function ($row) use ($header) {
+            return array_combine($header, $row);
+        });
+
+        return $rows
+            ->map(function ($row) {
+                $date = $row['tanggal'];
+                return (object) [
+                    'tanggal' => $date,
+                    'total' => (float) $row['jumlah_produksi'],
+                    'avg_price' => isset($row['harga_per_unit']) ? (float) $row['harga_per_unit'] : null,
+                ];
+            })
+            ->keyBy('tanggal');
     }
 
     protected function predictFeedNeeds(): ?array
