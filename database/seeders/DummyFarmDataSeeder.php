@@ -457,6 +457,27 @@ class DummyFarmDataSeeder extends Seeder
                 ]
             );
 
+            // Catatan produksi bulanan agar grafik pendapatan lintas bulan terisi
+            for ($m = 5; $m >= 1; $m--) {
+                $monthDate = $now->copy()->startOfMonth()->subMonths($m);
+                DB::table('vf_pencatatan_produksi')->updateOrInsert(
+                    [
+                        'produksi_id' => $produksi->id,
+                        'tanggal' => $monthDate->toDateString(),
+                    ],
+                    [
+                        'jumlah_produksi' => 800 + ($m * 10),
+                        'kualitas' => 'baik',
+                        'berat_rata_rata' => 12.0,
+                        'harga_per_unit' => 500,
+                        'catatan' => 'Dummy produksi bulanan untuk grafik performance.',
+                        'dibuat_oleh' => 1,
+                        'updated_at' => $monthDate,
+                        'created_at' => $monthDate,
+                    ]
+                );
+            }
+
 
             // Produksi puyuh non-aktif - tidak menambah catatan produksi
             // Pakan (grower) untuk tiga batch
@@ -483,6 +504,25 @@ class DummyFarmDataSeeder extends Seeder
                         ]
                     );
                 }
+            }
+
+            // Pakan untuk produksi (berbasis produksi_id) agar pengeluaran produksi muncul per bulan
+            for ($m = 5; $m >= 0; $m--) {
+                $date = $now->copy()->startOfMonth()->subMonths($m);
+                Pakan::updateOrCreate(
+                    [
+                        'produksi_id' => $produksi->id,
+                        'tanggal' => $date->toDateString(),
+                    ],
+                    [
+                        'jumlah_kg' => 10 + $m,
+                        'sisa_pakan_kg' => 1,
+                        'jumlah_karung' => 1,
+                        'harga_per_kg' => 9000,
+                        'total_biaya' => (10 + $m) * 9000,
+                        'pengguna_id' => 1,
+                    ]
+                );
             }
 
             // Kematian per batch (kecil supaya tidak over)
@@ -573,13 +613,14 @@ class DummyFarmDataSeeder extends Seeder
             $rangePlans = [
                 [
                     'batch_id' => $batchLayer->id,
-                    'start' => $now->copy()->subDays(1),
+                    'start' => $now->copy()->subMonths(5)->startOfMonth(),
                     'base_feed' => 6.0,
                     'base_sisa' => 2.0,
                     'harga' => 8500,
                     'base_suhu' => 26.5,
                     'base_hum' => 58,
                     'base_lux' => 120,
+                    'daily_income' => 100_000,
                 ],
             ];
 
@@ -599,6 +640,26 @@ class DummyFarmDataSeeder extends Seeder
                             'sisa_pakan_kg' => max(0, round($plan['base_sisa'] - $i * 0.15, 2)),
                             'harga_per_kg' => $plan['harga'],
                             'total_biaya' => round(($plan['base_feed'] + min(5, $i) * 0.2) * $plan['harga'], 2),
+                            'pengguna_id' => 1,
+                        ]
+                    );
+
+                    // Pendapatan harian sederhana untuk grafik (pendapatan_harian)
+                    LaporanHarian::updateOrCreate(
+                        [
+                            'batch_produksi_id' => $plan['batch_id'],
+                            'tanggal' => $tanggal->toDateString(),
+                        ],
+                        [
+                            'jumlah_burung' => 115,
+                            'produksi_telur' => 950 + ($i % 5) * 10,
+                            'pendapatan_harian' => $plan['daily_income'] + ($i % 6) * 5000,
+                            'biaya_pakan_harian' => 0,
+                            'biaya_vitamin_harian' => 0,
+                            'fcr' => 2.4,
+                            'hen_day_production' => 88,
+                            'mortalitas_kumulatif' => 0,
+                            'tampilkan_di_histori' => true,
                             'pengguna_id' => 1,
                         ]
                     );
