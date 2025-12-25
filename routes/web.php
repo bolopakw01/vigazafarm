@@ -40,9 +40,20 @@ use Illuminate\Support\Facades\Auth;
 */
 
 // ==============================
-// ROUTE DASHBOARD UTAMA
+// ROUTE ROOT & DASHBOARD UTAMA
 // ==============================
+Route::get('/', function () {
+    return auth()->check()
+        ? redirect()->route('admin.dashboard')
+        : redirect()->route('mimin.login');
+})->name('home.redirect');
+
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
+
+// Shortcut agar /admin langsung ke dashboard
+Route::get('/admin', function () {
+    return redirect()->route('admin.dashboard');
+})->middleware('auth');
 
 // ==============================
 // GRUP ROUTE DENGAN AUTHENTIKASI
