@@ -43,7 +43,7 @@ use Illuminate\Support\Facades\Auth;
 // ROUTE ROOT & DASHBOARD UTAMA
 // ==============================
 Route::get('/', function () {
-    return auth()->check()
+    return Auth::check()
         ? redirect()->route('admin.dashboard')
         : redirect()->route('mimin.login');
 })->name('home.redirect');
