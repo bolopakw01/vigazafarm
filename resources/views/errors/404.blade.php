@@ -1,1 +1,1 @@
-@include('errors.bolopa404')
+@include('errors.bolopakw01.bolopa-404')

@@ -58,7 +58,7 @@
 
 	.overlay{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ffffff;text-align:center;padding:1.25rem;gap:.6rem}
 	.overlay h1{font-size:2.5rem;letter-spacing:0.02em;margin:0;font-weight:800}
-	.overlay p{font-size:1.75rem;margin:0;opacity:0.95;font-weight:700}
+	.overlay p{font-size:1.75rem;margin:0;opacity:0.95;font-weight:700;text-shadow:0 3px 10px rgba(0,0,0,0.55)}
 
 	.badge{display:inline-block;background:#000;color:#fff;padding:.5rem .9rem;border-radius:.6rem;font-weight:800;box-shadow:0 6px 20px rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.02);font-family:Montserrat, system-ui, sans-serif;text-transform:uppercase;letter-spacing:.08em}
 	.overlay h1 .badge{font-size:1.6rem}
@@ -203,7 +203,7 @@
           <div class="big404" aria-hidden="true">404</div>
           <div class="overlay">
             <h1><span class="badge">NOT FOUND!</span></h1>
-            <p style="display:none">Halaman tidak ditemukan</p>
+						<p>Lah kok ilang ???</p>
           </div>
         </div>
       </div>
