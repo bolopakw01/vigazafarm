@@ -15,10 +15,20 @@
         $activeGroup = 'master';
       }
     }
+
+    // Safe current user info to avoid errors when rendering error pages without auth
+    $currentUser = auth()->user();
+    $currentUserName = $currentUser->nama ?? null;
+    $currentUserInitial = strtoupper(substr($currentUserName ?? 'A', 0, 1));
+    $currentUserFirst = $currentUserName ? explode(' ', $currentUserName)[0] : 'Admin';
+
+    // Normalize role to handle different casing/variants (e.g., "Owner", "owner")
+    $currentUserRole = strtolower(trim($currentUser->peran ?? ''));
+    $isOwner = $currentUser && $currentUserRole === 'owner';
   @endphp
   <ul class="nav-list" data-active="{{ $activeGroup }}">
         <!-- mini horizontal menu: Operational & Master (Owner Only) -->
-        @if(auth()->user()->peran === 'owner')
+        @if($isOwner)
         <li class="mini-menus">
             <a href="#" class="mini-menu active" title="Operasional" data-target="operasional">
                 <img src="{{ asset('bolopa/img/icon/line-md--home-md.svg') }}" alt="Operasional" />
@@ -37,7 +47,7 @@
             </a>
             <span class="tooltip">Dashboard</span>
         </li>
-        @if(auth()->user()->peran === 'owner')
+        @if($isOwner)
         <li class="section-label">
             <div class="section-decor">
                 <span class="section-text">Operasional</span>
@@ -74,7 +84,7 @@
             </a>
             <span class="tooltip">Decision Support</span>
         </li>
-        @if(auth()->user()->peran === 'owner')
+        @if($isOwner)
         <!-- master menu items -->
     <li data-group="master">
       <a href="{{ route('admin.kandang') }}" class="menu-link {{ request()->routeIs('admin.kandang*') ? 'active' : '' }}">
@@ -101,10 +111,10 @@
         <!-- profile/logout -->
         <li class="profile">
             <div class="profile-details">
-                <div class="profile-avatar" aria-hidden="true">{{ strtoupper(substr(auth()->user()->nama ?? 'A', 0, 1)) }}</div>
+                <div class="profile-avatar" aria-hidden="true">{{ $currentUserInitial }}</div>
                 <div class="name_job">
-                    <div class="name">{{ explode(' ', auth()->user()->nama)[0] ?? 'Admin' }}</div>
-                    <div class="job">{{ auth()->user()->peran === 'owner' ? 'Owner' : 'Operator' }}</div>
+                  <div class="name">{{ $currentUserFirst }}</div>
+                  <div class="job">{{ $isOwner ? 'Owner' : 'Operator' }}</div>
                 </div>
             </div>
             <form id="sidebar-logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
@@ -605,8 +615,8 @@ let closeBtn = document.querySelector("#btn");
 let navList = document.querySelector('.nav-list');
 let miniButtons = document.querySelectorAll('.mini-menu');
 let sectionText = document.querySelector('.section-text');
-const userRole = '{{ auth()->user()->peran }}';
-const isOwner = userRole === 'owner';
+const userRole = '{{ $currentUser->peran ?? '' }}';
+const isOwner = {{ $isOwner ? 'true' : 'false' }};
 
 const menuIcon = '{{ asset("bolopa/img/icon/line-md--menu-fold-right.svg") }}';
 const menuIconAlt = '{{ asset("bolopa/img/icon/line-md--menu-fold-left.svg") }}';
