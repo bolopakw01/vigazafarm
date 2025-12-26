@@ -70,23 +70,17 @@ Route::middleware('auth')->group(function () {
     // ==============================
     // TEST ERROR PAGES (Manual trigger)
     // ==============================
-    Route::get('/lopaerror', function () {
-        return view('errors.testerror');
-    })->name('errors.test');
+    Route::prefix('/lopaerror')->name('errors.test.')->group(function () {
+        // Landing page to try all error buttons
+        Route::get('/', fn() => view('errors.testerror'))->name('index');
 
-    Route::get('/lopaerror/404', function () {
-        abort(404);
-    })->name('errors.test.404');
-
-    Route::get('/lopaerror/500', function () {
-        abort(500);
-    })->name('errors.test.500');
-
-    Route::get('/lopaerror/400', fn() => abort(400))->name('errors.test.400');
-    Route::get('/lopaerror/401', fn() => abort(401))->name('errors.test.401');
-    Route::get('/lopaerror/429', fn() => abort(429))->name('errors.test.429');
-    Route::get('/lopaerror/502', fn() => abort(502))->name('errors.test.502');
-    Route::get('/lopaerror/503', fn() => abort(503))->name('errors.test.503');
+        // Abort specific codes when requested; fallback to 404 for unknown codes
+        Route::get('/{code}', function ($code) {
+            $allowed = [400, 401, 404, 429, 500, 502, 503];
+            $code = (int) $code;
+            abort(in_array($code, $allowed, true) ? $code : 404);
+        })->whereNumber('code')->name('code');
+    });
 
     // ==============================
     // ADMIN DASHBOARD (Semua user yang login)

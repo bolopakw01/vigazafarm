@@ -27,15 +27,15 @@
 	<div class="test-wrap">
 		<div class="test-card">
 			<h1>Test Error Pages</h1>
-			<p>Klik tombol di bawah untuk menguji tampilan 404 atau 500 menggunakan layout yang sama.</p>
+			<p>Klik tombol di bawah untuk menguji semua halaman error kustom dengan layout yang sama.</p>
 			<div class="btn-row">
-				<a class="btn-test btn-404" href="{{ route('errors.test.400') }}" title="Trigger 400"><i class="fa-solid fa-circle-exclamation"></i> Trigger 400</a>
-				<a class="btn-test btn-404" href="{{ route('errors.test.401') }}" title="Trigger 401"><i class="fa-solid fa-lock"></i> Trigger 401</a>
-				<a class="btn-test btn-404" href="{{ route('errors.test.404') }}" title="Trigger 404"><i class="fa-solid fa-magnifying-glass-minus"></i> Trigger 404</a>
-				<a class="btn-test btn-404" href="{{ route('errors.test.429') }}" title="Trigger 429"><i class="fa-solid fa-hourglass-half"></i> Trigger 429</a>
-				<a class="btn-test btn-500" href="{{ route('errors.test.500') }}" title="Trigger 500"><i class="fa-solid fa-bolt"></i> Trigger 500</a>
-				<a class="btn-test btn-500" href="{{ route('errors.test.502') }}" title="Trigger 502"><i class="fa-solid fa-server"></i> Trigger 502</a>
-				<a class="btn-test btn-500" href="{{ route('errors.test.503') }}" title="Trigger 503"><i class="fa-solid fa-triangle-exclamation"></i> Trigger 503</a>
+				<a class="btn-test btn-404" href="{{ route('errors.test.code', ['code' => 400]) }}" title="Trigger 400"><i class="fa-solid fa-circle-exclamation"></i> Trigger 400</a>
+				<a class="btn-test btn-404" href="{{ route('errors.test.code', ['code' => 401]) }}" title="Trigger 401"><i class="fa-solid fa-lock"></i> Trigger 401</a>
+				<a class="btn-test btn-404" href="{{ route('errors.test.code', ['code' => 404]) }}" title="Trigger 404"><i class="fa-solid fa-magnifying-glass-minus"></i> Trigger 404</a>
+				<a class="btn-test btn-404" href="{{ route('errors.test.code', ['code' => 429]) }}" title="Trigger 429"><i class="fa-solid fa-hourglass-half"></i> Trigger 429</a>
+				<a class="btn-test btn-500" href="{{ route('errors.test.code', ['code' => 500]) }}" title="Trigger 500"><i class="fa-solid fa-bolt"></i> Trigger 500</a>
+				<a class="btn-test btn-500" href="{{ route('errors.test.code', ['code' => 502]) }}" title="Trigger 502"><i class="fa-solid fa-server"></i> Trigger 502</a>
+				<a class="btn-test btn-500" href="{{ route('errors.test.code', ['code' => 503]) }}" title="Trigger 503"><i class="fa-solid fa-triangle-exclamation"></i> Trigger 503</a>
 			</div>
 		</div>
 	</div>
