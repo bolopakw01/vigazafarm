@@ -57,7 +57,7 @@ class KandangController extends Controller
         $data = $request->validate([
             'nama_kandang' => 'required|string|max:191',
             'kapasitas_maksimal' => 'nullable|integer|min:0',
-            'tipe_kandang' => 'nullable|string|max:100',
+            'tipe_kandang' => 'required|string|max:100',
             'status' => 'nullable|string|max:50',
             'keterangan' => 'nullable|string|max:100',
         ]);
@@ -98,7 +98,7 @@ class KandangController extends Controller
         $data = $request->validate([
             'nama_kandang' => 'required|string|max:191',
             'kapasitas_maksimal' => 'nullable|integer|min:0',
-            'tipe_kandang' => 'nullable|string|max:100',
+            'tipe_kandang' => 'required|string|max:100',
             'status' => 'nullable|string|max:50',
             'keterangan' => 'nullable|string|max:100',
         ]);
@@ -119,9 +119,54 @@ class KandangController extends Controller
 
     public function destroy(Kandang $kandang)
     {
-        /**
-         * Menghapus data kandang dari database.
-         */
+        // Cek keterkaitan data sebelum hapus
+        $relations = [
+            'penetasan' => $kandang->penetasan()->select('id', 'batch', 'status')->get(),
+            'pembesaran' => $kandang->pembesaran()->select('id', 'batch_produksi_id', 'status_batch')->get(),
+            'produksi' => $kandang->produksi()->select('id', 'batch_produksi_id', 'status')->get(),
+        ];
+
+        // Karantina dicatat di tabel kesehatan dengan kandang_tujuan_id
+        $karantina = \App\Models\Kesehatan::query()
+            ->where('kandang_tujuan_id', $kandang->id)
+            ->where('tipe_kegiatan', \App\Models\Kesehatan::TIPE_KARANTINA)
+            ->where('karantina_dikembalikan', false)
+            ->select('id', 'batch_produksi_id', 'tanggal', 'nama_vaksin_obat')
+            ->get();
+
+        $hasRelations = $relations['penetasan']->isNotEmpty()
+            || $relations['pembesaran']->isNotEmpty()
+            || $relations['produksi']->isNotEmpty()
+            || $karantina->isNotEmpty();
+
+        if ($hasRelations) {
+            $detail = collect();
+
+            $relations['penetasan']->each(function ($item) use ($detail) {
+                $detail->push("Penetasan batch {$item->batch} (status: " . ($item->status ?? '-') . ' )');
+            });
+
+            $relations['pembesaran']->each(function ($item) use ($detail) {
+                $detail->push("Pembesaran batch {$item->batch_produksi_id} (status: " . ($item->status_batch ?? '-') . ' )');
+            });
+
+            $relations['produksi']->each(function ($item) use ($detail) {
+                $detail->push("Produksi batch {$item->batch_produksi_id} (status: " . ($item->status ?? '-') . ' )');
+            });
+
+            $karantina->each(function ($item) use ($detail) {
+                $label = $item->batch_produksi_id ? "Batch {$item->batch_produksi_id}" : 'Tanpa batch';
+                $detail->push("Karantina {$label} (tanggal: " . ($item->tanggal ?? '-') . ' )');
+            });
+
+            return redirect()
+                ->route('admin.kandang')
+                ->with('kandang_blocked', [
+                    'nama' => $kandang->nama_kandang,
+                    'detail' => $detail->values()->all(),
+                ]);
+        }
+
         $kandang->delete();
         return redirect()->route('admin.kandang')->with('success', 'Kandang berhasil dihapus');
     }

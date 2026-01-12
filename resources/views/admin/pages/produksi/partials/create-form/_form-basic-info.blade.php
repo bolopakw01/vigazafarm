@@ -15,8 +15,9 @@
         @php
           $typeLabel = ucwords(strtolower($kandang->tipe_kandang ?? $kandang->tipe ?? '-'));
           $remainingLabel = number_format((int) $kandang->kapasitas_tersisa);
-          $statusLabel = strtolower($kandang->status ?? 'aktif');
-          $isMaintenance = $statusLabel === 'maintenance';
+            $statusLabel = strtolower($kandang->status_computed ?? ($kandang->status ?? 'aktif'));
+            $isMaintenance = $statusLabel === 'maintenance';
+            $isFull = $statusLabel === 'full';
           $isSelected = (string) $selectedKandangId === (string) $kandang->id;
         @endphp
         <option
@@ -26,11 +27,13 @@
           data-terpakai="{{ $kandang->kapasitas_terpakai }}"
           data-sisa="{{ $kandang->kapasitas_tersisa }}"
           {{ $isSelected ? 'selected' : '' }}
-          @disabled($isMaintenance && !$isSelected)
+            @disabled(($isMaintenance || $isFull) && !$isSelected)
         >
           {{ $kandang->nama_kandang }} ({{ $typeLabel }}, {{ $remainingLabel }})
           @if($isMaintenance)
             &ndash; Maintenance
+            @elseif($isFull)
+              &ndash; Full
           @endif
         </option>
         @endforeach

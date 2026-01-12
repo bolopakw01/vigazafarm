@@ -905,7 +905,7 @@ class SistemController extends Controller
     protected function resolvePendapatanByPeriod(string $startDate, string $endDate, array $activeBatchIds, array $activeProduksiIds): float
     {
         $prodTotal = (float) PencatatanProduksi::whereIn('produksi_id', $activeProduksiIds)
-            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->whereBetween('vf_pencatatan_produksi.tanggal', [$startDate, $endDate])
             ->leftJoin('vf_produksi as prod', 'prod.id', '=', 'vf_pencatatan_produksi.produksi_id')
             ->select(DB::raw('COALESCE(SUM(vf_pencatatan_produksi.jumlah_produksi * COALESCE(vf_pencatatan_produksi.harga_per_unit, prod.harga_per_pcs, 0)), 0) as total'))
             ->value('total');

@@ -49,6 +49,33 @@ class Kandang extends Model
     ];
 
     /**
+     * Status komputasi: jika kapasitas terpakai >= total maka dianggap "full".
+     */
+    public function getStatusComputedAttribute(): string
+    {
+        $baseStatus = strtolower(trim((string) ($this->status ?? '')));
+
+        if ($this->isFull()) {
+            return 'full';
+        }
+
+        return $baseStatus === '' ? 'tidak_aktif' : $baseStatus;
+    }
+
+    /**
+     * True jika terpakai >= total kapasitas (mencegah penggunaan baru).
+     */
+    public function isFull(): bool
+    {
+        $total = $this->kapasitas_total;
+        if ($total <= 0) {
+            return false;
+        }
+
+        return ($this->kapasitas_terpakai ?? 0) >= $total;
+    }
+
+    /**
      * Nama kandang lengkap beserta tipe dan kapasitas.
      */
     public function getNamaDenganDetailAttribute(): string
@@ -278,10 +305,10 @@ class Kandang extends Model
         $kapasitasTerpakai = $this->kapasitas_terpakai;
         $currentStatus = strtolower((string) ($this->status ?? ''));
 
-        if ($kapasitasTerpakai >= $kapasitasTotal && $currentStatus !== 'maintenance') {
-            $this->status = 'maintenance';
+        if ($kapasitasTerpakai >= $kapasitasTotal && $currentStatus !== 'full') {
+            $this->status = 'full';
             $this->saveQuietly();
-        } elseif ($kapasitasTerpakai < $kapasitasTotal && $currentStatus === 'maintenance') {
+        } elseif ($kapasitasTerpakai < $kapasitasTotal && $currentStatus === 'full') {
             $this->status = 'aktif';
             $this->saveQuietly();
         }

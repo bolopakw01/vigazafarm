@@ -49,8 +49,8 @@
             <label class="form-label fw-semibold">
               <i class="fa-solid fa-layer-group text-primary me-1"></i>Tipe
             </label>
-            <select name="tipe_kandang" class="form-select @error('tipe_kandang') is-invalid @enderror">
-              <option value="" selected disabled>Pilih tipe kandang</option>
+            <select name="tipe_kandang" class="form-select @error('tipe_kandang') is-invalid @enderror" required>
+              <option value="" disabled {{ old('tipe_kandang') ? '' : 'selected' }}>Pilih tipe kandang</option>
               <option value="Pembesaran" {{ old('tipe_kandang') == 'Pembesaran' ? 'selected' : '' }}>Pembesaran</option>
               <option value="Produksi" {{ old('tipe_kandang') == 'Produksi' ? 'selected' : '' }}>Produksi</option>
               <option value="Penetasan" {{ old('tipe_kandang') == 'Penetasan' ? 'selected' : '' }}>Penetasan</option>

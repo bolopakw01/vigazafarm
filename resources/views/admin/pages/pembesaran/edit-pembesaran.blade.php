@@ -161,19 +161,22 @@
                                 <option value="">-- Pilih Kandang --</option>
                                 @foreach($kandangList as $k)
                                 @php
-                                    $statusLabel = strtolower($k->status ?? 'aktif');
+                                    $statusLabel = strtolower($k->status_computed ?? ($k->status ?? 'aktif'));
                                     $isMaintenance = $statusLabel === 'maintenance';
+                                    $isFull = $statusLabel === 'full';
                                     $isSelected = (string) old('kandang_id', $pembesaran->kandang_id) === (string) $k->id;
                                 @endphp
                                 <option
                                     value="{{ $k->id }}"
                                     data-status="{{ $statusLabel }}"
                                     {{ $isSelected ? 'selected' : '' }}
-                                    @disabled($isMaintenance && !$isSelected)
+                                    @disabled(($isMaintenance || $isFull) && !$isSelected)
                                 >
                                     {{ $k->nama_dengan_detail }}
                                     @if($isMaintenance)
                                         &ndash; Maintenance
+                                    @elseif($isFull)
+                                        &ndash; Full
                                     @endif
                                 </option>
                                 @endforeach

@@ -121,11 +121,15 @@
 						<td class="bolopa-tabel-text-right" style="text-align: right;">{{ number_format($row->kapasitas_maksimal ?? $row->kapasitas ?? 0) }}</td>
 						<td class="bolopa-tabel-text-right" style="text-align: right;">{{ number_format($row->kapasitas_terpakai ?? 0) }}</td>
 						<td class="bolopa-tabel-text-center" style="text-align: center;">
-							@php $statusVal = $row->status ?? ($row->aktif ? 'aktif' : 'kosong'); @endphp
-							@if(strtolower(trim($statusVal)) === 'aktif')
+							@php
+								$statusVal = strtolower(trim($row->status_computed ?? ($row->status ?? ($row->aktif ? 'aktif' : 'kosong'))));
+							@endphp
+							@if($statusVal === 'aktif')
 								<span class="bolopa-tabel-badge bolopa-tabel-badge-success">Aktif</span>
-							@elseif(strtolower(trim($statusVal)) === 'maintenance')
+							@elseif($statusVal === 'maintenance')
 								<span class="bolopa-tabel-badge bolopa-tabel-badge-warning">Maintenance</span>
+							@elseif($statusVal === 'full')
+								<span class="bolopa-tabel-badge bolopa-tabel-badge-danger">Full</span>
 							@else
 								<span class="bolopa-tabel-badge bolopa-tabel-badge-danger">Tidak Aktif</span>
 							@endif
@@ -231,6 +235,30 @@
             }
         });
     }
+
+	@if(session('kandang_blocked'))
+		(() => {
+			const payload = @json(session('kandang_blocked'));
+			const details = payload.detail || [];
+			const total = details.length;
+			const listHtml = details
+				.map(item => `<li style="margin-bottom:6px; text-align:left; font-size:13px;">${item}</li>`)
+				.join('');
+
+			Swal.fire({
+				icon: 'warning',
+				title: 'Kandang tidak bisa dihapus',
+				html: `
+					<p style="font-size:13px; margin-bottom:10px;">${payload.nama || 'Kandang'} masih dipakai di (${total}) batch berikut:</p>
+					<div style="max-height:240px; overflow-y:auto; padding-right:6px;">
+						<ul style="padding-left:18px; margin:0;">${listHtml}</ul>
+					</div>
+				`,
+				confirmButtonText: 'Mengerti',
+				customClass: {confirmButton: 'swal2-confirm btn btn-primary'},
+			});
+		})();
+	@endif
 
     if (searchInput) {
         searchInput.addEventListener('input', function() {
