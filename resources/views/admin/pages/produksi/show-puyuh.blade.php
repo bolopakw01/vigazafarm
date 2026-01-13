@@ -597,36 +597,10 @@
                                             }
                                             
                                             if (($laporan->penjualan_puyuh_ekor ?? 0) > 0) {
-                                                $jantan = $laporan->penjualan_puyuh_jantan;
-                                                $betina = $laporan->penjualan_puyuh_betina;
-
-                                                if ($jantan === null || $betina === null) {
-                                                    // Infer dari jenis_kelamin_penjualan untuk data lama
-                                                    $genderRaw = $laporan->jenis_kelamin_penjualan;
-                                                    $campuranParsedTemp = $parsePenjualanCampuran($genderRaw);
-                                                    if ($campuranParsedTemp) {
-                                                        $jantan = $campuranParsedTemp['jantan'];
-                                                        $betina = $campuranParsedTemp['betina'];
-                                                    } else {
-                                                        $genderNormalizedTemp = strtolower((string) $genderRaw);
-                                                        if ($genderNormalizedTemp === 'betina') {
-                                                            $jantan = 0;
-                                                            $betina = $laporan->penjualan_puyuh_ekor ?? 0;
-                                                        } elseif ($genderNormalizedTemp === 'jantan') {
-                                                            $jantan = $laporan->penjualan_puyuh_ekor ?? 0;
-                                                            $betina = 0;
-                                                        } else {
-                                                            $jantan = 0;
-                                                            $betina = 0;
-                                                        }
-                                                    }
-                                                } else {
-                                                    $jantan = $jantan ?? 0;
-                                                    $betina = $betina ?? 0;
-                                                }
-
+                                                $jantan = $laporan->penjualan_puyuh_jantan ?? 0;
+                                                $betina = $laporan->penjualan_puyuh_betina ?? 0;
                                                 $campuranParsed = null;
-                                                $genderNormalized = 'jantan'; // default
+                                                $genderNormalized = 'puyuh'; // default
 
                                                 if ($jantan > 0 && $betina > 0) {
                                                     $genderNormalized = 'campuran';
@@ -741,19 +715,44 @@
 
                                                 // Sertakan informasi jenis kelamin untuk entri penjualan
                                                 if ($entry['type'] === 'penjualan') {
-                                                    $genderRaw = trim((string)($entry['meta']['gender'] ?? $laporan->jenis_kelamin_penjualan ?? ''));
-                                                    $genderNormalized = strtolower($genderRaw);
-                                                    $campuranCounts = $entry['meta']['campuran'] ?? null;
+                                                    $genderRaw = trim((string)($laporan->jenis_kelamin_penjualan ?? ''));
+                                                    if ($genderRaw === '') {
+                                                        // Fallback ke kolom breakdown jika jenis_kelamin_penjualan kosong
+                                                        $jantan = $laporan->penjualan_puyuh_jantan ?? 0;
+                                                        $betina = $laporan->penjualan_puyuh_betina ?? 0;
+                                                        if ($jantan > 0 && $betina > 0) {
+                                                            $genderNormalized = 'campuran';
+                                                            $campuranCounts = ['jantan' => $jantan, 'betina' => $betina];
+                                                        } elseif ($jantan > 0) {
+                                                            $genderNormalized = 'jantan';
+                                                            $campuranCounts = null;
+                                                        } elseif ($betina > 0) {
+                                                            $genderNormalized = 'betina';
+                                                            $campuranCounts = null;
+                                                        } else {
+                                                            $genderNormalized = 'puyuh';
+                                                            $campuranCounts = null;
+                                                        }
+                                                    } else {
+                                                        $campuranParsed = $parsePenjualanCampuran($genderRaw);
+                                                        $genderNormalized = $campuranParsed ? 'campuran' : strtolower($genderRaw);
+                                                        $campuranCounts = $campuranParsed;
+                                                    }
 
                                                     if ($campuranCounts) {
                                                         $createdAtFormatted .= ' (Campuran : Jantan ' . $formatNumber($campuranCounts['jantan']) . ' & Betina ' . $formatNumber($campuranCounts['betina']) . ')';
                                                     } else {
-                                                        $genderLabel = match ($genderNormalized) {
-                                                            'jantan' => 'Jantan',
-                                                            'betina' => 'Betina',
-                                                            'campuran', 'mix', 'mixed' => 'Campuran',
-                                                            default => ($genderRaw !== '' ? $genderRaw : ''),
-                                                        };
+                                                        if ($genderNormalized === 'jantan') {
+                                                            $genderLabel = 'Jantan';
+                                                        } elseif ($genderNormalized === 'betina') {
+                                                            $genderLabel = 'Betina';
+                                                        } elseif ($genderNormalized === 'puyuh') {
+                                                            $genderLabel = 'Puyuh';
+                                                        } elseif (in_array($genderNormalized, ['campuran', 'mix', 'mixed'])) {
+                                                            $genderLabel = 'Campuran';
+                                                        } else {
+                                                            $genderLabel = $genderRaw !== '' ? $genderRaw : '';
+                                                        }
 
                                                         if ($genderLabel !== '') {
                                                             $createdAtFormatted .= ' (' . $genderLabel . ')';
