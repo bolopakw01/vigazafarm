@@ -77,6 +77,7 @@
             </a>
             <span class="tooltip">Produksi</span>
         </li>
+        @if(config('dss.enabled', true))
         <li data-group="operasional">
       <a href="{{ route('admin.dss') }}" class="menu-link {{ request()->routeIs('admin.dss') ? 'active' : '' }}">
                 <img src="{{ asset('bolopa/img/icon/fluent--chart-multiple-32-filled.svg') }}" alt="DSS" class="menu-icon" />
@@ -84,6 +85,7 @@
             </a>
             <span class="tooltip">Decision Support</span>
         </li>
+        @endif
         @if($isOwner)
         <!-- master menu items -->
     <li data-group="master">
@@ -103,7 +105,7 @@
         <li data-group="master">
       <a href="{{ route('admin.sistem') }}" class="menu-link {{ request()->routeIs('admin.sistem*') ? 'active' : '' }}">
                 <img src="{{ asset('bolopa/img/icon/eos-icons--secure-data-outlined.svg') }}" alt="Sistem" class="menu-icon" />
-                <span class="links_name">Sistem VF</span>
+                <span class="links_name">Setting VF</span>
             </a>
             <span class="tooltip">Sistem</span>
         </li>

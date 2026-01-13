@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Pembesaran;
 use App\Models\Penetasan;
 use App\Models\Kandang;
+use App\Models\BatchProduksi;
 use App\Models\FeedVitaminItem;
 use App\Models\Pakan;
 use App\Models\Kematian;
@@ -41,7 +42,7 @@ class PembesaranController extends Controller
         /**
          * Menampilkan daftar pembesaran (batch) dengan relasi dan paginasi.
          */
-        $pembesaran = Pembesaran::with(['kandang', 'penetasan', 'creator', 'updater'])
+        $pembesaran = Pembesaran::with(['kandang', 'penetasan', 'creator', 'updater', 'batchProduksi'])
             ->orderBy('dibuat_pada', 'desc')
             ->paginate(10);
 
@@ -71,7 +72,7 @@ class PembesaranController extends Controller
             ->with('error', 'Penetasan harus memiliki jumlah DOQ yang valid untuk dipindahkan ke pembesaran.');
         }
 
-        // Ambil kandang pembesaran aktif
+        // Ambil kandang pembesaran aktif atau maintenance saja (nonaktif disembunyikan)
         $kandangList = Kandang::query()
             ->typeIs('pembesaran')
             ->statusIn(['aktif', 'maintenance'])
@@ -110,6 +111,25 @@ class PembesaranController extends Controller
             $readyDate = $this->getEstimatedReadyDate($validated['tanggal_masuk']);
         }
 
+        $batchKode = $penetasan->batch ?? $this->generateBatchCode();
+
+        $batch = BatchProduksi::updateOrCreate(
+            ['kode_batch' => $batchKode],
+            [
+                'kandang_id' => $validated['kandang_id'],
+                'tanggal_mulai' => $validated['tanggal_masuk'],
+                'jumlah_awal' => $validated['jumlah_anak_ayam'],
+                'jumlah_saat_ini' => $validated['jumlah_anak_ayam'],
+                'status' => 'aktif',
+            ]
+        );
+
+        if (Pembesaran::where('batch_produksi_id', $batch->id)->exists()) {
+            return back()->withInput()->withErrors([
+                'batch_produksi_id' => 'Batch produksi tersebut sudah terdaftar pada pembesaran lain.',
+            ]);
+        }
+
         $pembesaran = Pembesaran::create([
             'penetasan_id' => $penetasan->id,
             'kandang_id' => $validated['kandang_id'],
@@ -119,7 +139,7 @@ class PembesaranController extends Controller
             'status_batch' => 'Aktif',
             'catatan' => $validated['catatan'] ?? null,
             'created_by' => Auth::id(),
-            'batch_produksi_id' => $penetasan->batch ?? $this->generateBatchCode(),
+            'batch_produksi_id' => $batch->id,
             'tanggal_siap' => $readyDate,
         ]);
 
@@ -128,7 +148,7 @@ class PembesaranController extends Controller
         return redirect()->route('admin.pembesaran')
             ->with(
                 'success',
-                'Data pembesaran berhasil ditambahkan dengan batch: ' . ($pembesaran->batch_produksi_id ?? $penetasan->batch ?? ('ID ' . $pembesaran->id))
+                'Data pembesaran berhasil ditambahkan dengan batch: ' . ($batch->kode_batch ?? $penetasan->batch ?? ('ID ' . $pembesaran->id))
             );
     }
 
@@ -168,7 +188,7 @@ class PembesaranController extends Controller
         $validated = $request->validate([
             'kandang_id' => 'required|exists:vf_kandang,id',
             'penetasan_id' => 'nullable|exists:vf_penetasan,id',
-            'batch_produksi_id' => 'required|string|unique:vf_pembesaran,batch_produksi_id',
+            'batch_produksi_id' => 'required|string|max:50',
             'tanggal_masuk' => 'required|date',
             'jumlah_anak_ayam' => 'required|integer|min:1',
             'jenis_kelamin' => 'nullable|in:betina,jantan,campuran',
@@ -179,6 +199,24 @@ class PembesaranController extends Controller
             'kondisi_doc' => 'nullable|string',
             'catatan' => 'nullable|string|max:100',
         ]);
+
+        // Ensure a batch_produksi exists for this code and use its numeric id
+        $batch = BatchProduksi::updateOrCreate(
+            ['kode_batch' => $validated['batch_produksi_id']],
+            [
+                'kandang_id' => $validated['kandang_id'],
+                'tanggal_mulai' => $validated['tanggal_masuk'],
+                'jumlah_awal' => $validated['jumlah_anak_ayam'],
+                'jumlah_saat_ini' => $validated['jumlah_anak_ayam'],
+                'status' => 'aktif',
+            ]
+        );
+
+        if (Pembesaran::where('batch_produksi_id', $batch->id)->exists()) {
+            return back()->withInput()->withErrors([
+                'batch_produksi_id' => 'Batch produksi tersebut sudah terdaftar pada pembesaran lain.',
+            ]);
+        }
 
         $kandang = Kandang::findOrFail($validated['kandang_id']);
         $kapasitasTersisa = $kandang->kapasitas_tersisa;
@@ -213,12 +251,14 @@ class PembesaranController extends Controller
             $validated['tanggal_siap'] = $this->getEstimatedReadyDate($validated['tanggal_masuk']);
         }
 
-        $pembesaran = Pembesaran::create($validated);
+        $pembesaran = Pembesaran::create(array_merge($validated, [
+            'batch_produksi_id' => $batch->id,
+        ]));
 
         $kandang->syncMaintenanceStatus();
 
         return redirect()->route('admin.pembesaran')
-            ->with('success', 'Data pembesaran berhasil ditambahkan dengan batch: ' . ($pembesaran->batch_produksi_id ?? $validated['batch_produksi_id']));
+            ->with('success', 'Data pembesaran berhasil ditambahkan dengan batch: ' . ($batch->kode_batch ?? $validated['batch_produksi_id']));
     }
 
     /**
@@ -229,7 +269,7 @@ class PembesaranController extends Controller
         /**
          * Menampilkan halaman detail sebuah pembesaran beserta metrik dan reminder vaksinasi.
          */
-        $pembesaran->load(['kandang', 'penetasan']);
+        $pembesaran->load(['kandang', 'penetasan', 'batchProduksi']);
         
         // Hitung metrics
         $populasiAwal = $pembesaran->jumlah_anak_ayam;
@@ -330,7 +370,7 @@ class PembesaranController extends Controller
         /**
          * Menampilkan halaman detail biaya pembesaran dengan breakdown lengkap.
          */
-        $pembesaran->load(['kandang', 'penetasan']);
+        $pembesaran->load(['kandang', 'penetasan', 'batchProduksi']);
 
         // Hitung metrics yang diperlukan untuk halaman detail biaya
         $populasiAwal = $pembesaran->jumlah_anak_ayam;
@@ -375,6 +415,7 @@ class PembesaranController extends Controller
                 });
 
                 if ($pembesaran->kandang_id) {
+                    // Tetap tampilkan kandang yang sedang dipakai meski status di luar filter
                     $query->orWhere('id', $pembesaran->kandang_id);
                 }
             })
@@ -420,7 +461,7 @@ class PembesaranController extends Controller
         $pembesaran->update($validated);
 
         return redirect()->route('admin.pembesaran')
-            ->with('success', 'Data pembesaran dengan batch: ' . ($pembesaran->batch_produksi_id ?? ('ID ' . $pembesaran->id)) . ' berhasil diperbarui.');
+            ->with('success', 'Data pembesaran dengan batch: ' . $pembesaran->batch_label . ' berhasil diperbarui.');
     }
 
     /**
@@ -456,7 +497,7 @@ class PembesaranController extends Controller
             'tanggal_selesai' => \Carbon\Carbon::now()
         ]);
         
-    return back()->with('success', 'Batch pembesaran ' . ($pembesaran->batch_produksi_id ?? ('ID ' . $pembesaran->id)) . ' berhasil diselesaikan.');
+    return back()->with('success', 'Batch pembesaran ' . $pembesaran->batch_label . ' berhasil diselesaikan.');
     }
 
     /**
@@ -467,8 +508,7 @@ class PembesaranController extends Controller
         /**
          * Menghapus data pembesaran dari database.
          */
-        $batchLabel = $pembesaran->batch_produksi_id ?? null;
-        $identifier = 'ID: ' . $pembesaran->id;
+        $batchLabel = $pembesaran->batch_label;
         $batchId = $pembesaran->batch_produksi_id;
 
         DB::transaction(function () use ($pembesaran, $batchId) {
@@ -482,13 +522,13 @@ class PembesaranController extends Controller
         return redirect()->route('admin.pembesaran')
             ->with(
                 'success',
-                'Data pembesaran ' . $identifier . ($batchLabel ? ' (Batch: ' . $batchLabel . ')' : '') . ' berhasil dihapus.'
+                'Data pembesaran batch ' . ($batchLabel ?: '-') . ' berhasil dihapus.'
             );
     }
     /**
      * Hapus seluruh data operasional yang terikat dengan batch tertentu.
      */
-    private function deleteBatchRelatedData(?string $batchId): void
+    private function deleteBatchRelatedData(?int $batchId): void
     {
         if (!$batchId) {
             return;
@@ -544,12 +584,13 @@ class PembesaranController extends Controller
         $today = date('Ymd');
         $prefix = 'PB-' . $today . '-';
 
-        $lastBatch = Pembesaran::where('batch_produksi_id', 'like', $prefix . '%')
-            ->orderByDesc('batch_produksi_id')
+        // Cari kode_batch terakhir pada hari ini di tabel batch_produksi (bukan kolom FK pembesaran)
+        $lastBatch = BatchProduksi::where('kode_batch', 'like', $prefix . '%')
+            ->orderByDesc('kode_batch')
             ->first();
 
-        if ($lastBatch && $lastBatch->batch_produksi_id) {
-            $lastNumber = (int) substr($lastBatch->batch_produksi_id, -3);
+        if ($lastBatch && $lastBatch->kode_batch) {
+            $lastNumber = (int) substr($lastBatch->kode_batch, -3);
             $nextNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
         } else {
             $nextNumber = '001';

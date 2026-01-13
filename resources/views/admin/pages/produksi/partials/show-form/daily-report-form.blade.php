@@ -98,6 +98,63 @@
                 </div>
             @endif
 
+            @if (session('duplicate_warning'))
+                <script>
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const form = document.getElementById('pencatatanForm');
+                        if (!form) return;
+
+                        const warning = @json(session('duplicate_warning'));
+                        const tanggal = warning?.tanggal_display || warning?.tanggal || '';
+                        const message = `Sudah ada pencatatan pada ${tanggal}. Mau mengganti data atau menambahkan catatan baru di tanggal yang sama?`;
+
+                        const addHidden = (name, value) => {
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = name;
+                            input.value = value;
+                            form.appendChild(input);
+                        };
+
+                        const submitReplace = () => {
+                            addHidden('duplicate_action', 'replace');
+                            form.submit();
+                        };
+
+                        if (window.Swal) {
+                            Swal.fire({
+                                title: 'Ganti data tanggal ini?',
+                                text: message,
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonText: 'Ya, ganti',
+                                cancelButtonText: 'Batal',
+                                reverseButtons: true,
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    submitReplace();
+                                }
+                            });
+                        } else {
+                            const isReplace = confirm(`${message}\nPilih OK untuk mengganti, Cancel untuk batal.`);
+                            if (isReplace) {
+                                submitReplace();
+                            }
+                        }
+                    });
+                </script>
+            @endif
+
+            @if (session('duplicate_warning'))
+                <div class="alert alert-warning d-flex align-items-start gap-2 mb-3">
+                    <i class="fa-solid fa-triangle-exclamation mt-1"></i>
+                    <div>
+                        Sudah ada pencatatan untuk tanggal {{ session('duplicate_warning.tanggal_display') ?? session('duplicate_warning')['tanggal_display'] ?? session('duplicate_warning')['tanggal'] ?? '-' }}.
+                        Pilih apakah mau <strong>mengganti</strong> data di tanggal itu atau <strong>menambahkan</strong> catatan baru pada tanggal yang sama.
+                    </div>
+                </div>
+            @endif
+
             <div class="tab-content" id="pencatatanTabsContent">
                 <div class="tab-pane fade show active" id="telur" role="tabpanel" aria-labelledby="telur-tab">
                     <div class="record-section">
@@ -1193,7 +1250,10 @@
                             .then(async response => {
                                 const payload = await response.json().catch(() => ({}));
                                 if (!response.ok) {
-                                    throw new Error(payload.message || 'Gagal mengenerate catatan.');
+                                    const msg = payload.message || 'Gagal mengenerate catatan.';
+                                    const err = new Error(msg);
+                                    err.status = response.status;
+                                    throw err;
                                 }
                                 return payload;
                             })
@@ -1205,7 +1265,14 @@
                                 }
                             })
                             .catch(error => {
-                                alert(error.message);
+                                const msg = error?.message || 'Gagal mengenerate catatan.';
+                                const isNotFound = error?.status === 404;
+                                Swal.fire({
+                                    title: isNotFound ? 'Data belum tersedia' : 'Gagal Generate',
+                                    text: isNotFound ? 'Belum ada pencatatan lain pada tanggal tersebut.' : msg,
+                                    icon: 'warning',
+                                    confirmButtonText: 'OK'
+                                });
                             })
                             .finally(() => {
                                 generateButton.disabled = false;

@@ -337,7 +337,7 @@
             <h5 class="bolopa-page-title">Detail Pembesaran Puyuh</h5>
             <div class="bolopa-page-subtitle">
                 <span class="text-uppercase text-muted" style="font-size: 0.75rem; letter-spacing: 0.05em;">DOQ Puyuh → Puyuh dewasa siap produksi</span><br>
-                Batch: <a href="#">{{ $pembesaran->batch_produksi_id }}</a> &nbsp;|&nbsp;
+                Batch: <a href="#">{{ $pembesaran->batch_label }}</a> &nbsp;|&nbsp;
                 Kandang: <strong>{{ $pembesaran->kandang->nama_kandang ?? '-' }}</strong> &nbsp;|&nbsp;
                 Umur: <strong>{{ (int)$umurHari }} hari</strong> &nbsp;|&nbsp;
                 Populasi (awal {{ number_format($populasiAwal) }})

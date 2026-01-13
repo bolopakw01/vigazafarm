@@ -8,6 +8,7 @@ use App\Models\Penetasan;
 use App\Models\Pembesaran;
 use App\Models\LaporanHarian;
 use App\Models\TrayHistory;
+use App\Models\BatchProduksi;
 use App\Models\FeedVitaminItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -298,6 +299,8 @@ class ProduksiController extends Controller
         }
 
         $validated = $request->validate($rules, [
+            'umur_mulai_produksi.required' => 'Field umur mulai produksi wajib diisi.',
+            'berat_rata_rata.required' => 'Field berat rata-rata wajib diisi.',
             'jumlah_jantan.min' => 'Jumlah jantan tidak boleh negatif',
             'jumlah_betina.min' => 'Jumlah betina tidak boleh negatif',
             'tanggal_akhir.after_or_equal' => 'Tanggal akhir harus setelah atau sama dengan tanggal mulai',
@@ -428,12 +431,52 @@ class ProduksiController extends Controller
 
         DB::beginTransaction();
         try {
-            // Generate batch ID if not provided
-            if (empty($validated['batch_produksi_id'])) {
+            // Generate or resolve batch_produksi_id (FK to vf_batch_produksi)
+            $providedBatch = $validated['batch_produksi_id'] ?? null;
+            $jumlahAwal = $validated['jumlah_indukan'] ?? ($validated['jumlah_telur'] ?? 0);
+
+            if ($providedBatch) {
+                if (is_numeric($providedBatch)) {
+                    $batch = BatchProduksi::find($providedBatch);
+                    if (!$batch) {
+                        throw new \Exception('Batch produksi tidak ditemukan.');
+                    }
+                    $validated['batch_produksi_id'] = $batch->id;
+                } else {
+                    $batch = BatchProduksi::firstOrCreate(
+                        ['kode_batch' => $providedBatch],
+                        [
+                            'kandang_id' => $validated['kandang_id'],
+                            'tanggal_mulai' => $validated['tanggal_mulai'],
+                            'tanggal_akhir' => $validated['tanggal_akhir'] ?? null,
+                            'jumlah_awal' => $jumlahAwal,
+                            'jumlah_saat_ini' => $validated['tipe_produksi'] === 'puyuh' ? $jumlahAwal : null,
+                            'fase' => 'layer',
+                            'status' => 'aktif',
+                            'catatan' => $validated['catatan'] ?? null,
+                        ]
+                    );
+                    $validated['batch_produksi_id'] = $batch->id;
+                }
+            } else {
                 $date = Carbon::parse($validated['tanggal_mulai']);
-                $prefix = $validated['jenis_input'] === 'dari_penetasan' ? 'TELUR-INF' : 'PROD';
-                $count = Produksi::whereDate('tanggal_mulai', $date)->count() + 1;
-                $validated['batch_produksi_id'] = sprintf('%s-%s-%04d', $prefix, $date->format('Ymd'), $count);
+                $prefix = $validated['tipe_produksi'] === 'telur' ? 'TELUR-INF' : 'PROD-PUY';
+                $count = BatchProduksi::whereDate('tanggal_mulai', $date)->count() + 1;
+                $kodeBatch = sprintf('%s-%s-%04d', $prefix, $date->format('Ymd'), $count);
+
+                $batch = BatchProduksi::create([
+                    'kode_batch' => $kodeBatch,
+                    'kandang_id' => $validated['kandang_id'],
+                    'tanggal_mulai' => $validated['tanggal_mulai'],
+                    'tanggal_akhir' => $validated['tanggal_akhir'] ?? null,
+                    'jumlah_awal' => $jumlahAwal,
+                    'jumlah_saat_ini' => $validated['tipe_produksi'] === 'puyuh' ? $jumlahAwal : null,
+                    'fase' => 'layer',
+                    'status' => 'aktif',
+                    'catatan' => $validated['catatan'] ?? null,
+                ]);
+
+                $validated['batch_produksi_id'] = $batch->id;
             }
 
             // Handle transfer from pembesaran
@@ -533,9 +576,10 @@ class ProduksiController extends Controller
             Log::info('Transaction committed successfully');
             $redirectUrl = route('admin.produksi');
             Log::info('Redirecting to: ' . $redirectUrl);
+            $produksi->loadMissing(['batchProduksi', 'pembesaran', 'penetasan']);
             $message = sprintf(
-                'Produksi batch %s berhasil ditambahkan.',
-                $produksi->batch_produksi_id ?? ('#' . $produksi->id)
+                'Produksi %s berhasil ditambahkan.',
+                $produksi->batch_label
             );
 
             return redirect()->route('admin.produksi')
@@ -884,7 +928,9 @@ class ProduksiController extends Controller
                     $rules['jumlah_telur_terjual'] = 'required|integer|min:1';
                     $rules['harga_penjualan'] = 'required|numeric|min:0';
                 } else {
-                    $rules['jenis_kelamin_penjualan'] = 'required|in:jantan,betina';
+                    if (Schema::hasColumn('vf_laporan_harian', 'jenis_kelamin_penjualan')) {
+                        $rules['jenis_kelamin_penjualan'] = 'required|in:jantan,betina';
+                    }
                     $rules['penjualan_puyuh_ekor'] = 'required|integer|min:1';
                     $rules['harga_penjualan'] = 'required|numeric|min:0';
                 }
@@ -984,13 +1030,50 @@ class ProduksiController extends Controller
             $validated['harga_vitamin_per_liter'] = (float) $selectedVitaminItem->price;
         }
 
-        // Find existing record or create new one
-        $existingLaporan = LaporanHarian::where('batch_produksi_id', $produksi->batch_produksi_id)
-            ->where('tanggal', $validated['tanggal'])
+        // Find existing record or create new one (enforce unique batch_id + tanggal)
+        $laporan = LaporanHarian::where('batch_produksi_id', $produksi->batch_produksi_id)
+            ->whereDate('tanggal', $validated['tanggal'])
             ->first();
 
-        // For telur/pakan/vitamin/kematian/laporan inputs, always create a new record to track each submission
-        if (in_array($activeTab, ['telur', 'penjualan', 'pakan', 'vitamin', 'kematian', 'laporan'], true)) {
+        // If record exists and already has data for the active tab, prompt before overwrite
+        if ($laporan && !$request->filled('duplicate_action')) {
+            $isHidden = $laporan->tampilkan_di_histori === false;
+            $hasExistingForTab = false;
+            switch ($activeTab) {
+                case 'telur':
+                    $hasExistingForTab = !$isHidden && (($laporan->produksi_telur ?? 0) > 0 || ($laporan->input_telur ?? 0) > 0);
+                    break;
+                case 'penjualan':
+                    $hasExistingForTab = !$isHidden && (($laporan->penjualan_telur_butir ?? 0) > 0 || ($laporan->penjualan_puyuh_ekor ?? 0) > 0);
+                    break;
+                case 'pakan':
+                    // Hanya anggap ada data jika nilai konsumsi sudah terisi > 0
+                    $hasExistingForTab = !$isHidden && ($laporan->konsumsi_pakan_kg ?? 0) > 0;
+                    break;
+                case 'vitamin':
+                    $hasExistingForTab = !$isHidden && $laporan->vitamin_terpakai !== null;
+                    break;
+                case 'kematian':
+                    $hasExistingForTab = !$isHidden && ($laporan->jumlah_kematian ?? 0) > 0;
+                    break;
+                case 'laporan':
+                    $hasExistingForTab = !$isHidden && !empty($laporan->catatan_kejadian);
+                    break;
+            }
+
+            if ($hasExistingForTab) {
+                $tanggalDisplay = Carbon::parse($validated['tanggal'])->locale('id')->translatedFormat('d F Y');
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('duplicate_warning', [
+                        'tanggal' => $validated['tanggal'],
+                        'tanggal_display' => $tanggalDisplay,
+                    ]);
+            }
+        }
+
+        if (!$laporan) {
             $laporan = new LaporanHarian([
                 'batch_produksi_id' => $produksi->batch_produksi_id,
                 'tanggal' => $validated['tanggal'],
@@ -1001,7 +1084,10 @@ class ProduksiController extends Controller
         $isNewRecord = !$laporan->exists;
 
         // Only update fields that are relevant to the active tab
-        $updateData = ['pengguna_id' => Auth::id()];
+        $updateData = [
+            'pengguna_id' => Auth::id(),
+            'tampilkan_di_histori' => true,
+        ];
 
         switch ($activeTab) {
             case 'telur':
@@ -1041,7 +1127,9 @@ class ProduksiController extends Controller
 
                     if ($jumlahTerjual > 0) {
                         $updateData['penjualan_puyuh_ekor'] = $jumlahTerjual;
-                        $updateData['jenis_kelamin_penjualan'] = $validated['jenis_kelamin_penjualan'] ?? null;
+                        if (Schema::hasColumn('vf_laporan_harian', 'jenis_kelamin_penjualan')) {
+                            $updateData['jenis_kelamin_penjualan'] = $validated['jenis_kelamin_penjualan'] ?? null;
+                        }
                         $updateData['harga_per_butir'] = $hargaSatuan; // reuse column as harga satuan
                         $updateData['pendapatan_harian'] = $jumlahTerjual * $hargaSatuan;
                     }
@@ -1256,11 +1344,7 @@ class ProduksiController extends Controller
 
         $kandangNama = $produksi->kandang?->nama_kandang ?: 'Tidak ditentukan';
 
-        $segments = [
-            "📅 Rangkuman Puyuh | {$tanggalFormatted}",
-            "🏷️ Batch {$produksi->batch_produksi_id} - {$kandangNama}",
-            '',
-        ];
+        $segments = [];
 
         $totalTelur = $laporanHarian->sum('produksi_telur');
         $totalTelurRusak = $laporanHarian->sum('telur_rusak');
@@ -1270,115 +1354,78 @@ class ProduksiController extends Controller
             return ($laporan->penjualan_puyuh_ekor ?? 0) > 0 ? (float) ($laporan->pendapatan_harian ?? 0) : 0;
         });
         $totalPakan = $laporanHarian->sum('konsumsi_pakan_kg');
+        $totalBiayaPakan = $laporanHarian->sum('biaya_pakan_harian');
+        $hargaPakanPerKg = optional($laporanHarian->first(fn ($item) => $item->harga_pakan_per_kg !== null))->harga_pakan_per_kg;
         $sisaPakan = optional($laporanHarian->first(fn ($item) => $item->sisa_pakan_kg !== null))->sisa_pakan_kg;
         $totalVitamin = $laporanHarian->sum('vitamin_terpakai');
+        $totalBiayaVitamin = $laporanHarian->sum('biaya_vitamin_harian');
+        $hargaVitaminPerLiter = optional($laporanHarian->first(fn ($item) => $item->harga_vitamin_per_liter !== null))->harga_vitamin_per_liter;
         $sisaVitamin = optional($laporanHarian->first(fn ($item) => $item->sisa_vitamin_liter !== null))->sisa_vitamin_liter;
         $totalKematian = $laporanHarian->sum('jumlah_kematian');
         $currentPopulation = $laporanHarian->max('jumlah_burung') ?? $produksi->jumlah_indukan;
 
-        $produksiMetrics = [];
-        $konsumsiMetrics = [];
-        $kesehatanMetrics = [];
+        $mortalityRate = $currentPopulation > 0 ? round(($totalKematian / max($currentPopulation, 1)) * 100, 2) : 0;
+        $avgPricePuyuh = $totalPenjualanPuyuh > 0 ? $totalPendapatanPuyuh / max($totalPenjualanPuyuh, 1) : 0;
+        $totalBiayaKonsumsi = ($totalBiayaPakan ?? 0) + ($totalBiayaVitamin ?? 0);
 
-        if ($totalTelur > 0) {
-            $line = "🥚 Telur: {$formatNumber($totalTelur)} butir";
-            if ($totalTelurRusak > 0) {
-                $line .= " (rusak {$formatNumber($totalTelurRusak)}";
-                $line .= $sisaTelur !== null ? "; sisa {$formatNumber($sisaTelur)}" : '';
-                $line .= ')';
-            } elseif ($sisaTelur !== null) {
-                $line .= " (sisa {$formatNumber($sisaTelur)})";
-            }
-            $produksiMetrics[] = $line;
-        }
-
-        if ($totalPenjualanPuyuh > 0) {
-            $line = "💰 Penjualan: {$formatNumber($totalPenjualanPuyuh)} ekor";
-            if ($totalPendapatanPuyuh > 0) {
-                $avgPrice = $totalPendapatanPuyuh / max($totalPenjualanPuyuh, 1);
-                $line .= " | Rp {$formatNumber($totalPendapatanPuyuh)} (Rp {$formatNumber(round($avgPrice))}/ekor)";
-            }
-            $produksiMetrics[] = $line;
-        }
-
-        if ($totalPakan > 0) {
-            $line = "🌾 Pakan: {$formatNumber($totalPakan, 2)} kg";
-            if ($sisaPakan !== null) {
-                $line .= " (sisa {$formatNumber($sisaPakan, 2)} kg)";
-            }
-            $konsumsiMetrics[] = $line;
-        }
-
-        if ($totalVitamin > 0) {
-            $line = "💊 Vitamin: {$formatNumber($totalVitamin, 2)} L";
-            if ($sisaVitamin !== null) {
-                $line .= " (sisa {$formatNumber($sisaVitamin, 2)} L)";
-            }
-            $konsumsiMetrics[] = $line;
-        }
-
-        if ($totalKematian > 0) {
-            $line = "⚠️ Mortalitas: {$formatNumber($totalKematian)} ekor";
-            if ($currentPopulation > 0) {
-                $mortalityRate = round(($totalKematian / max($currentPopulation, 1)) * 100, 2);
-                $line .= " ({$mortalityRate}% dari {$formatNumber($currentPopulation)} ekor)";
-            }
-            $kesehatanMetrics[] = $line;
-        }
-
-        if (!empty($produksiMetrics)) {
-            $segments[] = '📊 Produksi';
-            foreach ($produksiMetrics as $metric) {
-                $segments[] = '- ' . $metric;
-            }
-            $segments[] = '';
-        }
-
-        if (!empty($konsumsiMetrics)) {
-            $segments[] = '🍲 Konsumsi';
-            foreach ($konsumsiMetrics as $metric) {
-                $segments[] = '- ' . $metric;
-            }
-            $segments[] = '';
-        }
-
-        if (!empty($kesehatanMetrics)) {
-            $segments[] = '🏥 Kesehatan';
-            foreach ($kesehatanMetrics as $metric) {
-                $segments[] = '- ' . $metric;
-            }
-            $segments[] = '';
-        }
-
-        if (empty($produksiMetrics) && empty($konsumsiMetrics) && empty($kesehatanMetrics)) {
-            $segments[] = 'Tidak ada input pada tanggal ini.';
-            $segments[] = '';
-        }
-
-        $notePool = collect()
-            ->merge($laporanHarian->whereNotNull('catatan_kejadian')->pluck('catatan_kejadian'))
-            ->merge($laporanHarian->whereNotNull('keterangan_kematian')->pluck('keterangan_kematian'))
-            ->filter()
+        $catatanUtama = $laporanHarian
+            ->whereNotNull('catatan_kejadian')
+            ->sortByDesc(fn ($item) => $item->dibuat_pada ?? $item->created_at ?? $item->tanggal)
+            ->pluck('catatan_kejadian')
             ->map(fn ($note) => trim($note))
-            ->filter(fn ($note) => !str_contains($note, 'Ringkasan') && !str_contains($note, 'Batch') && strlen($note) >= 3 && strlen($note) < 200)
-            ->unique();
+            ->first();
 
-        $notes = $notePool->take(3);
-
-        $segments[] = '📝 Catatan';
-        if ($notes->isEmpty()) {
-            $segments[] = '- Tidak ada catatan.';
-        } else {
-            foreach ($notes as $note) {
-                $segments[] = '- ' . preg_replace('/\s+/', ' ', $note);
-            }
+        if (!$catatanUtama || strlen($catatanUtama) < 1) {
+            $catatanUtama = 'Tidak ada catatan tambahan.';
         }
 
-        if ($notePool->count() > $notes->count()) {
-            $segments[] = '- Catatan lain tersimpan di histori.';
-        }
+        $penyusun = Auth::user()->nama_pengguna ?? Auth::user()->username ?? 'Sistem';
+        $tanggalPenyusunan = now()->locale('id')->translatedFormat('d F Y, H:i') . ' WIB';
 
-        $segments[] = '- Generated by ' . (Auth::user()->nama_pengguna ?? Auth::user()->username ?? 'Sistem') . ' at ' . now()->locale('id')->format('d F Y, H:i');
+        // Header
+        $segments[] = 'LAPORAN PRODUKSI HARIAN - PUYUH PETELUR';
+        $segments[] = '============================================';
+        $segments[] = 'Tanggal: ' . $tanggalFormatted;
+        $segments[] = 'Nomor Batch: ' . $produksi->batch_produksi_id;
+        $segments[] = 'Lokasi Kandang: ' . $kandangNama;
+        $segments[] = '';
+
+        // Produksi & Penjualan
+        $segments[] = 'PRODUKSI & PENJUALAN';
+        $segments[] = '';
+        $segments[] = 'Telur Dihasilkan: ' . $formatNumber($totalTelur) . ' butir';
+        $segments[] = 'Puyuh Terjual: ' . $formatNumber($totalPenjualanPuyuh) . ' ekor';
+        $segments[] = 'Harga per Ekor: Rp ' . $formatNumber(round($avgPricePuyuh));
+        $segments[] = 'Total Pendapatan: Rp ' . $formatNumber($totalPendapatanPuyuh);
+        $segments[] = '';
+
+        // Biaya Konsumsi
+        $segments[] = 'BIAYA KONSUMSI';
+        $segments[] = '';
+        $segments[] = 'Pakan: ' . $formatNumber($totalPakan, 2) . ' kg (Rp ' . $formatNumber($hargaPakanPerKg ?? 0) . '/kg) = Rp ' . $formatNumber($totalBiayaPakan);
+        $segments[] = 'Vitamin: ' . $formatNumber($totalVitamin, 2) . ' L (Rp ' . $formatNumber($hargaVitaminPerLiter ?? 0) . '/L) = Rp ' . $formatNumber($totalBiayaVitamin);
+        $segments[] = 'TOTAL BIAYA: Rp ' . $formatNumber($totalBiayaKonsumsi);
+        $segments[] = '';
+
+        // Monitoring Kesehatan
+        $segments[] = 'MONITORING KESEHATAN';
+        $segments[] = '';
+        $segments[] = 'Mortalitas: ' . $formatNumber($totalKematian) . ' ekor';
+        $segments[] = 'Persentase Mortalitas: ' . $formatNumber($mortalityRate, 2) . '% (dari total populasi ' . $formatNumber($currentPopulation) . ' ekor)';
+        $segments[] = '';
+
+        // Catatan
+        $segments[] = 'CATATAN';
+        $segments[] = '';
+        $segments[] = preg_replace('/\s+/', ' ', $catatanUtama);
+        $segments[] = '';
+
+        // Informasi Dokumen
+        $segments[] = 'INFORMASI DOKUMEN';
+        $segments[] = '';
+        $segments[] = 'Disusun oleh: ' . $penyusun;
+        $segments[] = 'Tanggal Penyusunan: ' . $tanggalPenyusunan;
+        $segments[] = 'Dokumen ini digenerate otomatis untuk dokumentasi produksi.';
 
         return $this->finalizeSummary($segments, 1200);
     }
@@ -1598,6 +1645,35 @@ class ProduksiController extends Controller
         }
 
         try {
+            // Pastikan batch_produksi_id berupa ID numerik (FK) walau form mengirim kode batch
+            $providedBatch = $validated['batch_produksi_id'] ?? null;
+            $jumlahAwal = $validated['jumlah_indukan'] ?? ($validated['jumlah_telur'] ?? 0);
+
+            if ($providedBatch) {
+                if (is_numeric($providedBatch)) {
+                    $batch = BatchProduksi::find($providedBatch);
+                    if (!$batch) {
+                        throw new \Exception('Batch produksi tidak ditemukan.');
+                    }
+                    $validated['batch_produksi_id'] = $batch->id;
+                } else {
+                    $batch = BatchProduksi::firstOrCreate(
+                        ['kode_batch' => $providedBatch],
+                        [
+                            'kandang_id' => $validated['kandang_id'],
+                            'tanggal_mulai' => $validated['tanggal_mulai'],
+                            'tanggal_akhir' => $validated['tanggal_akhir'] ?? null,
+                            'jumlah_awal' => $jumlahAwal,
+                            'jumlah_saat_ini' => $produksi->tipe_produksi === 'puyuh' ? $jumlahAwal : null,
+                            'fase' => 'layer',
+                            'status' => 'aktif',
+                            'catatan' => $validated['catatan'] ?? null,
+                        ]
+                    );
+                    $validated['batch_produksi_id'] = $batch->id;
+                }
+            }
+
             $produksi->update($validated);
 
             $produksi->loadMissing('kandang');
@@ -1607,7 +1683,8 @@ class ProduksiController extends Controller
                 Kandang::find($originalKandangId)?->syncMaintenanceStatus();
             }
 
-            $identifier = $produksi->batch_produksi_id ? 'batch ' . $produksi->batch_produksi_id : '#' . $produksi->id;
+            $produksi->loadMissing(['batchProduksi', 'pembesaran', 'penetasan']);
+            $identifier = $produksi->batch_label;
 
             return redirect()->route('admin.produksi')
                            ->with('success', sprintf('Produksi %s berhasil diperbarui.', $identifier));
@@ -1625,6 +1702,9 @@ class ProduksiController extends Controller
     public function destroy(Produksi $produksi)
     {
         $kandangId = $produksi->kandang_id;
+        $produksi->loadMissing(['batchProduksi', 'pembesaran', 'penetasan']);
+        $identifier = $produksi->batch_label;
+
         DB::beginTransaction();
         try {
             // Rollback transfers if applicable
@@ -1641,8 +1721,6 @@ class ProduksiController extends Controller
                     $penetasan->decrement('telur_infertil_ditransfer', $produksi->jumlah_telur);
                 }
             }
-
-            $identifier = $produksi->batch_produksi_id ? 'batch ' . $produksi->batch_produksi_id : '#' . $produksi->id;
 
             $produksi->delete();
 
@@ -1681,7 +1759,8 @@ class ProduksiController extends Controller
                 Kandang::find($kandangId)?->syncMaintenanceStatus();
             }
 
-            $identifier = $produksi->batch_produksi_id ? 'batch ' . $produksi->batch_produksi_id : '#' . $produksi->id;
+            $produksi->loadMissing(['batchProduksi', 'pembesaran', 'penetasan']);
+            $identifier = $produksi->batch_label;
 
             return redirect()->back()
                            ->with('success', sprintf('Status produksi %s berhasil diperbarui.', $identifier));
@@ -1701,7 +1780,7 @@ class ProduksiController extends Controller
             ->filter()
             ->unique();
 
-        $candidatesQuery = Produksi::with('kandang')
+        $candidatesQuery = Produksi::with(['kandang', 'batchProduksi', 'pembesaran', 'penetasan'])
             ->where('tipe_produksi', 'puyuh')
             ->where('status', 'aktif');
 

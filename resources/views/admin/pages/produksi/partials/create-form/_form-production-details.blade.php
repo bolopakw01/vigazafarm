@@ -10,7 +10,7 @@
   <div class="row g-3 mb-3">
     <div class="col-md-6">
       <label for="batch_produksi_id" class="form-label">Batch Produksi ID</label>
-      <input type="text" id="batch_produksi_id" name="batch_produksi_id" class="form-control" readonly style="background-color: #f1f5f9; font-weight: 600; color: #1e293b;" value="{{ old('batch_produksi_id') }}">
+      <input type="text" id="batch_produksi_id" name="batch_produksi_id" class="form-control" readonly style="background-color: #f1f5f9; font-weight: 600; color: #1e293b;" value="{{ old('batch_produksi_id', $defaultBatch ?? '') }}">
       <div class="form-text">
         <small class="text-muted">ID batch produksi (readonly). Akan ter-generate otomatis berdasarkan tanggal dan jenis input.</small>
       </div>

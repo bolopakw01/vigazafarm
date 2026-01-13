@@ -27,6 +27,7 @@ class DssSettingsService
         $defaults = $this->defaultSettings();
 
         $settings = [
+            'enabled' => filter_var($payload['enabled'] ?? Arr::get($defaults, 'enabled', true), FILTER_VALIDATE_BOOLEAN),
             'mode' => $payload['mode'] ?? Arr::get($defaults, 'mode', 'config'),
             'config' => array_replace_recursive($defaults['config'], $payload['config'] ?? []),
             'ml' => array_replace_recursive($defaults['ml'], $payload['ml'] ?? []),
@@ -54,6 +55,9 @@ class DssSettingsService
         $settings = $this->getSettings();
         $overrides = Arr::get($settings, 'config', []);
 
+        // apply enabled flag to config
+        config(['dss.enabled' => Arr::get($settings, 'enabled', config('dss.enabled', true))]);
+
         if (!empty($overrides)) {
             config(['dss' => array_replace_recursive(config('dss'), $overrides)]);
         }
@@ -72,6 +76,7 @@ class DssSettingsService
     public function defaultSettings(): array
     {
         return [
+            'enabled' => (bool) config('dss.enabled', true),
             'mode' => 'config',
             'config' => [
                 'eggs' => [

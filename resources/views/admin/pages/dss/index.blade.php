@@ -22,6 +22,15 @@
 	$feedPrediction = data_get($mlPredictions, 'feed', []);
 	$mortalityPrediction = data_get($mlPredictions, 'mortality', []);
 	$pricingPrediction = data_get($mlPredictions, 'pricing', []);
+	$simulation = $simulation ?? null;
+	$simInput = $simulation['input'] ?? [
+		'umur_hari' => request('umur_hari'),
+		'pakan_g_per_hari' => request('pakan_g_per_hari'),
+		'protein_persen' => request('protein_persen'),
+		'berat_badan_g' => request('berat_badan_g'),
+		'harga_pakan_per_kg' => request('harga_pakan_per_kg'),
+		'margin_persen' => request('margin_persen'),
+	];
 	$mlAlerts = $mode === 'ml' ? data_get($mlResponse, 'alerts', []) : [];
 	$mlCapabilities = $mode === 'ml' ? data_get($settings, 'ml.capabilities', []) : [];
 	$mlCapabilityMap = [
@@ -226,6 +235,36 @@
 			gap: 18px;
 			margin-top: 24px;
 		}
+		.sim-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+			gap: 14px;
+			margin-top: 10px;
+		}
+		.sim-result-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+			gap: 16px;
+			margin-top: 14px;
+		}
+		.sim-grid .form-control {
+			background: #f8fafc;
+			border-color: #e2e8f0;
+			box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+		}
+		.sim-grid label {
+			font-weight: 600;
+			color: #0f172a;
+		}
+		.sim-grid small {
+			color: #64748b;
+		}
+		.sim-section-highlight {
+			background: linear-gradient(135deg, #f8fafc, #ffffff);
+			border: 1px solid #e2e8f0;
+			border-radius: 16px;
+			padding: 16px;
+		}
 		.ml-card {
 			border-radius: 24px;
 			border: 1px solid #e2e8f0;
@@ -236,41 +275,91 @@
 		.ml-card h3 {
 			font-size: 1rem;
 			margin-bottom: 6px;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+		.ml-card.eggs {
+			border-color: #0ea5e9;
+			background: linear-gradient(165deg, #ffffff, #f0f9ff);
+		}
+		.ml-card.eggs h3 i {
+			color: #0ea5e9;
+		}
+		.ml-card.cost {
+			border-color: #ef4444;
+			background: linear-gradient(165deg, #ffffff, #fef2f2);
+		}
+		.ml-card.cost h3 i {
+			color: #ef4444;
+		}
+		.ml-card.price {
+			border-color: #22c55e;
+			background: linear-gradient(165deg, #ffffff, #f0fdf4);
+		}
+		.ml-card.price h3 i {
+			color: #22c55e;
+		}
+		.sim-ops-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+			gap: 16px;
+			margin-top: 16px;
+		}
+		.sim-ops-box {
+			border: 1px solid #e2e8f0;
+			border-radius: 14px;
+			padding: 14px 16px;
+			background: #f8fafc;
+		}
+		.sim-ops-box h6 {
+			font-size: 0.9rem;
+			margin-bottom: 8px;
+			text-transform: uppercase;
+			letter-spacing: 0.08em;
+			color: #475569;
+		}
+		.sim-ops-box ul {
+			margin: 0;
+			padding-left: 18px;
+			color: #0f172a;
+		}
+		.sim-ops-box .pill-stack {
+			display: flex;
+			flex-direction: column;
+			gap: 6px;
+		}
+		.sim-quick-actions {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+		}
+		.sim-quick-actions button {
+			border-radius: 10px;
+			border: 1px solid #cbd5e1;
+			background: #fff;
+			padding: 8px 12px;
+			font-weight: 600;
+			color: #0f172a;
+			transition: all 0.15s ease;
+		}
+		.sim-quick-actions button:hover {
+			background: #e0f2fe;
+			border-color: #38bdf8;
+			color: #0ea5e9;
 		}
 		.ml-value {
 			font-size: 2rem;
 			font-weight: 700;
 			margin-bottom: 4px;
 		}
+		.ml-value.empty {
+			color: #cbd5e1;
+			font-size: 1.5rem;
+		}
 		.ml-value small {
 			font-size: 0.9rem;
 			color: #475569;
-		}
-		.mini-list {
-			margin: 12px 0 0;
-			padding-left: 18px;
-			font-size: 0.86rem;
-			color: #475569;
-		}
-		.quick-list {
-			margin: 0;
-			padding-left: 18px;
-			color: #0f172a;
-		}
-		.quick-list li {
-			margin-bottom: 6px;
-		}
-		.ml-alert-stack {
-			display: flex;
-			flex-direction: column;
-			gap: 12px;
-			margin-top: 18px;
-		}
-		.ml-alert {
-			border-radius: 16px;
-			padding: 14px 16px;
-			border: 1px solid #e2e8f0;
-			background: #f8fafc;
 		}
 		.ml-alert.level-warning { border-color: #fcd34d; background: #fffbeb; }
 		.ml-alert.level-critical { border-color: #f87171; background: #fef2f2; }
@@ -280,6 +369,7 @@
 			border: 1px solid #e2e8f0;
 			padding: 16px;
 			margin-bottom: 16px;
+			background: #fff;
 		}
 		.ml-reco:last-child { margin-bottom: 0; }
 		.ml-chip {
@@ -326,9 +416,20 @@
 		.status-pill.warning { background: #fef3c7; color: #b45309; }
 		.status-pill.critical { background: #fee2e2; color: #b91c1c; }
 		.status-pill.info { background: #e0f2fe; color: #0369a1; }
+		.action-item.critical { border-color: #b91c1c !important; }
+		.action-item.warning { border-color: #b45309 !important; }
+		.action-item.ok { border-color: #15803d !important; }
+		.action-item.info { border-color: #0369a1 !important; }
 		.table-wrap table { font-size: 0.92rem; }
 		.table-wrap th { background: #f8fafc; font-weight: 600; }
 		.table-wrap td { vertical-align: middle; }
+		.table-wrap .table th:nth-child(1) { width: 12%; min-width: 80px; } /* Batch */
+		.table-wrap .table th:nth-child(2) { width: 18%; min-width: 120px; } /* Kandang/Fase */
+		.table-wrap .table th:nth-child(3) { width: 20%; min-width: 140px; } /* Jadwal Hatcher / Target vs Aktual / Rentang Tanggal */
+		.table-wrap .table th:nth-child(4) { width: 18%; min-width: 120px; } /* Rasio Tetas / Selisih / Mortalitas */
+		.table-wrap .table th:nth-child(5) { width: 12%; min-width: 100px; } /* Risiko */
+		.table-wrap .table th:nth-child(6) { width: 20%; min-width: 150px; } /* Tindakan / Rekomendasi */
+		.table-wrap .table td:nth-child(6) { word-wrap: break-word; white-space: normal; }
 		.empty-state {
 			padding: 32px;
 			text-align: center;
@@ -337,10 +438,59 @@
 			border-radius: 12px;
 			background: #f8fafc;
 		}
-		@media (max-width: 767.98px) {
-			.dss-shell { padding: 20px; border-radius: 20px; }
-			.section-card { padding: 18px; }
-			.ml-grid { grid-template-columns: 1fr; }
+		.chart-empty-state {
+			padding: 40px 20px;
+			text-align: center;
+			color: #94a3b8;
+			border: 1px dashed #e2e8f0;
+			border-radius: 12px;
+			background: #f8fafc;
+		}
+		.chart-empty-state .chart-placeholder-icon {
+			font-size: 4rem;
+			color: #cbd5e1;
+			margin-bottom: 16px;
+		}
+		.chart-empty-state h4 {
+			color: #475569;
+			margin-bottom: 8px;
+			font-size: 1.1rem;
+			font-weight: 600;
+		}
+		.chart-empty-state p {
+			color: #64748b;
+			max-width: 300px;
+			margin: 0 auto;
+			font-size: 0.9rem;
+		}
+		.collapsible-content {
+			transition: all 0.3s ease;
+			overflow: hidden;
+		}
+		.collapsible-content.collapsed {
+			max-height: 0;
+			padding-top: 0;
+			padding-bottom: 0;
+			margin-top: 0;
+			margin-bottom: 0;
+		}
+		.toggle-btn {
+			background: none;
+			border: none;
+			color: #64748b;
+			cursor: pointer;
+			padding: 4px;
+			border-radius: 4px;
+			transition: background-color 0.2s ease;
+		}
+		.toggle-btn:hover {
+			background: #f1f5f9;
+		}
+		.toggle-btn i {
+			transition: transform 0.3s ease;
+		}
+		.toggle-btn.collapsed i {
+			transform: rotate(180deg);
 		}
 	</style>
 @endpush
@@ -349,6 +499,60 @@
 <div class="container-app container">
 	<div class="dss-wrapper">
 		<div class="dss-shell">
+			@php
+				$priorityMap = ['critical' => 3, 'warning' => 2, 'ok' => 1, 'info' => 0];
+				$levelLabelMap = [
+					'critical' => 'Darurat',
+					'warning' => 'Perlu Perhatian',
+					'ok' => 'Aman',
+					'normal' => 'Aman',
+					'info' => 'Info',
+				];
+				$displayLevel = function ($level) use ($levelLabelMap) {
+					return $levelLabelMap[$level] ?? ucfirst($level);
+				};
+				$todayActions = [];
+				foreach ($eggInsights as $item) {
+					$level = data_get($item, 'status.level', 'info');
+					if (($priorityMap[$level] ?? 0) > 0) {
+						$todayActions[] = [
+							'level' => $level,
+							'icon' => 'fa-egg',
+							'title' => 'Penetasan ' . ($item['batch'] ?? '-'),
+							'detail' => data_get($item, 'status.message', 'Periksa jadwal hatcher dan rasio tetas.'),
+							'hint' => ($item['kandang'] ?? '-') . ' • ' . ($item['fase'] ?? '-')
+						];
+					}
+				}
+				foreach ($feedInsights as $item) {
+					$level = data_get($item, 'status.level', 'info');
+					if (($priorityMap[$level] ?? 0) > 0) {
+						$todayActions[] = [
+							'level' => $level,
+							'icon' => 'fa-wheat-awn',
+							'title' => 'Pakan ' . ($item['batch'] ?? '-'),
+							'detail' => data_get($item, 'status.recommendation', data_get($item, 'status.message', 'Periksa selisih konsumsi pakan.')),
+							'hint' => ($item['kandang'] ?? '-') . ' • ' . ($item['fase'] ?? '-')
+						];
+					}
+				}
+				foreach ($mortalityAlerts as $item) {
+					$level = data_get($item, 'status.level', 'info');
+					if (($priorityMap[$level] ?? 0) > 0) {
+						$todayActions[] = [
+							'level' => $level,
+							'icon' => 'fa-skull-crossbones',
+							'title' => 'Mortalitas ' . ($item['batch'] ?? '-'),
+							'detail' => data_get($item, 'status.message', 'Cek peningkatan kematian dan lakukan investigasi cepat.'),
+							'hint' => ($item['kandang'] ?? '-') . ' • ' . ($item['fase'] ?? '-')
+						];
+					}
+				}
+				usort($todayActions, function ($a, $b) use ($priorityMap) {
+					return ($priorityMap[$b['level']] ?? 0) <=> ($priorityMap[$a['level']] ?? 0);
+				});
+				$todayActions = array_slice($todayActions, 0, 5);
+			@endphp
 			<div class="dss-header">
 				<div>
 					<h1>
@@ -367,6 +571,52 @@
 			</div>
 
 			@if($mode === 'config')
+			<div class="section-card">
+				<div class="card-head">
+					<div>
+						<h2 class="card-title mb-0">Apa yang harus dilakukan hari ini</h2>
+						<small class="text-muted">Prioritas tindakan harian berdasarkan alert config-mode.</small>
+						@if(count($todayActions))
+							@php
+								$criticalCount = collect($todayActions)->where('level', 'critical')->count();
+								$warningCount = collect($todayActions)->where('level', 'warning')->count();
+							@endphp
+							<div class="mt-2">
+								<small class="text-muted">{{ count($todayActions) }} tindakan prioritas: {{ $criticalCount }} Critical, {{ $warningCount }} Warning</small>
+							</div>
+						@endif
+					</div>
+					<button type="button" class="toggle-btn" data-target="daily-actions-content" title="Toggle visibility">
+						<i class="fa-solid fa-chevron-up"></i>
+					</button>
+				</div>
+				<div id="daily-actions-content" class="mt-3 collapsible-content">
+					@if(count($todayActions))
+						<ul class="list-unstyled mb-0" style="display:flex; flex-direction:column; gap:10px;">
+							@foreach($todayActions as $act)
+								<li class="action-item {{ $act['level'] }}" style="border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; background:#f8fafc;">
+									<div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+										<div class="d-flex align-items-start gap-2">
+											<i class="fa-solid {{ $act['icon'] }}" style="color:#64748b; margin-top:2px;"></i>
+											<div>
+												<div class="fw-semibold" style="color:#0f172a;">{{ $act['title'] }}</div>
+												<small class="text-muted">{{ $act['hint'] }}</small>
+											</div>
+										</div>
+										<span class="status-pill {{ $act['level'] }} text-uppercase">{{ $displayLevel($act['level']) }}</span>
+									</div>
+									<p class="mb-0 mt-2" style="color:#475569;">{{ $act['detail'] }}</p>
+								</li>
+							@endforeach
+						</ul>
+					@else
+						<div class="empty-state" style="margin:0;">
+							<i class="fa-regular fa-circle-check" style="font-size:2rem;"></i>
+							<p class="mb-0 mt-2">Tidak ada tindakan prioritas untuk hari ini.</p>
+						</div>
+					@endif
+				</div>
+			</div>
 			<div class="summary-grid">
 				@foreach($summaryMeta as $key => $meta)
 					@php $data = $summary[$key] ?? ['total' => 0, 'alerts' => 0]; @endphp
@@ -446,7 +696,8 @@
 										<th>Kandang / Fase</th>
 										<th>Jadwal Hatcher</th>
 										<th>Rasio Tetas</th>
-										<th>Status</th>
+										<th>Risiko</th>
+										<th>Tindakan</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -482,8 +733,10 @@
 												<small class="text-muted">{{ number_format($item['jumlah_menetas']) }} / {{ number_format($item['jumlah_telur']) }} telur</small>
 											</td>
 											<td>
-												<span class="status-pill {{ $statusLevel }}">{{ $statusStage ?? ucfirst($statusLevel) }}</span>
-												<p class="mb-0 text-muted" style="font-size:0.8rem;">{{ $statusMessage }}</p>
+												<span class="status-pill {{ $statusLevel }}">{{ $statusStage ?? $displayLevel($statusLevel) }}</span>
+											</td>
+											<td>
+												<p class="mb-0" style="font-size:0.85rem; color:#475569;">{{ $statusMessage }}</p>
 											</td>
 										</tr>
 									@endforeach
@@ -516,7 +769,7 @@
 										<th>Kandang / Fase</th>
 										<th>Target vs Aktual</th>
 										<th>Selisih</th>
-										<th>Status</th>
+										<th>Risiko</th>
 										<th>Rekomendasi</th>
 									</tr>
 								</thead>
@@ -544,11 +797,10 @@
 												<small class="text-muted">{{ data_get($item, 'status.delta_pct', 0) }}%</small>
 											</td>
 											<td>
-												<span class="status-pill {{ $statusLevel }}">{{ ucfirst($statusLevel) }}</span>
-												<p class="mb-0 text-muted" style="font-size:0.8rem;">{{ $statusMessage }}</p>
+												<span class="status-pill {{ $statusLevel }}">{{ $displayLevel($statusLevel) }}</span>
 											</td>
 											<td>
-												<p class="mb-0" style="font-size:0.85rem; color:#475569;">{{ data_get($item, 'status.recommendation', '-') }}</p>
+												<p class="mb-0" style="font-size:0.85rem; color:#475569;">{{ data_get($item, 'status.recommendation', $statusMessage ?? '-') }}</p>
 											</td>
 										</tr>
 									@endforeach
@@ -581,7 +833,8 @@
 										<th>Kandang / Fase</th>
 										<th>Rentang Tanggal</th>
 										<th>Mortalitas</th>
-										<th>Status</th>
+										<th>Risiko</th>
+										<th>Rekomendasi</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -601,8 +854,10 @@
 												<small class="text-muted">Standar {{ $item['standard_rate'] }}%</small>
 											</td>
 											<td>
-												<span class="status-pill {{ $item['status']['level'] }}">{{ ucfirst($item['status']['level']) }}</span>
-												<p class="mb-0 text-muted" style="font-size:0.8rem;">{{ $item['status']['message'] }}</p>
+												<span class="status-pill {{ $item['status']['level'] }}">{{ $displayLevel($item['status']['level']) }}</span>
+											</td>
+											<td>
+												<p class="mb-0" style="font-size:0.85rem; color:#475569;">{{ $item['status']['message'] }}</p>
 											</td>
 										</tr>
 									@endforeach
@@ -626,197 +881,201 @@
 					default => 'info',
 				};
 			@endphp
-			<div class="section-card">
-				<div class="card-head">
-					<div>
-						<h2 class="card-title mb-0">Mesin Prediksi ML</h2>
-						<small class="text-muted">Model version: {{ $modelVersion }} • Status: {{ strtoupper($mlStatus) }}</small>
-					</div>
-					<span class="status-pill {{ $statusClass }}">{{ strtoupper($mlStatus) }}</span>
-				</div>
-				<div class="ml-meta-grid">
-					<div class="ml-meta-item">
-						<div class="label">Artifact</div>
-						<div class="value">{{ data_get($settings, 'ml.artifact_label', '-') ?: '-' }}</div>
-					</div>
-					<div class="ml-meta-item">
-						<div class="label">Default Phase</div>
-						<div class="value">{{ data_get($settings, 'ml.default_phase', 'grower') }}</div>
-					</div>
-					<div class="ml-meta-item">
-						<div class="label">Catatan</div>
-						<div class="value">{{ data_get($settings, 'ml.notes', '-') ?: '-' }}</div>
-					</div>
-					<div class="ml-meta-item">
-						<div class="label">Rekam Data</div>
-						<div class="value">{{ number_format(data_get($mlMetadata, 'records_used', 0)) }} baris</div>
-					</div>
-					@foreach($mlMetaBadges as $badge)
-						<div class="ml-meta-item">
-							<div class="label">{{ $badge['label'] }}</div>
-							<div class="value">{{ $badge['value'] ?? '-' }}</div>
-						</div>
-					@endforeach
-				</div>
-				<div class="capability-pills">
-					@foreach($mlCapabilityMap as $key => $label)
-						@php $active = data_get($mlCapabilities, $key, true); @endphp
-						<span class="capability-pill {{ $active ? 'active' : 'muted' }}">{{ $label }}</span>
-					@endforeach
-				</div>
-			</div>
-
-			<div class="ml-grid">
-				<div class="ml-card">
-					<h3>Prediksi Produksi Telur</h3>
-					<div class="ml-value">
-						{{ $eggPrediction ? number_format((float) data_get($eggPrediction, 'forecast', 0)) : '—' }}
-						<small>butir / hari</small>
-					</div>
-					<p class="text-muted mb-2">Confidence {{ $eggPrediction ? number_format((float) data_get($eggPrediction, 'confidence', 0), 2) : '0.00' }} • Tren {{ strtoupper(data_get($eggPrediction, 'trend', 'FLAT')) }}</p>
-					<p class="text-muted mb-2">Window {{ data_get($eggPrediction, 'window_days', 14) }} hari • Sumber {{ strtoupper($dataSource) }}</p>
-					@if($eggPrediction && !empty($eggPrediction['drivers']))
-						<ul class="mini-list">
-							@foreach($eggPrediction['drivers'] as $driver)
-								<li>{{ data_get($driver, 'label') }} • {{ number_format((float) data_get($driver, 'value', 0)) }} butir</li>
-							@endforeach
-						</ul>
-					@else
-						<p class="text-muted mb-0">Belum ada catatan produksi yang dapat dianalisis.</p>
-					@endif
-				</div>
-				<div class="ml-card">
-					<h3>Kebutuhan Pakan</h3>
-					<div class="ml-value">
-						{{ $feedPrediction ? number_format((float) data_get($feedPrediction, 'total_required_kg', 0), 2) : '—' }}
-						<small>kg / hari</small>
-					</div>
-					<p class="text-muted mb-2">Harga rata-rata {{ $feedPrediction && data_get($feedPrediction, 'avg_price_per_kg') ? 'Rp ' . number_format((float) data_get($feedPrediction, 'avg_price_per_kg', 0), 2) . '/kg' : 'belum tersedia' }}</p>
-					@if($feedPrediction)
-						<ul class="mini-list">
-							@foreach(array_slice(data_get($feedPrediction, 'per_batch', []), 0, 3) as $batch)
-								<li>Batch {{ $batch['batch'] }} • {{ number_format((float) $batch['required_kg'], 2) }} kg ({{ ucfirst($batch['status']) }})</li>
-							@endforeach
-						</ul>
-					@else
-						<p class="text-muted mb-0">Belum ada konsumsi pakan yang tercatat.</p>
-					@endif
-				</div>
-				<div class="ml-card">
-					<h3>Mortalitas & Outbreak</h3>
-					@php $topMortality = collect(data_get($mortalityPrediction, 'alerts', []))->first(); @endphp
-					<div class="ml-value">
-						{{ $topMortality ? strtoupper($topMortality['risk']) : 'LOW' }}
-						<small>risk score {{ $topMortality ? $topMortality['score'] : '0.00' }}</small>
-					</div>
-					@if($topMortality)
-						<p class="text-muted mb-0">Batch {{ $topMortality['batch'] }}: {{ $topMortality['message'] }}</p>
-					@else
-						<p class="text-muted mb-0">Tidak ada lonjakan mortalitas pada jendela {{ data_get($mortalityPrediction, 'window_days', 7) }} hari.</p>
-					@endif
-				</div>
-				<div class="ml-card">
-					<h3>Optimasi Harga Jual</h3>
-					<div class="ml-value">
-						{{ $pricingPrediction ? 'Rp ' . number_format((float) data_get($pricingPrediction, 'optimal_price', 0), 2) : '—' }}
-						<small>per butir</small>
-					</div>
-					@if($pricingPrediction)
-						<p class="text-muted mb-1">Profit diproyeksikan {{ 'Rp ' . number_format((float) data_get($pricingPrediction, 'expected_profit', 0), 0) }}</p>
-						<p class="text-muted mb-0">{{ data_get($pricingPrediction, 'notes') }}</p>
-					@else
-						<p class="text-muted mb-0">Butuh histori harga dan pakan untuk rekomendasi harga.</p>
-					@endif
-				</div>
-			</div>
-
-			<div class="section-card mt-3">
-				<div class="card-head">
-					<div>
-						<h2 class="card-title mb-0">Ringkasan Cepat</h2>
-						<small class="text-muted">Interpretasi singkat agar mudah dibaca tim operasional.</small>
-					</div>
-				</div>
-				<ul class="quick-list mt-3">
-					<li><strong>Telur:</strong> {{ $eggPrediction ? number_format((float) data_get($eggPrediction, 'forecast', 0)) . ' butir/hari (' . strtoupper(data_get($eggPrediction, 'trend', 'FLAT')) . ', confidence ' . number_format((float) data_get($eggPrediction, 'confidence', 0), 2) . ')' : 'Belum ada data, isi catatan produksi.' }}</li>
-					@php
-						$feedBatches = collect(data_get($feedPrediction, 'per_batch'));
-						$feedTop = $feedBatches->take(1)->map(function ($b) {
-							return 'Batch ' . data_get($b, 'batch', '?') . ' (' . number_format((float) data_get($b, 'required_kg', 0), 2) . ' kg)';
-						})->join(', ');
-					@endphp
-					<li><strong>Pakan:</strong> {{ $feedPrediction ? number_format((float) data_get($feedPrediction, 'total_required_kg', 0), 2) . ' kg/hari' . ($feedTop ? '. Batch utama: ' . $feedTop : '') : 'Belum ada konsumsi pakan yang tercatat.' }}</li>
-					<li><strong>Mortalitas:</strong> @php $topMortality = collect(data_get($mortalityPrediction, 'alerts', []))->first(); @endphp {{ $topMortality ? 'Batch ' . data_get($topMortality, 'batch', '?') . ' risiko ' . strtoupper(data_get($topMortality, 'risk', 'low')) . ' (score ' . number_format((float) data_get($topMortality, 'score', 0), 2) . ')' : 'Tidak ada lonjakan pada jendela ' . (data_get($mortalityPrediction, 'window_days', 7)) . ' hari.' }}</li>
-					<li><strong>Harga jual:</strong> {{ $pricingPrediction ? 'Rekomendasi Rp ' . number_format((float) data_get($pricingPrediction, 'optimal_price', 0), 2) . ' per butir.' : 'Lengkapi histori harga & pakan untuk rekomendasi harga.' }}</li>
-				</ul>
-			</div>
 
 			<div class="section-card mt-4">
 				<div class="card-head">
 					<div>
-						<h2 class="card-title mb-0">Alert & Explainability</h2>
-						<small class="text-muted">Menggabungkan rules & sinyal ML untuk highlight prioritas.</small>
+						<h2 class="card-title mb-0">Simulasi Produksi</h2>
+						<small class="text-muted">Isi cepat, lihat prediksi telur, biaya, harga, lalu putuskan.</small>
+					</div>
+					<span class="status-pill info">Simulasi</span>
+				</div>
+
+				<form method="GET" action="{{ url()->current() }}" class="mt-3 sim-section-highlight">
+					<input type="hidden" name="mode" value="ml">
+					<div class="sim-grid">
+						<div>
+							<label class="form-label">Umur Puyuh (hari)</label>
+							<input type="number" min="0" step="1" name="umur_hari" value="{{ $simInput['umur_hari'] ?? '' }}" placeholder="Masukan Umur Puyuh" class="form-control" aria-label="Umur hari">
+							<small class="text-muted">Umur puyuh saat ini (dalam hari)</small>
+						</div>
+						<div>
+							<label class="form-label">Berat Puyuh (gram)</label>
+							<input type="number" min="0" step="1" name="berat_badan_g" value="{{ $simInput['berat_badan_g'] ?? '' }}" placeholder="Masukan Berat Puyuh" class="form-control" aria-label="Berat badan">
+							<small class="text-muted">Berat rata-rata puyuh saat ini</small>
+						</div>
+						<div>
+							<label class="form-label">Pakan (gram/hari)</label>
+							<input type="number" min="0" step="0.1" name="pakan_g_per_hari" value="{{ $simInput['pakan_g_per_hari'] ?? '' }}" placeholder="Masukan Pakan" class="form-control" aria-label="Konsumsi pakan">
+							<small class="text-muted">Jumlah pakan yang dimakan per ekor setiap hari</small>
+						</div>
+						<div>
+							<label class="form-label">Protein (%)</label>
+							<input type="number" min="0" step="0.1" name="protein_persen" value="{{ $simInput['protein_persen'] ?? '' }}" placeholder="Masukan Protein" class="form-control" aria-label="Protein ransum">
+							<small class="text-muted">Kadar protein dalam pakan</small>
+						</div>
+						<div>
+							<label class="form-label">Harga Pakan / Kg</label>
+							<input type="number" min="0" step="1" name="harga_pakan_per_kg" value="{{ $simInput['harga_pakan_per_kg'] ?? '' }}" placeholder="Masukan Harga Pakan" class="form-control" aria-label="Harga pakan">
+							<small class="text-muted">Harga pakan per kilogram</small>
+						</div>
+						<div>
+							<label class="form-label">Target Margin (%)</label>
+							<input type="number" min="0" step="0.1" name="margin_persen" value="{{ $simInput['margin_persen'] ?? '' }}" placeholder="Masukan Target Margin" class="form-control" aria-label="Margin target">
+							<small class="text-muted">Keuntungan yang diinginkan %</small>
+						</div>
+					</div>
+					<div class="d-flex gap-2 mt-3 justify-content-end flex-wrap">
+						<button type="submit" class="btn btn-primary d-flex align-items-center gap-2">
+							<i class="fa-solid fa-calculator"></i>
+							Hitung Simulasi
+						</button>
+						<a href="{{ url()->current() }}?mode=ml" class="btn btn-outline-secondary d-flex align-items-center gap-2">
+							<i class="fa-solid fa-rotate-left"></i>
+							Reset
+						</a>
+					</div>
+				</form>
+
+				@php $simPred = $simulation['prediction'] ?? null; @endphp
+				<div class="sim-result-grid mt-4">
+					<div class="ml-card eggs">
+						<h3><i class="fa-solid fa-egg"></i> Prediksi Telur</h3>
+						@if($simPred)
+							<div class="ml-value">{{ number_format((float) $simPred['telur_per_hari']) }}<small> butir / hari</small></div>
+						@else
+							<div class="ml-value empty">—</div>
+							<small class="text-muted">Isi form untuk melihat prediksi Telur</small>
+						@endif
+					</div>
+					<div class="ml-card cost">
+						<h3><i class="fa-solid fa-calculator"></i> Biaya Produksi</h3>
+						@if($simPred)
+							<div class="ml-value">{{ number_format((float) $simPred['biaya_per_butir'], 0) }}<small> rupiah / butir</small></div>
+						@else
+							<div class="ml-value empty">—</div>
+							<small class="text-muted">Isi form untuk melihat biaya</small>
+						@endif
+					</div>
+					<div class="ml-card price">
+						<h3><i class="fa-solid fa-tag"></i> Harga Jual Rekomendasi</h3>
+						@if($simPred)
+							<div class="ml-value">{{ number_format((float) $simPred['harga_rekomendasi'], 0) }}<small> rupiah / butir</small></div>
+						@else
+							<div class="ml-value empty">—</div>
+							<small class="text-muted">Isi form untuk melihat rekomendasi harga</small>
+						@endif
 					</div>
 				</div>
-				<div class="ml-alert-stack">
-					@forelse($mlAlerts as $alert)
-						@php $level = data_get($alert, 'level', 'info'); @endphp
-						<div class="ml-alert level-{{ $level }}">
-							<div class="d-flex justify-content-between align-items-center mb-1">
-								<strong>{{ data_get($alert, 'title', 'Insight') }}</strong>
-								<span class="status-pill {{ $level === 'critical' ? 'critical' : ($level === 'warning' ? 'warning' : 'info') }}">{{ strtoupper($level) }}</span>
-							</div>
-							<p class="mb-1 text-muted">{{ data_get($alert, 'detail', 'Tidak ada detail tambahan') }}</p>
-							@if($tags = data_get($alert, 'tags', []))
-								<div class="capability-pills mt-2">
-									@foreach($tags as $tag)
-										<span class="capability-pill">{{ strtoupper($tag) }}</span>
-									@endforeach
+
+					<div class="mt-4 sim-section-highlight">
+						<div class="chart-wrap" style="min-height:320px;">
+							@if($simulation && data_get($simulation, 'chart.labels'))
+								<div id="simChartApex" style="height:320px;"></div>
+							@else
+								<div class="empty-state chart-empty-state">
+									<div class="chart-placeholder-icon">
+										<i class="fa-solid fa-chart-bar"></i>
+									</div>
+									<h4>Grafik Keputusan</h4>
+									<p>Isi form simulasi di atas untuk melihat prediksi produksi dan biaya dalam bentuk grafik interaktif.</p>
 								</div>
 							@endif
 						</div>
-					@empty
-						<div class="empty-state">
-							<i class="fa-solid fa-shield-heart" style="font-size:2rem;"></i>
-							<p class="mb-0 mt-2">Tidak ada alert aktif dari model dan rules.</p>
-						</div>
-					@endforelse
-				</div>
-			</div>
-
-			<div class="section-card mt-4">
-				<div class="card-head">
-					<div>
-						<h2 class="card-title mb-0">Action Recommendation</h2>
-						<small class="text-muted">Daftar prioritas yang dapat langsung dioperasionalkan.</small>
 					</div>
-				</div>
-				<div class="mt-3">
-					@if(count($mlRecommendations))
-						@foreach($mlRecommendations as $recommendation)
-							<div class="ml-reco">
-								<div class="d-flex justify-content-between align-items-center mb-2">
-									<span class="ml-chip">{{ data_get($recommendation, 'category', 'Insight') }}</span>
-									<span class="status-pill info">ML</span>
-								</div>
-								<p class="mb-2 fw-semibold">{{ data_get($recommendation, 'summary', 'Tidak ada ringkasan') }}</p>
-								@php $actions = data_get($recommendation, 'action_items', []); @endphp
-								@if(is_array($actions) && count($actions))
-									<ul class="mb-0 ps-4 text-muted" style="font-size:0.9rem;">
-										@foreach($actions as $action)
-											<li>{{ $action }}</li>
-										@endforeach
-									</ul>
+
+					@php
+						$simInputDisplay = [
+							'Umur' => $simInput['umur_hari'] ?? null,
+							'Pakan' => $simInput['pakan_g_per_hari'] ?? null,
+							'Protein' => $simInput['protein_persen'] ?? null,
+							'Margin' => $simInput['margin_persen'] ?? null,
+						];
+						$simPredMarginPct = null;
+						$statusMarginLevel = 'info';
+						$statusBiayaLevel = 'info';
+						$statusProduksiLevel = 'info';
+						$systemStatusLabel = ($mlStatus === 'ready' && ($modelVersion ?? 'untrained') !== 'untrained') ? 'Ready' : (($mlStatus === 'ready') ? 'Untrained' : 'Not Ready');
+						if($simPred) {
+							$marginNom = ($simPred['harga_rekomendasi'] ?? 0) - ($simPred['biaya_per_butir'] ?? 0);
+							$simPredMarginPct = ($simPred['biaya_per_butir'] ?? 0) > 0
+								? ($marginNom / (float) $simPred['biaya_per_butir']) * 100
+								: null;
+							$statusMarginLevel = $simPredMarginPct === null
+								? 'info'
+								: ($simPredMarginPct >= 20 ? 'ok' : ($simPredMarginPct >= 10 ? 'warning' : 'critical'));
+							$statusBiayaLevel = ($simPred['biaya_per_butir'] ?? 0) <= 350
+								? 'ok'
+								: (($simPred['biaya_per_butir'] ?? 0) <= 450 ? 'warning' : 'critical');
+							$statusProduksiLevel = ($simPred['telur_per_hari'] ?? 0) >= 850
+								? 'ok'
+								: (($simPred['telur_per_hari'] ?? 0) >= 700 ? 'warning' : 'critical');
+						}
+						$actionLine = null;
+						if($statusProduksiLevel === 'critical') {
+							$actionLine = 'Produksi berada di bawah batas sehat. Pertimbangkan naikkan kualitas pakan dan evaluasi manajemen kandang.';
+						} elseif($statusBiayaLevel === 'critical') {
+							$actionLine = 'Biaya produksi terlalu tinggi. Cek efisiensi konsumsi pakan dan bandingkan harga pemasok.';
+						} elseif($statusMarginLevel === 'critical') {
+							$actionLine = 'Margin berisiko. Tekan biaya atau naikkan harga jual secara bertahap.';
+						} elseif($statusProduksiLevel === 'warning') {
+							$actionLine = 'Produksi mendekati batas waspada. Pastikan pakan dan lingkungan stabil.';
+						} elseif($statusBiayaLevel === 'warning') {
+							$actionLine = 'Biaya mendekati batas. Optimalkan feed conversion dan negosiasi harga pakan.';
+						} elseif($statusMarginLevel === 'warning') {
+							$actionLine = 'Margin masih tipis. Cari peluang efisiensi atau penyesuaian harga kecil.';
+						} else {
+							$actionLine = 'Kondisi produksi dan biaya dalam batas ideal. Pertahankan pola pakan dan perawatan saat ini.';
+						}
+					@endphp
+					<div class="section-card mt-3">
+						<h2 class="card-title mb-3"><i class="fa-solid fa-lightbulb text-warning"></i> Rekomendasi Tindakan</h2>
+						@if($simPred)
+							<div class="alert alert-info border-0 bg-light">
+								<p class="mb-0">{{ $actionLine }}</p>
+							</div>
+						@else
+							<div class="alert alert-secondary border-0">
+								<p class="mb-0">Lakukan simulasi terlebih dahulu untuk mendapatkan rekomendasi tindakan yang sesuai dengan kondisi operasional.</p>
+							</div>
+						@endif
+					</div>
+					<div class="mt-4 sim-section-highlight">
+						<div class="sim-ops-grid">
+							<div class="sim-ops-box">
+								<h6><i class="fa-solid fa-tachometer"></i> Status Operasional</h6>
+								@if($simPred)
+									<div class="pill-stack">
+										<span class="status-pill {{ $statusProduksiLevel }}">Produksi: {{ $statusProduksiLevel === 'ok' ? 'Sehat' : ($statusProduksiLevel === 'warning' ? 'Waspada' : 'Rendah') }}</span>
+										<span class="status-pill {{ $statusBiayaLevel }}">Biaya: {{ $statusBiayaLevel === 'ok' ? 'Terkendali' : ($statusBiayaLevel === 'warning' ? 'Waspada' : 'Tinggi') }}</span>
+										<span class="status-pill {{ $statusMarginLevel }}">Margin: @if($simPredMarginPct === null) N/A @else {{ number_format($simPredMarginPct, 1) }}% @endif</span>
+										<span class="status-pill {{ $statusClass }}">Status: {{ $systemStatusLabel }}</span>
+										<small class="text-muted">Model: {{ $modelVersion ?? 'untrained' }} • Data: {{ strtoupper($dataSource ?? 'live') }}</small>
+									</div>
+								@else
+									<p class="mb-0 text-muted">Status operasional belum tersedia. Jalankan simulasi untuk melihat indikator kondisi sistem berdasarkan prediksi ML.</p>
 								@endif
 							</div>
-						@endforeach
-					@else
-						<div class="empty-state">
-							<i class="fa-solid fa-robot" style="font-size:2rem;"></i>
-							<p class="mb-0 mt-2">Belum ada rekomendasi dari model. Pastikan artefak sudah dilatih dan diunggah.</p>
+							<div class="sim-ops-box">
+								<h6><i class="fa-solid fa-clipboard-list"></i> Catatan Simulasi</h6>
+								@if($simPred)
+									<p>Input: {{ $simInputDisplay['Umur'] ?? '—' }} hari, {{ $simInputDisplay['Pakan'] ?? '—' }} g, protein {{ $simInputDisplay['Protein'] ?? '—' }}%, margin {{ $simInputDisplay['Margin'] ?? '—' }}%</p>
+									<p>Hasil: {{ number_format((float) $simPred['telur_per_hari']) }} butir ({{ $statusProduksiLevel === 'ok' ? 'Sehat' : ($statusProduksiLevel === 'warning' ? 'Waspada' : 'Rendah') }}), biaya {{ number_format((float) $simPred['biaya_per_butir'], 0) }} Rp/butir ({{ $statusBiayaLevel === 'ok' ? 'Terkendali' : ($statusBiayaLevel === 'warning' ? 'Waspada' : 'Tinggi') }}), harga {{ number_format((float) $simPred['harga_rekomendasi'], 0) }} Rp/butir (Margin {{ $simPredMarginPct === null ? 'N/A' : number_format($simPredMarginPct, 1) . '%' }})</p>
+								@else
+									<p class="mb-0 text-muted">Belum ada catatan. Jalankan simulasi dulu.</p>
+								@endif
+							</div>
 						</div>
-					@endif
-				</div>
+					</div>
+					<div class="section-card mt-3">
+						<h2 class="card-title mb-3"><i class="fa-solid fa-rocket"></i> Skenario Cepat</h2>
+						<div class="sim-quick-actions">
+							<button type="button" class="sim-quick-action" data-field="pakan_g_per_hari" data-delta="5"><i class="fa-solid fa-plus"></i> Naikkan pakan +5g</button>
+							<button type="button" class="sim-quick-action" data-field="margin_persen" data-delta="-5"><i class="fa-solid fa-minus"></i> Turunkan margin -5%</button>
+							<button type="button" class="sim-quick-action" data-payload='{"pakan_g_per_hari":-3}'><i class="fa-solid fa-leaf"></i> Simulasi pakan hemat</button>
+							<button type="button" class="sim-quick-action" data-payload='{"pakan_g_per_hari":5,"protein_persen":1}'><i class="fa-solid fa-chart-line"></i> Simulasi produksi maksimal</button>
+						</div>
+					</div>
 			</div>
 			@endif
 		</div>
@@ -826,155 +1085,264 @@
 
 @push('scripts')
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 	<script>
 		document.addEventListener('DOMContentLoaded', function () {
-			if (typeof Chart === 'undefined') {
-				return;
-			}
+			const hasChart = typeof Chart !== 'undefined';
 
-			const summaryCanvas = document.getElementById('dss-summary-chart');
-			if (summaryCanvas) {
-				let summaryData = [];
-				try {
-					summaryData = JSON.parse(summaryCanvas.dataset.summary || '[]');
-				} catch (error) {
-					summaryData = [];
-				}
-				if (Array.isArray(summaryData) && summaryData.length) {
-					const summaryLabels = summaryData.map((item) => item.label || '-');
-					const alertValues = summaryData.map((item) => Number(item.alerts || 0));
-					const totalValues = summaryData.map((item) => Number(item.total || 0));
-					const ctxSummary = summaryCanvas.getContext('2d');
-					new Chart(ctxSummary, {
-						type: 'bar',
-						data: {
-							labels: summaryLabels,
-							datasets: [
-								{
-									label: 'Alert',
-									data: alertValues,
-									backgroundColor: '#ef4444',
-									borderColor: '#dc2626',
-									borderWidth: 1,
-								},
-								{
-									label: 'Total Data',
-									data: totalValues,
-									backgroundColor: '#3b82f6',
-									borderColor: '#1d4ed8',
-									borderWidth: 1,
-								},
-							],
+			// ApexChart for simulation
+			@if($simulation)
+			const simLabels = @json($simulation['chart']['labels'] ?? []);
+			const simEggs = @json($simulation['chart']['eggs'] ?? []);
+			const simCost = @json($simulation['chart']['cost'] ?? []);
+				const simApexEl = document.querySelector('#simChartApex');
+				if (simApexEl && simLabels.length) {
+					const apexOptions = {
+						chart: { type: 'line', height: 320, toolbar: { show: false }, width: '100%', margin: { left: 5, right: 5, top: 5, bottom: 5 }, offsetX: 0, offsetY: 0, animations: { enabled: false } },
+						theme: { mode: 'light' },
+						plotOptions: {
+							bar: {
+								horizontal: false,
+								columnWidth: '48%',
+								borderRadius: 6,
+							}
 						},
-						options: {
-							maintainAspectRatio: false,
-							responsive: true,
-							scales: {
-								y: {
-									beginAtZero: true,
-									precision: 0,
-								},
-								x: {
-									grid: {
-										display: false,
+						dataLabels: { enabled: false },
+						stroke: { width: [0, 3], curve: 'smooth' },
+						colors: ['#2563eb', '#f97316'],
+						series: [
+							{ name: 'Produksi telur', type: 'column', data: simEggs },
+							{ name: 'Biaya (Rp/butir)', type: 'line', data: simCost },
+						],
+						xaxis: { categories: simLabels, labels: { rotate: 0 } },
+						yaxis: [
+							{ title: { text: 'Telur (butir)' } },
+							{ opposite: true, title: { text: 'Biaya (Rp/butir)' } },
+						],
+						tooltip: { shared: true, intersect: false },
+						legend: { position: 'top' },
+						responsive: [{
+							breakpoint: 480,
+							options: {
+								chart: { width: '100%' },
+								legend: { position: 'bottom' }
+							}
+						}]
+					};
+					window.simChart = new ApexCharts(simApexEl, apexOptions);
+					// Delay render to ensure container is ready
+					setTimeout(() => {
+						window.simChart.render();
+						// Force resize after render
+						setTimeout(() => window.simChart.resize(), 50);
+					}, 100);
+
+					// Update chart on resize and sidebar toggle
+					window.addEventListener('resize', () => {
+						if (window.simChart) {
+							window.simChart.resize();
+						}
+					});
+
+					window.addEventListener('load', () => {
+						if (window.simChart) {
+							window.simChart.resize();
+						}
+					});
+
+					// Observe sidebar changes (assuming sidebar toggle changes body class or container)
+					const observer = new MutationObserver(() => {
+						if (window.simChart) {
+							setTimeout(() => window.simChart.resize(), 300);
+						}
+					});
+					observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+				}
+			@endif
+
+			// Summary bar chart
+			if (hasChart) {
+				const summaryCanvas = document.getElementById('dss-summary-chart');
+				if (summaryCanvas) {
+					let summaryData = [];
+					try {
+						summaryData = JSON.parse(summaryCanvas.dataset.summary || '[]');
+					} catch (error) {
+						summaryData = [];
+					}
+					if (Array.isArray(summaryData) && summaryData.length) {
+						const summaryLabels = summaryData.map((item) => item.label || '-');
+						const alertValues = summaryData.map((item) => Number(item.alerts || 0));
+						const totalValues = summaryData.map((item) => Number(item.total || 0));
+						const ctxSummary = summaryCanvas.getContext('2d');
+						new Chart(ctxSummary, {
+							type: 'bar',
+							data: {
+								labels: summaryLabels,
+								datasets: [
+									{
+										label: 'Alert',
+										data: alertValues,
+										backgroundColor: '#ef4444',
+										borderColor: '#dc2626',
+										borderWidth: 1,
+									},
+									{
+										label: 'Total Data',
+										data: totalValues,
+										backgroundColor: '#3b82f6',
+										borderColor: '#1d4ed8',
+										borderWidth: 1,
+									},
+								],
+							},
+							options: {
+								maintainAspectRatio: false,
+								responsive: true,
+								scales: {
+									y: {
+										beginAtZero: true,
+										precision: 0,
+									},
+									x: {
+										grid: {
+											display: false,
+										},
 									},
 								},
-							},
-							plugins: {
-								legend: {
-									position: 'top',
-								},
-								tooltip: {
-									callbacks: {
-										label(context) {
-											return `${context.dataset.label}: ${context.formattedValue}`;
+								plugins: {
+									legend: {
+										position: 'top',
+									},
+									tooltip: {
+										callbacks: {
+											label(context) {
+												return `${context.dataset.label}: ${context.formattedValue}`;
+											},
 										},
 									},
 								},
 							},
-						},
-					});
+						});
+					}
 				}
-			}
 
-			const trendCanvas = document.getElementById('dss-trend-chart');
-			if (trendCanvas) {
-				let labels = [];
-				let series = [];
-				try {
-					labels = JSON.parse(trendCanvas.dataset.labels || '[]');
-					series = JSON.parse(trendCanvas.dataset.series || '[]');
-				} catch (error) {
-					labels = [];
-					series = [];
-				}
-				if (!Array.isArray(labels) || labels.length === 0 || !Array.isArray(series) || series.length === 0) {
-					return;
-				}
-				const ctx = trendCanvas.getContext('2d');
-				const datasets = series.map((item) => ({
-					label: item.label,
-					data: item.data || [],
-					borderColor: item.color || '#2563eb',
-					backgroundColor: (item.color || '#2563eb') + '33',
-					borderWidth: 2,
-					tension: 0.35,
-					fill: 'start',
-					pointRadius: 3,
-					pointHoverRadius: 5,
-					pointBackgroundColor: item.color || '#2563eb',
-					pointBorderColor: '#fff',
-					unit: item.unit || '',
-				}));
-				new Chart(ctx, {
-					type: 'line',
-					data: {
-						labels,
-						datasets,
-					},
-					options: {
-						maintainAspectRatio: false,
-						responsive: true,
-						interaction: {
-							mode: 'index',
-							intersect: false,
-						},
-						scales: {
-							y: {
-								beginAtZero: true,
-								grid: {
-									color: 'rgba(226, 232, 240, 0.6)',
-								},
-								ticks: {
-									precision: 0,
-								},
+				const trendCanvas = document.getElementById('dss-trend-chart');
+				if (trendCanvas) {
+					let labels = [];
+					let series = [];
+					try {
+						labels = JSON.parse(trendCanvas.dataset.labels || '[]');
+						series = JSON.parse(trendCanvas.dataset.series || '[]');
+					} catch (error) {
+						labels = [];
+						series = [];
+					}
+					if (Array.isArray(labels) && labels.length && Array.isArray(series) && series.length) {
+						const ctx = trendCanvas.getContext('2d');
+						const datasets = series.map((item) => ({
+							label: item.label,
+							data: item.data || [],
+							borderColor: item.color || '#2563eb',
+							backgroundColor: (item.color || '#2563eb') + '33',
+							borderWidth: 2,
+							tension: 0.35,
+							fill: 'start',
+							pointRadius: 3,
+							pointHoverRadius: 5,
+							pointBackgroundColor: item.color || '#2563eb',
+							pointBorderColor: '#fff',
+							unit: item.unit || '',
+						}));
+						new Chart(ctx, {
+							type: 'line',
+							data: {
+								labels,
+								datasets,
 							},
-							x: {
-								grid: {
-									color: 'rgba(248, 250, 252, 0.8)',
+							options: {
+								maintainAspectRatio: false,
+								responsive: true,
+								interaction: { mode: 'index', intersect: false },
+								scales: {
+									y: {
+										beginAtZero: true,
+										grid: { color: 'rgba(226, 232, 240, 0.6)' },
+										ticks: { precision: 0 },
+									},
+									x: { grid: { color: 'rgba(248, 250, 252, 0.8)' } },
 								},
-							},
-						},
-						plugins: {
-							legend: {
-								position: 'bottom',
-								labels: {
-									usePointStyle: true,
-								},
-							},
-							tooltip: {
-								callbacks: {
-									label(context) {
-										const dataset = context.dataset || {};
-										const suffix = dataset.unit ? ` ${dataset.unit}` : '';
-										return `${dataset.label}: ${context.formattedValue}${suffix}`;
+								plugins: {
+									legend: { position: 'bottom', labels: { usePointStyle: true } },
+									tooltip: {
+										callbacks: {
+											label(context) {
+												const dataset = context.dataset || {};
+												const suffix = dataset.unit ? ` ${dataset.unit}` : '';
+												return `${dataset.label}: ${context.formattedValue}${suffix}`;
+											},
+										},
 									},
 								},
 							},
-						},
-					},
-				});
+						});
+					}
+				}
 			}
+
+			// Quick scenario buttons: tweak inputs then submit
+			const simForm = document.querySelector('.sim-section-highlight form') || document.querySelector('form.sim-section-highlight');
+			const actionButtons = document.querySelectorAll('.sim-quick-action');
+			actionButtons.forEach((btn) => {
+				btn.addEventListener('click', () => {
+					if (!simForm) return;
+					if (btn.dataset.reset) {
+						simForm.reset();
+						simForm.submit();
+						return;
+					}
+					const payload = btn.dataset.payload ? JSON.parse(btn.dataset.payload) : null;
+					if (payload && typeof payload === 'object') {
+						Object.entries(payload).forEach(([field, delta]) => {
+							const input = simForm.querySelector(`[name="${field}"]`);
+							if (!input) return;
+							const current = Number(input.value || 0);
+							const next = Math.max(0, current + Number(delta || 0));
+							input.value = Number.isFinite(next) ? next : current;
+						});
+						simForm.submit();
+						return;
+					}
+					const field = btn.dataset.field;
+					const delta = Number(btn.dataset.delta || 0);
+					if (!field) return;
+					const input = simForm.querySelector(`[name="${field}"]`);
+					if (!input) return;
+					const current = Number(input.value || 0);
+					const next = Math.max(0, current + delta);
+					input.value = Number.isFinite(next) ? next : current;
+					simForm.submit();
+				});
+			});
+
+			// Collapsible sections
+			const toggleButtons = document.querySelectorAll('.toggle-btn');
+			toggleButtons.forEach(btn => {
+				btn.addEventListener('click', () => {
+					const targetId = btn.dataset.target;
+					const target = document.getElementById(targetId);
+					if (target) {
+						const isCollapsed = target.classList.contains('collapsed');
+						if (isCollapsed) {
+							target.classList.remove('collapsed');
+							btn.classList.remove('collapsed');
+						} else {
+							target.classList.add('collapsed');
+							btn.classList.add('collapsed');
+						}
+					}
+				});
+			});
 		});
 	</script>
 @endpush

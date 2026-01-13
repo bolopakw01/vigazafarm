@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Detail Produksi Telur - ' . ($produksi->batch_produksi_id ?? 'Tanpa Kode Batch'))
+@section('title', 'Detail Produksi Telur - ' . ($produksi->batch_label ?? 'Tanpa Kode Batch'))
 
 @php
     $breadcrumbs = [
@@ -53,7 +53,7 @@
         $endDateFormatted = $endDate ? \Carbon\Carbon::parse($endDate)->locale('id')->translatedFormat('d M Y') : '-';
 
         $kandangName = $produksi->kandang->nama_kandang ?? 'nama kandang';
-        $batchCode = $produksi->batch_produksi_id ?? 'Tanpa Kode Batch';
+        $batchCode = $produksi->batch_label ?? 'Tanpa Kode Batch';
         $initialPopulation = $produksi->jumlah_indukan ?? (($produksi->jumlah_jantan ?? 0) + ($produksi->jumlah_betina ?? 0));
 
         $totalTelur = $summary['total_telur'] ?? 0;
@@ -65,7 +65,7 @@
 
         $asalProduksiLabel = null;
         if (($produksi->jenis_input ?? '') === 'dari_produksi' && $produksi->produksi_sumber_id) {
-            $asalProduksiLabel = optional($produksi->produksiSumber)->batch_produksi_id
+            $asalProduksiLabel = optional($produksi->produksiSumber)->batch_label
                 ?? ('#' . $produksi->produksi_sumber_id);
         }
 
@@ -382,9 +382,12 @@
                                     }
                                     return function_exists('mb_strtolower') ? mb_strtolower($trimmed) : strtolower($trimmed);
                                 };
+                                $visibleLaporan = $laporanHarian->filter(fn ($item) => $item->tampilkan_di_histori !== false);
                             @endphp
                             @if ($laporanHarian->isEmpty() && $trayHistoryCollection->isEmpty())
-                                <div class="text-muted small">Belum ada pencatatan.</div>
+                                <div class="text-muted small"><i class="fa-solid fa-clipboard-list me-1"></i>Belum ada pencatatan.</div>
+                            @elseif ($visibleLaporan->isEmpty() && $trayHistoryCollection->isEmpty())
+                                <div class="text-muted small"><i class="fa-solid fa-eye-slash me-1"></i>Data pernah dicatat namun disembunyikan. Input ulang untuk menampilkan kembali.</div>
                             @else
                                 <div class="list-timeline">
                                     @foreach ($trayHistoryCollection as $trayHistory)
@@ -504,10 +507,7 @@
                                             </div>
                                         </div>
                                     @endforeach
-                                    @foreach ($laporanHarian as $laporan)
-                                        @if ($laporan->tampilkan_di_histori === false)
-                                            @continue
-                                        @endif
+                                    @foreach ($visibleLaporan as $laporan)
                                         @php
                                             $entries = [];
                                             
@@ -584,7 +584,7 @@
                                                 ];
                                             }
                                             
-                                            if (empty($entries) && $laporan->catatan_kejadian) {
+                                            if ($laporan->catatan_kejadian) {
                                                 $entries[] = [
                                                     'type' => 'laporan',
                                                     'value' => null,
@@ -732,6 +732,18 @@
                                                                 data-telur-rusak="{{ e($totalTelurRusakValue) }}">
                                                                 Detail
                                                             </button>
+
+                                                            <form action="{{ route('admin.produksi.laporan.destroy', [$produksi->id, $laporan->id]) }}" method="POST" class="m-0 p-0 delete-laporan-form">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
+                                                            </form>
+                                                        @else
+                                                            <form action="{{ route('admin.produksi.laporan.reset', [$produksi->id, $laporan->id]) }}" method="POST" class="m-0 p-0 reset-laporan-form">
+                                                                @csrf
+                                                                @method('PATCH')
+                                                                <button type="submit" class="btn btn-sm btn-outline-warning">Reset</button>
+                                                            </form>
 
                                                             <form action="{{ route('admin.produksi.laporan.destroy', [$produksi->id, $laporan->id]) }}" method="POST" class="m-0 p-0 delete-laporan-form">
                                                                 @csrf

@@ -12,6 +12,7 @@
     $config = $configSettings ?? [];
     $ml = $mlSettings ?? [];
     $currentMode = old('mode', $mode ?? 'config');
+    $dssEnabled = filter_var(old('enabled', data_get($settings ?? [], 'enabled', true)), FILTER_VALIDATE_BOOLEAN);
 @endphp
 
 @push('styles')
@@ -351,6 +352,223 @@
         font-size: 14px;
     }
 
+    .dss-enable-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 14px 16px;
+        background: linear-gradient(135deg, #f8fafc 0%, #ffffff 80%);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .dss-enable-card .label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .dss-enable-card .label strong {
+        color: #0f172a;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 15px;
+    }
+
+    .dss-enable-card .label strong .icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(37, 99, 235, 0.1);
+        color: #2563eb;
+        font-size: 14px;
+    }
+
+    .dss-enable-card .label span {
+        color: #64748b;
+        font-size: 13px;
+    }
+
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        background: #e0f2fe;
+        color: #075985;
+    }
+
+    .status-chip.off {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .form-switch-lg {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .switch-track {
+        position: relative;
+        width: 50px;
+        height: 26px;
+        background: #cbd5e1;
+        border-radius: 999px;
+        transition: background 0.2s ease;
+    }
+
+    .switch-thumb {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 20px;
+        height: 20px;
+        background: #fff;
+        border-radius: 50%;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
+        transition: transform 0.2s ease;
+    }
+
+    .form-switch-lg input {
+        display: none;
+    }
+
+    .form-switch-lg input:checked + .switch-track {
+        background: #2563eb;
+    }
+
+    .form-switch-lg input:checked + .switch-track .switch-thumb {
+        transform: translateX(24px);
+    }
+
+    .ml-features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .ml-feature-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px;
+        background: linear-gradient(135deg, #f8fafc 0%, #ffffff 70%);
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .ml-feature-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+    }
+
+    .ml-feature-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .ml-feature-icon.eggs {
+        background: rgba(251, 146, 60, 0.15);
+        color: #ea580c;
+    }
+
+    .ml-feature-icon.feed {
+        background: rgba(74, 222, 128, 0.15);
+        color: #15803d;
+    }
+
+    .ml-feature-icon.mortality {
+        background: rgba(248, 113, 113, 0.15);
+        color: #b91c1c;
+    }
+
+    .ml-feature-icon.price {
+        background: rgba(59, 130, 246, 0.15);
+        color: #2563eb;
+    }
+
+    .ml-feature-icon.alert {
+        background: rgba(168, 85, 247, 0.15);
+        color: #7c3aed;
+    }
+
+    .ml-feature-content h5 {
+        margin: 0 0 8px 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .ml-feature-content p {
+        margin: 0;
+        font-size: 14px;
+        color: #64748b;
+        line-height: 1.5;
+    }
+
+    .ml-status-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 20px;
+        background: #f8fafc;
+    }
+
+    .ml-status-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .ml-status-header i {
+        color: #2563eb;
+        font-size: 18px;
+    }
+
+    .ml-status-header h5 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .ml-status-card p {
+        margin: 0 0 16px 0;
+        color: #475569;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .ml-status-note {
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #1e40af;
+    }
+
     @media (max-width: 768px) {
         .card-header {
             flex-direction: column;
@@ -365,6 +583,10 @@
 
         .action-info {
             justify-content: center;
+        }
+
+        .ml-features-grid {
+            grid-template-columns: 1fr;
         }
     }
 </style>
@@ -408,7 +630,21 @@
                 @csrf
                 @method('PUT')
                 <input type="hidden" name="mode" id="dssModeInput" value="{{ $currentMode }}">
+                <input type="hidden" name="enabled" value="0">
 
+                <div class="dss-enable-card">
+                    <div class="label">
+                        <strong><span class="icon"><i class="fas fa-power-off"></i></span> Halaman DSS</strong>
+                        <span>Aktifkan atau sembunyikan halaman DSS dari sidebar.</span>
+                    </div>
+                    <label class="form-switch-lg">
+                        <input id="dssEnabledToggle" type="checkbox" name="enabled" value="1" {{ $dssEnabled ? 'checked' : '' }} aria-label="Aktifkan halaman DSS">
+                        <span class="switch-track"><span class="switch-thumb"></span></span>
+                        <span id="dssEnabledLabel" class="status-chip {{ $dssEnabled ? '' : 'off' }}">{{ $dssEnabled ? 'Aktif' : 'Nonaktif' }}</span>
+                    </label>
+                </div>
+
+                <div id="dss-mode-block" class="{{ $dssEnabled ? '' : 'd-none' }}">
                 <div class="settings-section">
                     <h4><i class="fas fa-toggle-on"></i> Pilih Mode Operasi</h4>
                     <div class="mode-options">
@@ -443,7 +679,16 @@
                         <strong>Atur manual sesuai SOP</strong><br>
                         Parameter ini langsung membentuk insight DSS berdasarkan data yang ada di database tanpa model ML.
                     </p>
-                    <p class="form-help mb-3">Semua nilai di bawah ini akan menimpa konfigurasi default untuk seluruh pengguna.</p>
+                    <p class="form-help mb-2">Semua nilai di bawah ini akan menimpa konfigurasi default untuk seluruh pengguna.</p>
+                    <p class="form-help mb-3">Label ke pengguna: Aman / Perlu Perhatian / Darurat (logika sistem tetap Normal / Warning / Critical).</p>
+                    <div class="ml-note">
+                        <h5 class="mb-2"><i class="fas fa-lightbulb"></i> Tips pengisian cepat</h5>
+                        <ul class="mb-0">
+                            <li>Isi nilai wajar sesuai SOP harian; gunakan batas <strong>warning</strong> (tampil: Perlu Perhatian) dan <strong>critical</strong> (tampil: Darurat).</li>
+                            <li>Rasio pakan gunakan desimal (contoh 0.10 = toleransi ±10%).</li>
+                            <li>Perbanyak batas hari atau turunkan rasio bila tim kandang masih sering false alarm.</li>
+                        </ul>
+                    </div>
 
                     <div class="config-focus-grid">
                         <div class="config-card">
@@ -461,24 +706,24 @@
                                     <div class="form-help">Jumlah baris telur yang muncul sekaligus.</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Warning pindah hatcher (hari)</label>
+                                    <label>Warning (Perlu Perhatian) pindah hatcher (hari)</label>
                                     <input type="number" name="config[eggs][hatcher_warning_days]" class="form-control" min="0" max="14" value="{{ old('config.eggs.hatcher_warning_days', data_get($config, 'eggs.hatcher_warning_days')) }}">
-                                    <div class="form-help">Berapa hari sebelum due date status menjadi kuning.</div>
+                                    <div class="form-help">Berapa hari sebelum due date status menjadi kuning. Saran: 2-3 hari.</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Critical pindah hatcher (hari)</label>
+                                    <label>Critical (Darurat) pindah hatcher (hari)</label>
                                     <input type="number" name="config[eggs][hatcher_critical_days]" class="form-control" min="0" max="14" value="{{ old('config.eggs.hatcher_critical_days', data_get($config, 'eggs.hatcher_critical_days')) }}">
-                                    <div class="form-help">Lewat angka ini status merah.</div>
+                                    <div class="form-help">Lewat angka ini status merah. Saran: 0-1 hari.</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Warning hatch rate (%)</label>
+                                    <label>Warning (Perlu Perhatian) hatch rate (%)</label>
                                     <input type="number" step="0.1" name="config[eggs][hatch_rate_warning]" class="form-control" min="0" max="100" value="{{ old('config.eggs.hatch_rate_warning', data_get($config, 'eggs.hatch_rate_warning')) }}">
-                                    <div class="form-help">Persentase tetas minimum sebelum muncul peringatan.</div>
+                                    <div class="form-help">Persentase tetas minimum sebelum muncul peringatan. Saran: 85-88%.</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Critical hatch rate (%)</label>
+                                    <label>Critical (Darurat) hatch rate (%)</label>
                                     <input type="number" step="0.1" name="config[eggs][hatch_rate_critical]" class="form-control" min="0" max="100" value="{{ old('config.eggs.hatch_rate_critical', data_get($config, 'eggs.hatch_rate_critical')) }}">
-                                    <div class="form-help">Di bawah angka ini dianggap gawat.</div>
+                                    <div class="form-help">Di bawah angka ini dianggap gawat. Saran: 80-82%.</div>
                                 </div>
                             </div>
                             <div class="config-card-foot">Ideal untuk menyelaraskan SOP pindah setter → hatcher dengan indikator di DSS.</div>
@@ -501,17 +746,17 @@
                                 <div class="form-group compact">
                                     <label>Data historis (hari)</label>
                                     <input type="number" name="config[feed][history_days]" class="form-control" min="1" max="30" value="{{ old('config.feed.history_days', data_get($config, 'feed.history_days')) }}">
-                                    <div class="form-help">Dipakai untuk rata-rata konsumsi harian.</div>
+                                    <div class="form-help">Dipakai untuk rata-rata konsumsi harian. Saran: 7 hari.</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Batas warning (rasio)</label>
+                                    <label>Batas Warning (Perlu Perhatian) — rasio</label>
                                     <input type="number" step="0.01" name="config[feed][warning_ratio]" class="form-control" min="0" max="1" value="{{ old('config.feed.warning_ratio', data_get($config, 'feed.warning_ratio')) }}">
-                                    <div class="form-help">Masukkan 0.10 untuk toleransi ±10%.</div>
+                                    <div class="form-help">Masukkan 0.10 untuk toleransi ±10%. Saran: 0.10.</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Batas critical (rasio)</label>
+                                    <label>Batas Critical (Darurat) — rasio</label>
                                     <input type="number" step="0.01" name="config[feed][critical_ratio]" class="form-control" min="0" max="1" value="{{ old('config.feed.critical_ratio', data_get($config, 'feed.critical_ratio')) }}">
-                                    <div class="form-help">Di atas angka ini dianggap sangat janggal.</div>
+                                    <div class="form-help">Di atas angka ini dianggap sangat janggal. Saran: 0.20.</div>
                                 </div>
                             </div>
                             <div class="config-card-foot">Parameter ini memengaruhi target vs aktual pada widget pakan.</div>
@@ -529,7 +774,7 @@
                                 <div class="form-group compact">
                                     <label>Rentang hari pemantauan</label>
                                     <input type="number" name="config[mortality][window_days]" class="form-control" min="1" max="14" value="{{ old('config.mortality.window_days', data_get($config, 'mortality.window_days')) }}">
-                                    <div class="form-help">Default 3 hari mengikuti tampilan DSS.</div>
+                                    <div class="form-help">Default 3 hari mengikuti tampilan DSS. Saran: 3-5 hari.</div>
                                 </div>
                                 <div class="form-group compact">
                                     <label>Maksimum alert yang tampil</label>
@@ -537,14 +782,14 @@
                                     <div class="form-help">Batasi jumlah kartu agar mudah dipantau.</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Batas warning (% populasi)</label>
+                                    <label>Batas Warning (Perlu Perhatian) — % populasi</label>
                                     <input type="number" step="0.1" name="config[mortality][warning_pct]" class="form-control" min="0" max="100" value="{{ old('config.mortality.warning_pct', data_get($config, 'mortality.warning_pct')) }}">
-                                    <div class="form-help">Persentase mortalitas yang menyalakan warna kuning.</div>
+                                    <div class="form-help">Persentase mortalitas yang menyalakan warna kuning. Saran: 0.3-0.5%.</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Batas critical (% populasi)</label>
+                                    <label>Batas Critical (Darurat) — % populasi</label>
                                     <input type="number" step="0.1" name="config[mortality][critical_pct]" class="form-control" min="0" max="100" value="{{ old('config.mortality.critical_pct', data_get($config, 'mortality.critical_pct')) }}">
-                                    <div class="form-help">Persentase mortalitas yang dianggap gawat.</div>
+                                    <div class="form-help">Persentase mortalitas yang dianggap gawat. Saran: 0.8-1%.</div>
                                 </div>
                             </div>
                             <div class="config-card-foot">Gunakan angka ini untuk menyelaraskan SOP penanganan kematian produksi & pembesaran.</div>
@@ -558,18 +803,68 @@
                         <strong>Semua prediksi memakai data yang sudah dicatat di sistem.</strong><br>
                         Tidak ada parameter tambahan yang perlu diisi ketika mode ML aktif.
                     </p>
-                    <div class="ml-note">
-                        <h5>Apa saja yang otomatis dihitung?</h5>
-                        <ul>
-                            <li><strong>Produksi telur</strong> &ndash; forecasting harian dari histori pencatatan produksi.</li>
-                            <li><strong>Kebutuhan pakan</strong> &ndash; estimasi konsumsi per batch dari data pakan 7 hari terakhir.</li>
-                            <li><strong>Mortalitas / outbreak</strong> &ndash; deteksi anomali menggunakan log kematian.</li>
-                            <li><strong>Optimasi harga</strong> &ndash; rekomendasi harga jual berdasarkan forecast produksi dan biaya pakan.</li>
-                            <li><strong>Alert & explainability</strong> &ndash; rangkuman otomatis dari keempat analitik di atas.</li>
-                        </ul>
+
+                    <div class="ml-features-grid">
+                        <div class="ml-feature-card">
+                            <div class="ml-feature-icon eggs">
+                                <i class="fas fa-egg"></i>
+                            </div>
+                            <div class="ml-feature-content">
+                                <h5>Produksi Telur</h5>
+                                <p>Forecasting harian dari histori pencatatan produksi untuk memprediksi output telur per hari.</p>
+                            </div>
+                        </div>
+                        <div class="ml-feature-card">
+                            <div class="ml-feature-icon feed">
+                                <i class="fas fa-wheat-awn"></i>
+                            </div>
+                            <div class="ml-feature-content">
+                                <h5>Kebutuhan Pakan</h5>
+                                <p>Estimasi konsumsi per batch berdasarkan data pakan 7 hari terakhir dan pola historis.</p>
+                            </div>
+                        </div>
+                        <div class="ml-feature-card">
+                            <div class="ml-feature-icon mortality">
+                                <i class="fas fa-skull-crossbones"></i>
+                            </div>
+                            <div class="ml-feature-content">
+                                <h5>Mortalitas / Outbreak</h5>
+                                <p>Deteksi anomali menggunakan log kematian untuk mengidentifikasi pola outbreak dini.</p>
+                            </div>
+                        </div>
+                        <div class="ml-feature-card">
+                            <div class="ml-feature-icon price">
+                                <i class="fas fa-tag"></i>
+                            </div>
+                            <div class="ml-feature-content">
+                                <h5>Optimasi Harga</h5>
+                                <p>Rekomendasi harga jual berdasarkan forecast produksi dan analisis biaya pakan.</p>
+                            </div>
+                        </div>
+                        <div class="ml-feature-card">
+                            <div class="ml-feature-icon alert">
+                                <i class="fas fa-bell"></i>
+                            </div>
+                            <div class="ml-feature-content">
+                                <h5>Alert & Explainability</h5>
+                                <p>Rangkuman otomatis dari semua analitik dengan penjelasan yang mudah dipahami.</p>
+                            </div>
+                        </div>
                     </div>
-                    <p class="form-help">Aktifkan mode ML, simpan, dan halaman DSS akan langsung menampilkan insight prediktif tersebut.</p>
+
+                    <div class="ml-status-card">
+                        <div class="ml-status-header">
+                            <i class="fas fa-info-circle"></i>
+                            <h5>Status Model</h5>
+                        </div>
+                        <p>Model ML akan otomatis menggunakan data terbaru dari sistem. Pastikan data historis pencatatan produksi, pakan, dan kematian sudah tercatat dengan baik untuk akurasi prediksi yang optimal.</p>
+                        <div class="ml-status-note">
+                            <strong>Catatan:</strong> Aktifkan mode ML, simpan pengaturan, dan halaman DSS akan langsung menampilkan insight prediktif tersebut.
+                        </div>
+                    </div>
                 </div>
+
+                </div><!-- /dss-mode-block -->
 
                 <div class="form-actions">
                     <div class="action-info">
@@ -592,6 +887,9 @@
         const options = document.querySelectorAll('.mode-option');
         const input = document.getElementById('dssModeInput');
         const panels = document.querySelectorAll('.mode-panel');
+        const enableToggle = document.getElementById('dssEnabledToggle');
+        const enableLabel = document.getElementById('dssEnabledLabel');
+        const modeBlock = document.getElementById('dss-mode-block');
 
         const togglePanels = (mode) => {
             panels.forEach(panel => {
@@ -609,6 +907,19 @@
                 togglePanels(option.dataset.mode);
             });
         });
+
+        // Toggle visibility of mode section based on enabled switch
+        if (enableToggle && modeBlock && enableLabel) {
+            const syncEnableState = () => {
+                const isOn = enableToggle.checked;
+                modeBlock.classList.toggle('d-none', !isOn);
+                enableLabel.textContent = isOn ? 'Aktif' : 'Nonaktif';
+                enableLabel.classList.toggle('off', !isOn);
+            };
+
+            enableToggle.addEventListener('change', syncEnableState);
+            syncEnableState();
+        }
 
     });
 </script>

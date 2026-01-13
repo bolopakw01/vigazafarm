@@ -198,7 +198,7 @@
 							<div class="row g-3">
 								<div class="col-md-6">
 									<label for="batch_produksi_id" class="form-label">Batch Produksi ID <span class="required">*</span></label>
-									<input type="text" id="batch_produksi_id" name="batch_produksi_id" class="form-control @error('batch_produksi_id') is-invalid @enderror" value="{{ old('batch_produksi_id', $produksi->batch_produksi_id) }}" required>
+									<input type="text" id="batch_produksi_id" name="batch_produksi_id" class="form-control @error('batch_produksi_id') is-invalid @enderror" value="{{ old('batch_produksi_id', $produksi->batch_label) }}" required>
 									@error('batch_produksi_id')
 										<div class="invalid-feedback">{{ $message }}</div>
 									@enderror
@@ -269,7 +269,7 @@
 								<div class="col-md-3">
 									<label class="form-label">Dari Pembesaran</label>
 									<div class="form-control readonly-input">
-										{{ $produksi->pembesaran ? $produksi->pembesaran->batch_produksi_id : '-' }}
+										{{ $produksi->pembesaran ? $produksi->pembesaran->batch_label : '-' }}
 									</div>
 								</div>
 							</div>
@@ -326,7 +326,7 @@
 									</div>
 									<div class="col-md-6">
 										<label for="harga_per_pcs" class="form-label">Harga per Ekor</label>
-										<input type="number" step="0.01" min="0" id="harga_per_pcs" name="harga_per_pcs" class="form-control @error('harga_per_pcs') is-invalid @enderror" value="{{ old('harga_per_pcs', number_format($produksi->harga_per_pcs, 0)) }}">
+										<input type="number" step="0.01" min="0" id="harga_per_pcs" name="harga_per_pcs" class="form-control @error('harga_per_pcs') is-invalid @enderror" value="{{ old('harga_per_pcs', (int) $produksi->harga_per_pcs) }}">
 										@error('harga_per_pcs')
 											<div class="invalid-feedback">{{ $message }}</div>
 										@enderror
@@ -353,7 +353,7 @@
 									</div>
 									<div class="col-md-4">
 										<label for="harga_per_pcs" class="form-label">Harga per Butir</label>
-										<input type="number" step="0.01" min="0" id="harga_per_pcs" name="harga_per_pcs" class="form-control @error('harga_per_pcs') is-invalid @enderror" value="{{ old('harga_per_pcs', $produksi->harga_per_pcs) }}">
+										<input type="number" step="0.01" min="0" id="harga_per_pcs" name="harga_per_pcs" class="form-control @error('harga_per_pcs') is-invalid @enderror" value="{{ old('harga_per_pcs', (int) $produksi->harga_per_pcs) }}">
 										@error('harga_per_pcs')
 											<div class="invalid-feedback">{{ $message }}</div>
 										@enderror

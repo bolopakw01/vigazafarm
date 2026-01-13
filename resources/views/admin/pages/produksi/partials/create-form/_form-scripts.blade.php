@@ -302,7 +302,7 @@
       prefix = 'PROD-PUY';
     }
 
-    // Generate a simple sequential number using time
+    // Generate code (UI only); final mapping will be normalized server-side to BatchProduksi
     const timestamp = Date.now().toString().slice(-4); // Last 4 digits of timestamp
     const batchId = `${prefix}-${dateStr}-${timestamp}`;
 

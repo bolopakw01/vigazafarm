@@ -10,7 +10,6 @@ use App\Http\Controllers\FeedVitaminController;
 use App\Http\Controllers\DatabaseMaintenanceController;
 use App\Http\Controllers\LookerExportController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 /*
@@ -86,7 +85,9 @@ Route::middleware('auth')->group(function () {
     // ADMIN DASHBOARD (Semua user yang login)
     // ==============================
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');  // Dashboard admin
-    Route::get('/admin/dss', [DssController::class, 'index'])->name('admin.dss');                    // Decision Support System
+    Route::get('/admin/dss', [DssController::class, 'index'])
+        ->middleware('dss.enabled')
+        ->name('admin.dss');                    // Decision Support System
 
     // ==============================
     // API MACHINE LEARNING

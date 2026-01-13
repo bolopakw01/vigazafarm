@@ -103,6 +103,7 @@ class SistemController extends Controller
     public function updateDss(Request $request)
     {
         $validated = $request->validate([
+            'enabled' => ['required', 'boolean'],
             'mode' => ['required', Rule::in(['config', 'ml'])],
             'config.eggs.max_batches' => ['required', 'integer', 'min:1', 'max:10'],
             'config.eggs.hatcher_warning_days' => ['required', 'integer', 'min:0', 'max:14'],

@@ -127,13 +127,7 @@
                     @forelse($pembesaran as $index => $item)
                     <tr>
                         <td class="bolopa-tabel-text-center" style="text-align: center;">{{ $pembesaran->firstItem() + $index }}</td>
-                        <td class="bolopa-tabel-text-left" style="text-align: left;">
-                            @if($item->penetasan)
-                                {{ $item->penetasan->batch }}
-                            @else
-                                {{ $item->batch_produksi_id }}
-                            @endif
-                        </td>
+                        <td class="bolopa-tabel-text-left" style="text-align: left;">{{ $item->batch_label }}</td>
                         <td class="bolopa-tabel-text-left" style="text-align: left;">{{ $item->kandang->nama_kandang ?? '-' }}</td>
                         <td class="bolopa-tabel-text-center" style="text-align: center;">{{ \Carbon\Carbon::parse($item->tanggal_masuk)->format('d/m/Y') }}</td>
                         <td class="bolopa-tabel-text-right" style="text-align: right;">{{ number_format($item->jumlah_anak_ayam) }} ekor</td>

@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'owner' => \App\Http\Middleware\EnsureUserIsOwner::class,
+            'dss.enabled' => \App\Http\Middleware\EnsureDssEnabled::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {

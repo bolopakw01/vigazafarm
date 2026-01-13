@@ -1,12 +1,12 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Detail Biaya Pembesaran - ' . $pembesaran->batch_produksi_id)
+@section('title', 'Detail Biaya Pembesaran - ' . $pembesaran->batch_label)
 
 @php
 	$breadcrumbs = [
 		['label' => 'Backoffice', 'link' => route('admin.dashboard')],
 		['label' => 'Pembesaran', 'link' => route('admin.pembesaran')],
-		['label' => 'Detail Batch', 'link' => route('admin.pembesaran.show', $pembesaran->id), 'badge' => $pembesaran->batch_produksi_id],
+		['label' => 'Detail Batch', 'link' => route('admin.pembesaran.show', $pembesaran->id), 'badge' => $pembesaran->batch_label],
 		['label' => 'Detail Biaya'],
 	];
 @endphp
@@ -52,7 +52,7 @@
 		</div>
 
 		<div class="struk-meta">
-			<div>Batch: <strong>{{ $pembesaran->batch_produksi_id }}</strong></div>
+			<div>Batch: <strong>{{ $pembesaran->batch_label }}</strong></div>
 			<div>{{ $pembesaran->kandang->nama_kandang ?? '-' }} • Umur: {{ (int)$umurHari }} hari</div>
 			<div>Tanggal: {{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</div>
 		</div>

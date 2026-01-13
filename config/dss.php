@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'enabled' => true,
     'eggs' => [
         'max_batches' => 5,
         'hatcher_warning_days' => 2,

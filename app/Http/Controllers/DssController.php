@@ -29,6 +29,14 @@ class DssController extends Controller
 
         if ($dssMode === 'ml') {
             $mlResponse = $this->dssMlService->buildDashboardPayload($storedSettings);
+            $simKeys = ['umur_hari', 'pakan_g_per_hari', 'protein_persen', 'berat_badan_g', 'harga_pakan_per_kg', 'margin_persen'];
+            $simInput = $request->only($simKeys);
+            $hasSimInput = collect($simInput)
+                ->filter(fn ($v) => $v !== null && $v !== '')
+                ->isNotEmpty();
+            $simulation = $hasSimInput
+                ? $this->dssMlService->simulateFromDataset($simInput)
+                : null;
 
             return view('admin.pages.dss.index', [
                 'dssMode' => $dssMode,
@@ -36,6 +44,7 @@ class DssController extends Controller
                 'settings' => $resolvedConfig,
                 'lastUpdated' => now(),
                 'trendSeries' => null,
+                'simulation' => $simulation,
             ]);
         }
 
@@ -54,6 +63,7 @@ class DssController extends Controller
             'lastUpdated' => $lastUpdated,
             'settings' => $resolvedConfig,
             'mlResponse' => null,
+            'simulation' => null,
         ]);
     }
 

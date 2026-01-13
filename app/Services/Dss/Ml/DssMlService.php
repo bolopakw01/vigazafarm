@@ -73,6 +73,125 @@ class DssMlService
         ];
     }
 
+    /**
+     * Lightweight simulation using packaged dataset (ml/data/dataset_puyuh_180_hari.csv).
+     */
+    public function simulateFromDataset(array $input): ?array
+    {
+        $dataset = $this->loadPuyuhDataset();
+        if ($dataset->isEmpty()) {
+            return null;
+        }
+
+        $umur = (float) Arr::get($input, 'umur_hari', 90);
+        $pakan = (float) Arr::get($input, 'pakan_g_per_hari', 24);
+        $protein = (float) Arr::get($input, 'protein_persen', 17);
+        $berat = (float) Arr::get($input, 'berat_badan_g', 160);
+        $hargaPakan = (float) Arr::get($input, 'harga_pakan_per_kg', 7000);
+        $margin = max(0, (float) Arr::get($input, 'margin_persen', 15)) / 100;
+
+        $features = ['umur_hari', 'pakan_g_per_hari', 'protein_persen', 'berat_badan_g'];
+        $vector = [$umur, $pakan, $protein, $berat];
+
+        $scored = $dataset->map(function ($row) use ($features, $vector) {
+            $rowVector = array_map(fn ($f) => (float) $row[$f], $features);
+            $distance = $this->euclideanDistance($vector, $rowVector);
+            return $row + ['distance' => $distance];
+        })->sortBy('distance')->values();
+
+        $topK = $scored->take(12);
+        $weights = $topK->map(fn ($row) => 1 / (1 + $row['distance']));
+        $weightSum = max(array_sum($weights->all()), 1e-6);
+
+        $weightedAvg = function (string $key) use ($topK, $weights, $weightSum) {
+            $sum = 0;
+            foreach ($topK as $idx => $row) {
+                $sum += ((float) $row[$key]) * $weights[$idx];
+            }
+            return $sum / $weightSum;
+        };
+
+        $predEggs = round($weightedAvg('produksi_telur_butir'), 0);
+        $predCostPerEgg = round($weightedAvg('biaya_per_butir'), 2);
+        $suggestedPrice = round($predCostPerEgg * (1 + $margin), 2);
+        $feedCostPerDay = round(($pakan / 1000) * $hargaPakan, 2);
+        $profitPerDay = round(($suggestedPrice - $predCostPerEgg) * $predEggs, 2);
+
+        $chartSeries = $dataset->sortBy('tanggal')->values();
+        $chartSlice = $chartSeries->take(30);
+
+        return [
+            'input' => [
+                'umur_hari' => $umur,
+                'pakan_g_per_hari' => $pakan,
+                'protein_persen' => $protein,
+                'berat_badan_g' => $berat,
+                'harga_pakan_per_kg' => $hargaPakan,
+                'margin_persen' => $margin * 100,
+            ],
+            'prediction' => [
+                'telur_per_hari' => $predEggs,
+                'biaya_per_butir' => $predCostPerEgg,
+                'harga_rekomendasi' => $suggestedPrice,
+                'profit_per_hari' => $profitPerDay,
+                'biaya_pakan_per_hari' => $feedCostPerDay,
+            ],
+            'neighbors' => $topK->map(function ($row) {
+                return [
+                    'tanggal' => $row['tanggal'],
+                    'umur_hari' => (float) $row['umur_hari'],
+                    'pakan_g_per_hari' => (float) $row['pakan_g_per_hari'],
+                    'protein_persen' => (float) $row['protein_persen'],
+                    'berat_badan_g' => (float) $row['berat_badan_g'],
+                    'produksi_telur_butir' => (float) $row['produksi_telur_butir'],
+                    'biaya_per_butir' => (float) $row['biaya_per_butir'],
+                ];
+            })->all(),
+            'chart' => [
+                'labels' => $chartSlice->pluck('tanggal')->values()->all(),
+                'eggs' => $chartSlice->pluck('produksi_telur_butir')->map(fn ($v) => (float) $v)->values()->all(),
+                'cost' => $chartSlice->pluck('biaya_per_butir')->map(fn ($v) => (float) $v)->values()->all(),
+            ],
+        ];
+    }
+
+    protected function loadPuyuhDataset(): Collection
+    {
+        $path = base_path('ml/data/dataset_puyuh_180_hari.csv');
+        if (!File::exists($path)) {
+            return collect();
+        }
+
+        $raw = array_map('str_getcsv', file($path));
+        $header = array_shift($raw);
+        if (empty($header)) {
+            return collect();
+        }
+
+        return collect($raw)
+            ->filter(fn ($row) => count($row) === count($header))
+            ->map(function ($row) use ($header) {
+                $item = array_combine($header, $row);
+                foreach ($item as $key => $value) {
+                    if ($key === 'tanggal') {
+                        continue;
+                    }
+                    $item[$key] = is_numeric($value) ? (float) $value : $value;
+                }
+                return $item;
+            });
+    }
+
+    protected function euclideanDistance(array $a, array $b): float
+    {
+        $sum = 0;
+        foreach ($a as $idx => $val) {
+            $sum += ($val - ($b[$idx] ?? 0)) ** 2;
+        }
+
+        return sqrt($sum);
+    }
+
     protected function forecastEggProduction(): ?array
     {
         $window = 14;

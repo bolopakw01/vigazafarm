@@ -156,7 +156,7 @@
                 <div class="form-footer">
                     <div class="helper-text"><i class="fas fa-lightbulb text-warning"></i> Target akan mempengaruhi indikator pada dashboard utama.</div>
                     <div class="d-flex flex-wrap gap-2">
-                        <button type="submit" class="btn btn-secondary" name="reset_matrix" value="1" onclick="return confirm('Reset semua angka matriks dan ambil ulang dari data aktif?');">
+                        <button type="button" id="btnResetMatrix" class="btn btn-secondary" name="reset_matrix" value="1">
                             <i class="fas fa-rotate"></i> Reset Angka
                         </button>
                         <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Simpan Target</button>
@@ -173,12 +173,50 @@
     document.addEventListener('DOMContentLoaded', function () {
         const toggle = document.querySelector('input[name="matriks_enabled"][type="checkbox"]');
         const statusLabel = document.querySelector('.toggle-label');
-        if (!toggle || !statusLabel) {
-            return;
+        if (toggle && statusLabel) {
+            toggle.addEventListener('change', function () {
+                statusLabel.textContent = toggle.checked ? 'Aktif' : 'Nonaktif';
+            });
         }
-        toggle.addEventListener('change', function () {
-            statusLabel.textContent = toggle.checked ? 'Aktif' : 'Nonaktif';
-        });
+
+        const resetBtn = document.getElementById('btnResetMatrix');
+        const form = resetBtn ? resetBtn.closest('form') : null;
+        if (resetBtn && form) {
+            resetBtn.addEventListener('click', function (event) {
+                event.preventDefault();
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Reset Matriks KPI?',
+                    html: `
+                        <div style="text-align:left; font-size:13px; line-height:1.5;">
+                            <p style="margin-bottom:8px;">Tindakan ini akan:</p>
+                            <ul style="padding-left:18px; margin:0 0 12px 0;">
+                                <li>Mereset Target Total ke kondisi awal (form target dikosongkan).</li>
+                                <li>Mengambil ulang nilai aktual dari semua data aktif untuk matriks.</li>
+                            </ul>
+                            <p style="margin:0;">Lanjutkan reset sekarang?</p>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, reset',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    customClass: {confirmButton: 'btn btn-primary', cancelButton: 'btn btn-secondary'},
+                    buttonsStyling: false,
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = 'reset_matrix';
+                        hiddenInput.value = '1';
+                        form.appendChild(hiddenInput);
+                        form.submit();
+                    }
+                });
+            });
+        }
     });
 </script>
 @endpush

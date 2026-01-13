@@ -38,6 +38,25 @@ class Produksi extends Model
         'catatan'
     ];
 
+    /**
+     * Relasi ke batch produksi (numeric FK -> kode_batch human-readable).
+     */
+    public function batchProduksi()
+    {
+        return $this->belongsTo(BatchProduksi::class, 'batch_produksi_id');
+    }
+
+    /**
+     * Label batch yang ramah user (kode_batch) dengan fallback ke nilai bawaan.
+     */
+    public function getBatchLabelAttribute(): string
+    {
+        return $this->batchProduksi->kode_batch
+            ?? ($this->pembesaran?->batch_label)
+            ?? ($this->penetasan?->batch)
+            ?? ($this->batch_produksi_id ? (string) $this->batch_produksi_id : '-');
+    }
+
     public function kandang()
     {
         return $this->belongsTo(Kandang::class, 'kandang_id');

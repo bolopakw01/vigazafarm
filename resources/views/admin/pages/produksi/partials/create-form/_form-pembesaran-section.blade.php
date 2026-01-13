@@ -21,7 +21,7 @@
     data-jumlah-jantan="{{ $pembesaran->jumlah_jantan ?? '' }}"
     data-jumlah-betina="{{ $pembesaran->jumlah_betina ?? '' }}"
                 {{ old('pembesaran_id') == $pembesaran->id ? 'selected' : '' }}>
-          {{ $pembesaran->batch_produksi_id }} - {{ $pembesaran->tanggal_siap ? $pembesaran->tanggal_siap->format('d/m/Y') : 'TBA' }} - Stok: {{ $pembesaran->jumlah_siap ? ($pembesaran->jumlah_siap - ($pembesaran->indukan_ditransfer ?? 0)) : 0 }} ekor (Selesai)
+          {{ $pembesaran->batch_label }} - {{ $pembesaran->tanggal_siap ? $pembesaran->tanggal_siap->format('d/m/Y') : 'TBA' }} - Stok: {{ $pembesaran->jumlah_siap ? ($pembesaran->jumlah_siap - ($pembesaran->indukan_ditransfer ?? 0)) : 0 }} ekor (Selesai)
         </option>
       @endforeach
     </select>

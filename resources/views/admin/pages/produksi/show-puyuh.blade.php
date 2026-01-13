@@ -6,7 +6,7 @@
     $breadcrumbs = [
         ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
         ['label' => 'Produksi', 'link' => route('admin.produksi')],
-        ['label' => 'Detail Produksi'],
+        ['label' => 'Detail Produksi', 'badge' => $produksi->batch_produksi_id],
     ];
 @endphp
 
@@ -467,10 +467,16 @@
                     <div id="history-collapse" class="collapse show">
                         <div id="history-content" class="mt-3">
                             @if ($laporanHarian->isEmpty())
-                                <div class="text-muted small">Belum ada pencatatan.</div>
+                                <div class="text-muted small"><i class="fa-solid fa-clipboard-list me-1"></i>Belum ada pencatatan.</div>
                             @else
                                 @php
-                                    $dailyKaiSnapshots = $laporanHarian
+                                    $visibleLaporan = $laporanHarian->filter(fn ($item) => $item->tampilkan_di_histori !== false);
+                                @endphp
+                                @if ($visibleLaporan->isEmpty())
+                                    <div class="text-muted small"><i class="fa-solid fa-eye-slash me-1"></i>Data pernah dicatat namun disembunyikan. Input ulang untuk menampilkan kembali.</div>
+                                @else
+                                @php
+                                    $dailyKaiSnapshots = $visibleLaporan
                                         ->groupBy(function ($item) {
                                             return optional($item->tanggal)->toDateString();
                                         })
@@ -500,10 +506,7 @@
                                         });
                                 @endphp
                                 <div class="list-timeline">
-                                    @foreach ($laporanHarian as $laporan)
-                                        @if ($laporan->tampilkan_di_histori === false)
-                                            @continue
-                                        @endif
+                                    @foreach ($visibleLaporan as $laporan)
                                         @php
                                             // Create separate entries for each data type that has values
                                             $entries = [];
@@ -565,8 +568,8 @@
                                                 ];
                                             }
                                             
-                                            // If no specific data but has notes, show as general laporan
-                                            if (empty($entries) && $laporan->catatan_kejadian) {
+                                            // Selalu tambahkan entri laporan jika ada catatan
+                                            if ($laporan->catatan_kejadian) {
                                                 $entries[] = [
                                                     'type' => 'laporan',
                                                     'value' => null,
@@ -660,9 +663,7 @@
                                                 </div>
                                                 <div class="entry-right">
                                                     <div class="d-flex gap-2 align-items-center">
-                                                        @if ($laporan->catatan_kejadian && $entry['type'] !== 'laporan')
-                                                            <span class="badge bg-light text-muted">{{ \Illuminate\Support\Str::limit($laporan->catatan_kejadian, 48) }}</span>
-                                                        @endif
+                                                        {{-- Catatan badge di histori dihilangkan sesuai permintaan --}}
 
                                                         @if ($entry['type'] === 'laporan')
                                                             @php
@@ -693,6 +694,14 @@
                                                                 $telurValue = $formatNumber($snapshot['telur']);
                                                                 $vitaminValue = $formatNumber($snapshot['vitamin'], 2);
                                                                 $mortalityPercent = number_format($snapshot['mortality_percent'], 2, ',', '.');
+                                                                $salesQty = $formatNumber($laporan->penjualan_puyuh_ekor ?? 0);
+                                                                $salesRevenue = $laporan->pendapatan_harian ?? (($laporan->penjualan_puyuh_ekor ?? 0) * ($laporan->harga_per_butir ?? 0));
+                                                                $salesRevenueValue = $formatNumber($salesRevenue);
+                                                                $salesPrice = $formatNumber($laporan->harga_per_butir ?? 0);
+                                                                $feedCostValue = $formatNumber($laporan->biaya_pakan_harian ?? 0);
+                                                                $feedUnitPriceValue = $formatNumber($laporan->harga_pakan_per_kg ?? 0);
+                                                                $vitaminCostValue = $formatNumber($laporan->biaya_vitamin_harian ?? 0);
+                                                                $vitaminUnitPriceValue = $formatNumber($laporan->harga_vitamin_per_liter ?? 0);
                                                             @endphp
                                                             <button type="button"
                                                                 class="btn btn-sm btn-outline-info detail-catatan-btn"
@@ -705,7 +714,14 @@
                                                                 data-death="{{ e($deathValue) }}"
                                                                 data-telur="{{ e($telurValue) }}"
                                                                 data-vitamin="{{ e($vitaminValue) }}"
-                                                                data-mortality="{{ e($mortalityPercent) }}">
+                                                                data-mortality="{{ e($mortalityPercent) }}"
+                                                                data-feed-cost="{{ e($feedCostValue) }}"
+                                                                data-feed-price="{{ e($feedUnitPriceValue) }}"
+                                                                data-vitamin-cost="{{ e($vitaminCostValue) }}"
+                                                                data-vitamin-price="{{ e($vitaminUnitPriceValue) }}"
+                                                                data-sales-qty="{{ e($salesQty) }}"
+                                                                data-sales-revenue="{{ e($salesRevenueValue) }}"
+                                                                data-sales-price="{{ e($salesPrice) }}">
                                                                 Detail
                                                             </button>
 
@@ -734,6 +750,7 @@
                                     @endforeach
                                 </div>
                             @endif
+                        @endif
                         </div>
                     </div>
                 </div>
@@ -956,7 +973,7 @@
                                 shouldShow = entryData.includes('ekor kematian') && entry.classList.contains('entry-kematian');
                                 break;
                             case 'laporan':
-                                shouldShow = entry.querySelector('.badge') !== null || entry.classList.contains('entry-laporan');
+                                shouldShow = entry.classList.contains('entry-laporan');
                                 break;
                             case 'analytics':
                                 shouldShow = true;
@@ -1100,6 +1117,13 @@
                     const death = data.death || '0';
                     const telur = data.telur || '0';
                     const vitamin = data.vitamin || '0,00';
+                    const feedCost = data.feedCost || '0';
+                    const feedPrice = data.feedPrice || '';
+                    const vitaminCost = data.vitaminCost || '0';
+                    const vitaminPrice = data.vitaminPrice || '';
+                    const salesQty = data.salesQty || '0';
+                    const salesRevenue = data.salesRevenue || '0';
+                    const salesPrice = data.salesPrice || '';
                     const catatanRaw = data.catatan || '-';
                     const catatanHtml = escapeHtml(catatanRaw).replace(/\n/g, '<br>');
 
@@ -1136,12 +1160,36 @@
                                             <div class="stat-value">${escapeHtml(populasi)}</div>
                                         </div>
                                         <div class="swal-detail-stat-card">
+                                            <div class="stat-label">Kematian</div>
+                                            <div class="stat-value">${escapeHtml(death)}</div>
+                                        </div>
+                                        <div class="swal-detail-stat-card">
                                             <div class="stat-label">Jumlah Telur</div>
                                             <div class="stat-value">${escapeHtml(telur)}</div>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div class="swal-detail-section">
+                                    <div class="swal-detail-stats">
                                         <div class="swal-detail-stat-card combined">
-                                            <div class="stat-label">Pakan & Vitamin</div>
-                                            <div class="stat-value">${escapeHtml(feed)}<small class="text-muted">kg</small> <span class="text-muted">/</span> ${escapeHtml(vitamin)}<small class="text-muted">L</small></div>
+                                            <div class="stat-label">Pakan</div>
+                                            <div class="stat-value">${escapeHtml(feed)}<small class="text-muted"> kg</small></div>
+                                            <div class="small text-muted">Biaya Rp ${escapeHtml(feedCost)}${feedPrice ? ' @ Rp ' + escapeHtml(feedPrice) + ' / kg' : ''}</div>
+                                        </div>
+                                        <div class="swal-detail-stat-card combined">
+                                            <div class="stat-label">Vitamin</div>
+                                            <div class="stat-value">${escapeHtml(vitamin)}<small class="text-muted"> L</small></div>
+                                            <div class="small text-muted">Biaya Rp ${escapeHtml(vitaminCost)}${vitaminPrice ? ' @ Rp ' + escapeHtml(vitaminPrice) + ' / L' : ''}</div>
+                                        </div>
+                                        <div class="swal-detail-stat-card combined">
+                                            <div class="stat-label">Penjualan</div>
+                                            <div class="stat-value">${escapeHtml(salesQty)}<small class="text-muted"> ekor</small></div>
+                                            <div class="small text-muted">Pendapatan Rp ${escapeHtml(salesRevenue)}</div>
+                                        </div>
+                                        <div class="swal-detail-stat-card combined">
+                                            <div class="stat-label">Harga Satuan</div>
+                                            <div class="stat-value">Rp ${escapeHtml(salesPrice || '—')}</div>
                                         </div>
                                     </div>
                                 </div>

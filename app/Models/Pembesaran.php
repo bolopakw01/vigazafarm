@@ -43,6 +43,24 @@ class Pembesaran extends Model
     ];
 
     /**
+     * Relasi ke batch produksi (numeric FK -> kode batch human-readable).
+     */
+    public function batchProduksi()
+    {
+        return $this->belongsTo(BatchProduksi::class, 'batch_produksi_id');
+    }
+
+    /**
+     * Label batch yang ramah user (kode_batch) dengan fallback batch penetasan atau ID.
+     */
+    public function getBatchLabelAttribute(): string
+    {
+        return $this->batchProduksi->kode_batch
+            ?? $this->penetasan->batch
+            ?? ($this->batch_produksi_id ? (string) $this->batch_produksi_id : '-');
+    }
+
+    /**
      * Relasi ke kandang
      */
     public function kandang()

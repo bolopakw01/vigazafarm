@@ -126,21 +126,8 @@
                             <select name="kandang_id" id="kandang_id" class="form-control" required>
                                 <option value="">-- Pilih Kandang --</option>
                                 @php
-                                    if (isset($kandangList) && $kandangList instanceof \Illuminate\Support\Collection && $kandangList->isNotEmpty()) {
-                                        $availableKandangs = $kandangList;
-                                    } elseif (isset($kandangList) && is_array($kandangList) && !empty($kandangList)) {
-                                        $availableKandangs = collect($kandangList);
-                                    } elseif (isset($kandang) && $kandang instanceof \Illuminate\Support\Collection && $kandang->isNotEmpty()) {
-                                        $availableKandangs = $kandang;
-                                    } elseif (isset($kandang) && is_array($kandang) && !empty($kandang)) {
-                                        $availableKandangs = collect($kandang);
-                                    } elseif (isset($kandangs) && $kandangs instanceof \Illuminate\Support\Collection && $kandangs->isNotEmpty()) {
-                                        $availableKandangs = $kandangs;
-                                    } elseif (isset($kandangs) && is_array($kandangs) && !empty($kandangs)) {
-                                        $availableKandangs = collect($kandangs);
-                                    } else {
-                                        $availableKandangs = collect();
-                                    }
+                                    // Gunakan hanya kandangList yang sudah difilter di controller (tipe pembesaran + aktif/maintenance)
+                                    $availableKandangs = collect($kandangList ?? []);
                                 @endphp
                                 @php $selectedKandangId = old('kandang_id'); @endphp
                                 @foreach($availableKandangs as $k)
@@ -150,6 +137,7 @@
                                     $statusLabel = strtolower($k->status_computed ?? ($k->status ?? 'aktif'));
                                     $isMaintenance = $statusLabel === 'maintenance';
                                     $isFull = $statusLabel === 'full';
+                                    $isInactive = in_array($statusLabel, ['kosong', 'tidak_aktif', 'inactive', 'nonaktif', 'non-aktif']);
                                     $isSelected = (string) $selectedKandangId === (string) $k->id;
                                 @endphp
                                 <option

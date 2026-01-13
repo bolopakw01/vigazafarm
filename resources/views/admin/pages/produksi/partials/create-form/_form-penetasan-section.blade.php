@@ -15,7 +15,7 @@
             $telurSiap = max((int) ($produksi->total_telur_tersedia ?? 0), 0);
             $disabledAttr = $telurSiap <= 0 ? 'disabled' : '';
             $formattedReady = number_format($telurSiap, 0, ',', '.');
-            $batchLabel = $produksi->batch_produksi_id ?? 'Tanpa Kode';
+            $batchLabel = $produksi->batch_label ?? 'Tanpa Kode';
             $kandangLabel = $produksi->kandang->nama_kandang ?? '-';
             $tanggalMulai = $produksi->tanggal_mulai ? \Carbon\Carbon::parse($produksi->tanggal_mulai)->format('Y-m-d') : '';
           @endphp

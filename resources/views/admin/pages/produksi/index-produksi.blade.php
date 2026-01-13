@@ -264,7 +264,7 @@
                                     }
                                 @endphp
                                 <td class="bolopa-tabel-text-center">{{ $produksi->firstItem() + $i }}</td>
-                                <td class="bolopa-tabel-text-left">{{ $row->batch_produksi_id ?? '-' }}</td>
+                                <td class="bolopa-tabel-text-left">{{ $row->batch_label ?? '-' }}</td>
                                 <td class="bolopa-tabel-text-left">{{ $row->kandang->nama_kandang ?? '-' }}</td>
                                 <td class="bolopa-tabel-text-center">
                                     @if ($row->tipe_produksi === 'telur')
@@ -304,7 +304,7 @@
                                         <button class="bolopa-tabel-btn bolopa-tabel-btn-action bolopa-tabel-btn-info btn-view"
                                             title="Lihat Detail"
                                             data-id="{{ $row->id }}"
-                                            data-batch="{{ $row->batch_produksi_id ?? '-' }}"
+                                            data-batch="{{ $row->batch_label ?? '-' }}"
                                             data-kandang="{{ $row->kandang->nama_kandang ?? '-' }}"
                                             data-tipe="{{ $row->tipe_produksi ?? '-' }}"
                                             data-jenis-input="{{ $row->jenis_input ?? 'manual' }}"
@@ -1091,7 +1091,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <h6 style="margin-bottom: 10px; font-size: 14px; color: #495057; border-bottom: 2px solid #e9ecef; padding-bottom: 6px;">
                                 <i class="fas fa-sticky-note"></i> Catatan
                             </h6>
-                            <div class="notes-section" style="margin: 0;">
+                            <div class="notes-section" style="margin: 0; text-align: left;">
                                 ${catatanHtml}
                             </div>
                         </div>

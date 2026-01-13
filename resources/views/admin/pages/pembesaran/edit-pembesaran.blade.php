@@ -164,6 +164,7 @@
                                     $statusLabel = strtolower($k->status_computed ?? ($k->status ?? 'aktif'));
                                     $isMaintenance = $statusLabel === 'maintenance';
                                     $isFull = $statusLabel === 'full';
+                                    $isInactive = in_array($statusLabel, ['kosong', 'tidak_aktif', 'inactive', 'nonaktif', 'non-aktif']);
                                     $isSelected = (string) old('kandang_id', $pembesaran->kandang_id) === (string) $k->id;
                                 @endphp
                                 <option
