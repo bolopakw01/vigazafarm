@@ -463,6 +463,7 @@
                     ],
                     'activeSeries' => ['telur', 'pakan', 'kematian'],
                 ],
+                'maxEggs' => $summary['sisa_telur'] ?? 0,
             ])
 
             <div class="card mb-4" id="history-card">

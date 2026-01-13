@@ -1376,7 +1376,7 @@ class ProduksiController extends Controller
             $hasExistingForTab = false;
             switch ($activeTab) {
                 case 'telur':
-                    $hasExistingForTab = !$isHidden && (($laporan->produksi_telur ?? 0) > 0 || ($laporan->input_telur ?? 0) > 0);
+                    $hasExistingForTab = false; // Allow multiple trays per day
                     break;
                 case 'penjualan':
                     $hasExistingForTab = !$isHidden && (($laporan->penjualan_telur_butir ?? 0) > 0 || ($laporan->penjualan_puyuh_ekor ?? 0) > 0);
@@ -1424,14 +1424,53 @@ class ProduksiController extends Controller
             'tampilkan_di_histori' => true,
         ];
 
-        switch ($activeTab) {
-            case 'telur':
-                if (isset($validated['produksi_telur']) && $validated['produksi_telur'] !== null && $validated['produksi_telur'] !== '') {
-                    // For telur, store the input amount directly (each input creates a new record)
-                    $updateData['produksi_telur'] = $validated['produksi_telur'];
-                    $updateData['input_telur'] = $validated['produksi_telur'];
+        // Special handling for telur tab (tray creation)
+        if ($activeTab === 'telur') {
+            if (isset($validated['produksi_telur']) && $validated['produksi_telur'] > 0) {
+                if ($validated['produksi_telur'] > 100) {
+                    // Bulk creation: divide into trays of 100 eggs each
+                    $eggsPerTray = 100;
+                    $totalEggs = (int) $validated['produksi_telur'];
+                    $numTrays = (int) ceil($totalEggs / $eggsPerTray);
+                    for ($i = 0; $i < $numTrays; $i++) {
+                        $eggs = $eggsPerTray;
+                        if ($i == $numTrays - 1) {
+                            $eggs = $totalEggs - ($i * $eggsPerTray);
+                        }
+                        $newLaporan = new LaporanHarian([
+                            'batch_produksi_id' => $produksi->batch_produksi_id,
+                            'tanggal' => $validated['tanggal'],
+                            'pengguna_id' => Auth::id(),
+                            'tampilkan_di_histori' => true,
+                            'produksi_telur' => $eggs,
+                            'input_telur' => $eggs,
+                            'jumlah_burung' => $produksi->jumlah_indukan ?? 0,
+                        ]);
+                        $newLaporan->save();
+                        $newLaporan->nama_tray = $this->generateDefaultTrayName($newLaporan);
+                        $newLaporan->save();
+                    }
+                    $message = "Berhasil membuat {$numTrays} tray dengan total {$totalEggs} telur.";
+                } else {
+                    // Single tray
+                    $laporan->fill([
+                        'pengguna_id' => Auth::id(),
+                        'tampilkan_di_histori' => true,
+                        'produksi_telur' => $validated['produksi_telur'],
+                        'input_telur' => $validated['produksi_telur'],
+                    ]);
+                    $laporan->save();
+                    $laporan->nama_tray = $this->generateDefaultTrayName($laporan);
+                    $laporan->save();
+                    $message = 'Tray berhasil ditambahkan.';
                 }
-                break;
+            } else {
+                $message = 'Tidak ada telur yang diinput.';
+            }
+            return redirect()->route('admin.produksi.show', $produksi->id)->with('success', $message);
+        }
+
+        switch ($activeTab) {
 
             case 'penjualan':
                 if ($isTelurBatch) {

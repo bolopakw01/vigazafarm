@@ -352,6 +352,7 @@
                 'tabVariant' => 'telur',
                 'feedOptions' => $feedOptions,
                 'vitaminOptions' => $vitaminOptions,
+                'maxEggs' => $summary['sisa_telur'] ?? 0,
                 'analyticsConfig' => [
                     'analyticsKey' => 'telur',
                     'title' => 'Grafik & Analisis Produksi Telur',

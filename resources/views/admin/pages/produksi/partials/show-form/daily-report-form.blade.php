@@ -166,7 +166,7 @@
                                     <span class="input-group-text"><i class="fa-solid fa-calendar-days"></i></span>
                                     <input type="date" name="tanggal" id="tanggal" class="form-control" value="{{ $defaultTanggal }}">
                                 </div>
-                                <div class="form-hint">Pilih tanggal pencatatan (format YYYY-MM-DD).</div>
+                                <div class="form-hint">Pilih tanggal pencatatan (format DD-MM-YYYY).</div>
                             </div>
                             <div class="col-12 col-md-6">
                                 <label for="produksi_telur" class="form-label">Jumlah Telur (butir)</label>
@@ -178,17 +178,23 @@
                                         id="produksi_telur"
                                         class="form-control"
                                         min="0"
-                                        @if ($tabVariant !== 'puyuh') max="100" @endif
+                                        max="{{ $maxEggs ?? '' }}"
                                         value="{{ $defaultProduksiTelur }}"
                                     >
                                 </div>
-                                <div class="form-hint">
+                                <div class="form-hint text-muted" id="telurHint">
                                     @if ($tabVariant === 'puyuh')
                                         Masukkan total telur yang dipanen hari ini.
                                     @else
-                                        Masukkan total telur yang dipanen hari ini (maksimal 100 butir).
+                                        Masukkan jumlah telur hari ini. Jika > 100 butir, sistem akan bagi otomatis jadi tray-tray 100 butir.
                                     @endif
                                 </div>
+                                @if ($tabVariant !== 'puyuh')
+                                <div id="trayCalculation" class="mt-2 p-2 bg-light rounded small text-muted d-none">
+                                    <i class="fa-solid fa-info-circle me-1"></i>
+                                    <span id="trayCalculationText"></span>
+                                </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -626,6 +632,20 @@
             </div>
         </form>
 
+        <style>
+            .is-invalid {
+                border-color: #dc3545 !important;
+                box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+            }
+            .form-hint {
+                transition: color 0.3s ease;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-5px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        </style>
+
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const tabs = document.querySelectorAll('#pencatatanTabs .nav-link');
@@ -642,6 +662,60 @@
                 const trayViewToggleButtons = document.querySelectorAll('[data-tray-view]');
                 const originalTrayEntries = @json($trayEntries);
                 const trayUpdateUrlTemplate = @json(route('admin.produksi.tray.update', [$produksi->id, '__TRAY__']));
+                const maxEggs = @json($maxEggs ?? 0);
+
+                // Store original hint text for telur variant
+                let originalHintText = '';
+                if (formVariant === 'telur') {
+                    const telurHint = document.getElementById('telurHint');
+                    if (telurHint) {
+                        originalHintText = telurHint.textContent;
+                    }
+                }
+
+                // Add form validation for egg input
+                if (form) {
+                    const produksiTelurInput = document.getElementById('produksi_telur');
+                    const telurHint = document.getElementById('telurHint');
+
+                    // Real-time validation on input
+                    if (produksiTelurInput && maxEggs > 0 && formVariant === 'telur' && telurHint) {
+                        produksiTelurInput.addEventListener('input', function() {
+                            const inputValue = parseInt(this.value) || 0;
+                            if (inputValue > maxEggs) {
+                                this.classList.add('is-invalid');
+                                // Show warning text
+                                telurHint.innerHTML = `⚠️ Melebihi batas maksimal (${maxEggs.toLocaleString()} butir)`;
+                                telurHint.classList.add('text-danger');
+                                telurHint.classList.remove('text-muted');
+                            } else {
+                                this.classList.remove('is-invalid');
+                                // Restore original hint text
+                                telurHint.innerHTML = originalHintText;
+                                telurHint.classList.remove('text-danger');
+                                telurHint.classList.add('text-muted');
+                            }
+                        });
+                    }
+
+                    // Form submit validation
+                    form.addEventListener('submit', function(e) {
+                        if (produksiTelurInput && maxEggs > 0 && formVariant === 'telur') {
+                            const inputValue = parseInt(produksiTelurInput.value) || 0;
+                            if (inputValue > maxEggs) {
+                                e.preventDefault();
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Jumlah Telur Melebihi Batas',
+                                    text: `Jumlah telur yang dimasukkan (${inputValue.toLocaleString()} butir) melebihi sisa telur tersedia (${maxEggs.toLocaleString()} butir). Silakan kurangi jumlah telur atau periksa kembali data produksi.`,
+                                    confirmButtonText: 'Mengerti',
+                                    confirmButtonColor: '#dc3545'
+                                });
+                                return false;
+                            }
+                        }
+                    });
+                }
                 const trayDeleteUrlTemplate = @json(route('admin.produksi.tray.destroy', [$produksi->id, '__TRAY__']));
                 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
                 const jenisKelaminPenjualan = document.getElementById('jenis_kelamin_penjualan');
@@ -1390,6 +1464,34 @@
                             alert(`Jumlah telur tidak boleh melebihi ${maxJumlah} butir (stok tray yang dipilih).`);
                         }
                     });
+                }
+
+                // Handle tray calculation for telur input
+                const produksiTelurInput = document.getElementById('produksi_telur');
+                const trayCalculationDiv = document.getElementById('trayCalculation');
+                const trayCalculationText = document.getElementById('trayCalculationText');
+
+                function updateTrayCalculation() {
+                    if (!produksiTelurInput || !trayCalculationDiv || !trayCalculationText) return;
+
+                    const value = parseInt(produksiTelurInput.value) || 0;
+                    if (formVariant !== 'telur' || value <= 100 || value > maxEggs) {
+                        trayCalculationDiv.classList.add('d-none');
+                        return;
+                    }
+
+                    const traysPer100 = 100;
+                    const numTrays = Math.ceil(value / traysPer100);
+
+                    const text = `${numTrays} tray akan dibuat dari total ${value} butir telur.`;
+
+                    trayCalculationText.textContent = text;
+                    trayCalculationDiv.classList.remove('d-none');
+                }
+
+                if (produksiTelurInput) {
+                    produksiTelurInput.addEventListener('input', updateTrayCalculation);
+                    updateTrayCalculation(); // Initial call
                 }
 
                 // Initialize calculations on page load
