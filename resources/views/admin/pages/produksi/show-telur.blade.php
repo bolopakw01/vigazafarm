@@ -297,6 +297,29 @@
                 </div>
             </div>
 
+            @php
+                $penjualanGenderRaw = optional($todayLaporan)->jenis_kelamin_penjualan;
+                $defaultCampuranJantan = null;
+                $defaultCampuranBetina = null;
+                $defaultJenisKelaminPenjualan = $penjualanGenderRaw;
+
+                if (is_string($penjualanGenderRaw) && str_starts_with(strtolower($penjualanGenderRaw), 'campuran')) {
+                    if (preg_match('/jantan\s*=\s*(\d+)/i', $penjualanGenderRaw, $mJ)) {
+                        $defaultCampuranJantan = (int) $mJ[1];
+                    }
+                    if (preg_match('/betina\s*=\s*(\d+)/i', $penjualanGenderRaw, $mB)) {
+                        $defaultCampuranBetina = (int) $mB[1];
+                    }
+                    if ($defaultCampuranJantan === null || $defaultCampuranBetina === null) {
+                        if (preg_match('/campuran\s*:?\s*(\d+)\s*[:|,]\s*(\d+)/i', $penjualanGenderRaw, $legacy)) {
+                            $defaultCampuranJantan = $defaultCampuranJantan ?? (int) $legacy[1];
+                            $defaultCampuranBetina = $defaultCampuranBetina ?? (int) $legacy[2];
+                        }
+                    }
+                    $defaultJenisKelaminPenjualan = 'campuran';
+                }
+            @endphp
+
             @include('admin.pages.produksi.partials.show-form.daily-report-form', [
                 'produksi' => $produksi,
                 'defaultTanggal' => old(
@@ -316,7 +339,9 @@
                 'defaultHargaVitamin' => old('harga_vitamin_per_liter', optional($todayLaporan)->harga_vitamin_per_liter),
                 'defaultJumlahKematian' => old('jumlah_kematian', optional($todayLaporan)->jumlah_kematian),
                 'defaultPenjualanPuyuh' => old('penjualan_puyuh_ekor', optional($todayLaporan)->penjualan_puyuh_ekor),
-                'defaultJenisKelaminPenjualan' => old('jenis_kelamin_penjualan', optional($todayLaporan)->jenis_kelamin_penjualan),
+                'defaultJenisKelaminPenjualan' => old('jenis_kelamin_penjualan', $defaultJenisKelaminPenjualan),
+                'defaultPenjualanJantanCampuran' => old('penjualan_puyuh_jantan', $defaultCampuranJantan),
+                'defaultPenjualanBetinaCampuran' => old('penjualan_puyuh_betina', $defaultCampuranBetina),
                 'defaultCatatan' => old('catatan_kejadian', optional($todayLaporan)->catatan_kejadian),
                 'defaultHargaPerButir' => old(
                     'harga_penjualan',
@@ -742,6 +767,7 @@
                                                             <form action="{{ route('admin.produksi.laporan.reset', [$produksi->id, $laporan->id]) }}" method="POST" class="m-0 p-0 reset-laporan-form">
                                                                 @csrf
                                                                 @method('PATCH')
+                                                                <input type="hidden" name="reset_tab" value="">
                                                                 <button type="submit" class="btn btn-sm btn-outline-warning">Reset</button>
                                                             </form>
 
@@ -1065,6 +1091,15 @@
                 }
             }
 
+            function getActiveTabId() {
+                const active = document.querySelector('#pencatatanTabs .nav-link.active');
+                if (!active) {
+                    return 'telur';
+                }
+                const target = active.getAttribute('data-bs-target') || '';
+                return target.startsWith('#') ? target.substring(1) : (target || 'telur');
+            }
+
             const savedActiveTab = localStorage.getItem('activeProduksiTab');
             if (savedActiveTab) {
                 const savedTabElement = document.querySelector(`#pencatatanTabs .nav-link[data-bs-target="#${savedActiveTab}"]`);
@@ -1112,6 +1147,15 @@
             document.querySelectorAll('.reset-laporan-form').forEach(form => {
                 form.addEventListener('submit', function (e) {
                     e.preventDefault();
+
+                    const tabInput = form.querySelector('input[name="reset_tab"]') || (() => {
+                        const hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'reset_tab';
+                        form.appendChild(hidden);
+                        return hidden;
+                    })();
+                    tabInput.value = getActiveTabId();
                     
                     Swal.fire({
                         title: 'Konfirmasi Reset',

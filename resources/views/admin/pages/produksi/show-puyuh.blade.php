@@ -393,6 +393,29 @@
                 </div>
             </div>
 
+            @php
+                $penjualanGenderRaw = optional($todayLaporan)->jenis_kelamin_penjualan;
+                $defaultCampuranJantan = null;
+                $defaultCampuranBetina = null;
+                $defaultJenisKelaminPenjualan = $penjualanGenderRaw;
+
+                if (is_string($penjualanGenderRaw) && str_starts_with(strtolower($penjualanGenderRaw), 'campuran')) {
+                    if (preg_match('/jantan\s*=\s*(\d+)/i', $penjualanGenderRaw, $mJ)) {
+                        $defaultCampuranJantan = (int) $mJ[1];
+                    }
+                    if (preg_match('/betina\s*=\s*(\d+)/i', $penjualanGenderRaw, $mB)) {
+                        $defaultCampuranBetina = (int) $mB[1];
+                    }
+                    if ($defaultCampuranJantan === null || $defaultCampuranBetina === null) {
+                        if (preg_match('/campuran\s*:?\s*(\d+)\s*[:|,]\s*(\d+)/i', $penjualanGenderRaw, $legacy)) {
+                            $defaultCampuranJantan = $defaultCampuranJantan ?? (int) $legacy[1];
+                            $defaultCampuranBetina = $defaultCampuranBetina ?? (int) $legacy[2];
+                        }
+                    }
+                    $defaultJenisKelaminPenjualan = 'campuran';
+                }
+            @endphp
+
             @include('admin.pages.produksi.partials.show-form.daily-report-form', [
                 'produksi' => $produksi,
                 'defaultTanggal' => old(
@@ -412,7 +435,9 @@
                 'defaultHargaVitamin' => old('harga_vitamin_per_liter', optional($todayLaporan)->harga_vitamin_per_liter),
                 'defaultJumlahKematian' => old('jumlah_kematian', optional($todayLaporan)->jumlah_kematian),
                 'defaultPenjualanPuyuh' => old('penjualan_puyuh_ekor', optional($todayLaporan)->penjualan_puyuh_ekor),
-                'defaultJenisKelaminPenjualan' => old('jenis_kelamin_penjualan', optional($todayLaporan)->jenis_kelamin_penjualan),
+                'defaultJenisKelaminPenjualan' => old('jenis_kelamin_penjualan', $defaultJenisKelaminPenjualan),
+                'defaultPenjualanJantanCampuran' => old('penjualan_puyuh_jantan', $defaultCampuranJantan),
+                'defaultPenjualanBetinaCampuran' => old('penjualan_puyuh_betina', $defaultCampuranBetina),
                 'defaultCatatan' => old('catatan_kejadian', optional($todayLaporan)->catatan_kejadian),
                 'defaultHargaPerButir' => old(
                     'harga_penjualan',
@@ -510,6 +535,34 @@
                                         @php
                                             // Create separate entries for each data type that has values
                                             $entries = [];
+                                            $parsePenjualanCampuran = function ($value) {
+                                                if (!is_string($value)) {
+                                                    return null;
+                                                }
+                                                $value = strtolower(trim($value));
+                                                if (!str_starts_with($value, 'campuran')) {
+                                                    return null;
+                                                }
+                                                $jantan = null;
+                                                $betina = null;
+                                                if (preg_match('/jantan\s*=\s*(\d+)/', $value, $m)) {
+                                                    $jantan = (int) $m[1];
+                                                }
+                                                if (preg_match('/betina\s*=\s*(\d+)/', $value, $m)) {
+                                                    $betina = (int) $m[1];
+                                                }
+                                                if (($jantan === null || $betina === null) && preg_match('/campuran\s*:?\s*(\d+)\s*[:|,]\s*(\d+)/', $value, $legacy)) {
+                                                    $jantan = $jantan === null ? (int) $legacy[1] : $jantan;
+                                                    $betina = $betina === null ? (int) $legacy[2] : $betina;
+                                                }
+                                                if ($jantan === null && $betina === null) {
+                                                    return null;
+                                                }
+                                                return [
+                                                    'jantan' => max(0, $jantan ?? 0),
+                                                    'betina' => max(0, $betina ?? 0),
+                                                ];
+                                            };
                                             
                                             if (($laporan->produksi_telur ?? 0) > 0) {
                                                 $entries[] = [
@@ -544,12 +597,53 @@
                                             }
                                             
                                             if (($laporan->penjualan_puyuh_ekor ?? 0) > 0) {
+                                                $jantan = $laporan->penjualan_puyuh_jantan;
+                                                $betina = $laporan->penjualan_puyuh_betina;
+
+                                                if ($jantan === null || $betina === null) {
+                                                    // Infer dari jenis_kelamin_penjualan untuk data lama
+                                                    $genderRaw = $laporan->jenis_kelamin_penjualan;
+                                                    $campuranParsedTemp = $parsePenjualanCampuran($genderRaw);
+                                                    if ($campuranParsedTemp) {
+                                                        $jantan = $campuranParsedTemp['jantan'];
+                                                        $betina = $campuranParsedTemp['betina'];
+                                                    } else {
+                                                        $genderNormalizedTemp = strtolower((string) $genderRaw);
+                                                        if ($genderNormalizedTemp === 'betina') {
+                                                            $jantan = 0;
+                                                            $betina = $laporan->penjualan_puyuh_ekor ?? 0;
+                                                        } elseif ($genderNormalizedTemp === 'jantan') {
+                                                            $jantan = $laporan->penjualan_puyuh_ekor ?? 0;
+                                                            $betina = 0;
+                                                        } else {
+                                                            $jantan = 0;
+                                                            $betina = 0;
+                                                        }
+                                                    }
+                                                } else {
+                                                    $jantan = $jantan ?? 0;
+                                                    $betina = $betina ?? 0;
+                                                }
+
+                                                $campuranParsed = null;
+                                                $genderNormalized = 'jantan'; // default
+
+                                                if ($jantan > 0 && $betina > 0) {
+                                                    $genderNormalized = 'campuran';
+                                                    $campuranParsed = ['jantan' => $jantan, 'betina' => $betina];
+                                                } elseif ($jantan > 0) {
+                                                    $genderNormalized = 'jantan';
+                                                } elseif ($betina > 0) {
+                                                    $genderNormalized = 'betina';
+                                                }
+
                                                 $entries[] = [
                                                     'type' => 'penjualan',
                                                     'value' => $laporan->penjualan_puyuh_ekor,
                                                     'unit' => 'ekor terjual',
                                                     'meta' => [
-                                                        'gender' => $laporan->jenis_kelamin_penjualan,
+                                                        'gender' => $genderNormalized,
+                                                        'campuran' => $campuranParsed,
                                                         'pendapatan' => $laporan->pendapatan_harian,
                                                         'harga' => $laporan->harga_per_butir,
                                                     ],
@@ -623,11 +717,9 @@
                                                         }
                                                     }
                                                 } elseif ($entry['type'] === 'penjualan') {
-                                                    $gender = $entry['meta']['gender'] ?? null;
-                                                    $genderLabel = $gender ? ' (' . ucfirst($gender) . ')' : '';
                                                     $pendapatan = $entry['meta']['pendapatan'] ?? null;
                                                     $harga = $entry['meta']['harga'] ?? null;
-                                                    $ringkasan = $formatNumber($entry['value']) . ' ekor terjual' . $genderLabel;
+                                                    $ringkasan = $formatNumber($entry['value']) . ' ekor terjual';
                                                     if ($pendapatan !== null && $pendapatan !== '') {
                                                         $ringkasan .= ' — Rp ' . $formatNumber($pendapatan);
                                                     } elseif ($harga !== null && $harga !== '') {
@@ -646,6 +738,28 @@
                                                 $createdAtFormatted = $laporan->dibuat_pada
                                                     ? 'Tercatat ' . $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
                                                     : '—';
+
+                                                // Sertakan informasi jenis kelamin untuk entri penjualan
+                                                if ($entry['type'] === 'penjualan') {
+                                                    $genderRaw = trim((string)($entry['meta']['gender'] ?? $laporan->jenis_kelamin_penjualan ?? ''));
+                                                    $genderNormalized = strtolower($genderRaw);
+                                                    $campuranCounts = $entry['meta']['campuran'] ?? null;
+
+                                                    if ($campuranCounts) {
+                                                        $createdAtFormatted .= ' (Campuran : Jantan ' . $formatNumber($campuranCounts['jantan']) . ' & Betina ' . $formatNumber($campuranCounts['betina']) . ')';
+                                                    } else {
+                                                        $genderLabel = match ($genderNormalized) {
+                                                            'jantan' => 'Jantan',
+                                                            'betina' => 'Betina',
+                                                            'campuran', 'mix', 'mixed' => 'Campuran',
+                                                            default => ($genderRaw !== '' ? $genderRaw : ''),
+                                                        };
+
+                                                        if ($genderLabel !== '') {
+                                                            $createdAtFormatted .= ' (' . $genderLabel . ')';
+                                                        }
+                                                    }
+                                                }
 
                                                 if ($entry['type'] === 'kematian' && !empty($entry['meta']['keterangan'])) {
                                                     $createdAtFormatted .= ' (' . $entry['meta']['keterangan'] . ')';
@@ -734,6 +848,7 @@
                                                             <form action="{{ route('admin.produksi.laporan.reset', [$produksi->id, $laporan->id]) }}" method="POST" class="m-0 p-0 reset-laporan-form">
                                                                 @csrf
                                                                 @method('PATCH')
+                                                                <input type="hidden" name="reset_tab" value="">
                                                                 <button type="submit" class="btn btn-sm btn-outline-warning">Reset</button>
                                                             </form>
 
@@ -1052,10 +1167,27 @@
                 updateActiveTabInput('telur');
             }
 
+            // Helper get active tab id
+            const getActiveTabId = () => {
+                const active = document.querySelector('#pencatatanTabs .nav-link.active');
+                if (!active) return 'telur';
+                const target = active.getAttribute('data-bs-target') || '';
+                return target.startsWith('#') ? target.substring(1) : (target || 'telur');
+            };
+
             // Confirmation for reset and delete actions
             document.querySelectorAll('.reset-laporan-form').forEach(form => {
                 form.addEventListener('submit', function (e) {
                     e.preventDefault();
+
+                    const tabInput = form.querySelector('input[name="reset_tab"]') || (() => {
+                        const hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'reset_tab';
+                        form.appendChild(hidden);
+                        return hidden;
+                    })();
+                    tabInput.value = getActiveTabId();
                     
                     Swal.fire({
                         title: 'Konfirmasi Reset',
@@ -1152,44 +1284,20 @@
                                 <div class="swal-detail-section">
                                     <div class="swal-detail-stats">
                                         <div class="swal-detail-stat-card">
-                                            <div class="stat-label">Mortalitas</div>
-                                            <div class="stat-value">${escapeHtml(mortality)}<small class="text-muted">%</small></div>
-                                        </div>
-                                        <div class="swal-detail-stat-card">
                                             <div class="stat-label">Jumlah Puyuh</div>
                                             <div class="stat-value">${escapeHtml(populasi)}</div>
+                                        </div>
+                                        <div class="swal-detail-stat-card">
+                                            <div class="stat-label">Jumlah Telur</div>
+                                            <div class="stat-value">${escapeHtml(telur)}</div>
                                         </div>
                                         <div class="swal-detail-stat-card">
                                             <div class="stat-label">Kematian</div>
                                             <div class="stat-value">${escapeHtml(death)}</div>
                                         </div>
                                         <div class="swal-detail-stat-card">
-                                            <div class="stat-label">Jumlah Telur</div>
-                                            <div class="stat-value">${escapeHtml(telur)}</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="swal-detail-section">
-                                    <div class="swal-detail-stats">
-                                        <div class="swal-detail-stat-card combined">
-                                            <div class="stat-label">Pakan</div>
-                                            <div class="stat-value">${escapeHtml(feed)}<small class="text-muted"> kg</small></div>
-                                            <div class="small text-muted">Biaya Rp ${escapeHtml(feedCost)}${feedPrice ? ' @ Rp ' + escapeHtml(feedPrice) + ' / kg' : ''}</div>
-                                        </div>
-                                        <div class="swal-detail-stat-card combined">
-                                            <div class="stat-label">Vitamin</div>
-                                            <div class="stat-value">${escapeHtml(vitamin)}<small class="text-muted"> L</small></div>
-                                            <div class="small text-muted">Biaya Rp ${escapeHtml(vitaminCost)}${vitaminPrice ? ' @ Rp ' + escapeHtml(vitaminPrice) + ' / L' : ''}</div>
-                                        </div>
-                                        <div class="swal-detail-stat-card combined">
-                                            <div class="stat-label">Penjualan</div>
+                                            <div class="stat-label">Total Penjualan</div>
                                             <div class="stat-value">${escapeHtml(salesQty)}<small class="text-muted"> ekor</small></div>
-                                            <div class="small text-muted">Pendapatan Rp ${escapeHtml(salesRevenue)}</div>
-                                        </div>
-                                        <div class="swal-detail-stat-card combined">
-                                            <div class="stat-label">Harga Satuan</div>
-                                            <div class="stat-value">Rp ${escapeHtml(salesPrice || '—')}</div>
                                         </div>
                                     </div>
                                 </div>

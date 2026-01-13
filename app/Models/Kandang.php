@@ -49,14 +49,14 @@ class Kandang extends Model
     ];
 
     /**
-     * Status komputasi: jika kapasitas terpakai >= total maka dianggap "full".
+     * Status komputasi: jika kapasitas terpakai >= total maka dianggap "penuh".
      */
     public function getStatusComputedAttribute(): string
     {
         $baseStatus = strtolower(trim((string) ($this->status ?? '')));
 
         if ($this->isFull()) {
-            return 'full';
+            return 'penuh';
         }
 
         return $baseStatus === '' ? 'tidak_aktif' : $baseStatus;
@@ -305,10 +305,10 @@ class Kandang extends Model
         $kapasitasTerpakai = $this->kapasitas_terpakai;
         $currentStatus = strtolower((string) ($this->status ?? ''));
 
-        if ($kapasitasTerpakai >= $kapasitasTotal && $currentStatus !== 'full') {
-            $this->status = 'full';
+        if ($kapasitasTerpakai >= $kapasitasTotal && $currentStatus !== 'penuh') {
+            $this->status = 'penuh';
             $this->saveQuietly();
-        } elseif ($kapasitasTerpakai < $kapasitasTotal && $currentStatus === 'full') {
+        } elseif ($kapasitasTerpakai < $kapasitasTotal && $currentStatus === 'penuh') {
             $this->status = 'aktif';
             $this->saveQuietly();
         }

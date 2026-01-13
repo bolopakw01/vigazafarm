@@ -128,8 +128,8 @@
 								<span class="bolopa-tabel-badge bolopa-tabel-badge-success">Aktif</span>
 							@elseif($statusVal === 'maintenance')
 								<span class="bolopa-tabel-badge bolopa-tabel-badge-warning">Maintenance</span>
-							@elseif($statusVal === 'full')
-								<span class="bolopa-tabel-badge bolopa-tabel-badge-danger">Full</span>
+							@elseif($statusVal === 'penuh')
+								<span class="bolopa-tabel-badge bolopa-tabel-badge-danger">Penuh</span>
 							@else
 								<span class="bolopa-tabel-badge bolopa-tabel-badge-danger">Tidak Aktif</span>
 							@endif
@@ -145,7 +145,7 @@
 									data-tipe="{{ $row->tipe_kandang ?? $row->tipe ?? '' }}"
 									data-kapasitas="{{ $row->kapasitas ?? $row->kapasitas_maksimal ?? 0 }}"
 									data-kapasitas-terpakai="{{ $row->kapasitas_terpakai ?? 0 }}"
-									data-status="{{ strtolower($row->status ?? ($row->aktif ? 'aktif' : 'kosong')) }}"
+									data-status="{{ $statusVal }}"
 									data-keterangan="{{ $row->keterangan ?? '' }}">
 									<img src="{{ asset('bolopa/img/icon/line-md--edit-twotone.svg') }}" alt="Edit">
 								</button>
@@ -687,10 +687,10 @@ document.addEventListener('DOMContentLoaded', function() {
 				const status = this.dataset.status || 'aktif';
 				const keterangan = this.dataset.keterangan || '';
 
-				const kapasitasNumeric = parseInt(kapasitas, 10) || 0;
-				const terpakaiNumeric = parseInt(kapasitasTerpakai, 10) || 0;
-				const isFull = kapasitasNumeric > 0 && terpakaiNumeric >= kapasitasNumeric;
-				const normalizedStatus = (status || 'aktif').toLowerCase();
+					const kapasitasNumeric = parseInt(kapasitas, 10) || 0;
+					const terpakaiNumeric = parseInt(kapasitasTerpakai, 10) || 0;
+					const isFull = kapasitasNumeric > 0 && terpakaiNumeric >= kapasitasNumeric;
+					const normalizedStatus = (status || 'aktif').toLowerCase();
 
 				Swal.fire({
 					title: '<h5 class="fw-semibold text-dark mb-3">Edit Data Kandang</h5>',
@@ -720,6 +720,7 @@ document.addEventListener('DOMContentLoaded', function() {
 										<option value="aktif">Aktif</option>
 										<option value="maintenance">Maintenance</option>
 										<option value="kosong">Tidak Aktif</option>
+										<option value="penuh">Penuh</option>
 									</select>
 									<div class="form-text text-danger ${isFull ? '' : 'd-none'}" id="swal-maintenance-note">Kapasitas penuh, kosongkan kandang sebelum memilih status Maintenance.</div>
 								</div>
@@ -746,10 +747,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 						if (isFull) {
 							Array.from(statusSelect.options).forEach((option) => {
-								if (option.value !== 'maintenance') {
+								if (option.value !== 'maintenance' && option.value !== 'penuh') {
 									option.disabled = true;
 								}
 							});
+							statusSelect.value = 'penuh';
 						} else {
 							Array.from(statusSelect.options).forEach((option) => {
 								option.disabled = false;
@@ -768,8 +770,8 @@ document.addEventListener('DOMContentLoaded', function() {
 							return false;
 						}
 
-						if (isFull && statusVal !== 'maintenance') {
-							Swal.showValidationMessage('Kapasitas penuh. Status wajib Maintenance hingga kapasitas tersedia.');
+						if (isFull && statusVal !== 'maintenance' && statusVal !== 'penuh') {
+							Swal.showValidationMessage('Kapasitas penuh. Pilih status Penuh atau Maintenance hingga kapasitas tersedia.');
 							return false;
 						}
 

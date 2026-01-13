@@ -538,17 +538,36 @@
                                             <option value="" disabled {{ old('jenis_kelamin_penjualan', $defaultJenisKelaminPenjualan ?? null) ? '' : 'selected' }}>Pilih jenis kelamin</option>
                                             <option value="jantan" {{ old('jenis_kelamin_penjualan', $defaultJenisKelaminPenjualan ?? null) === 'jantan' ? 'selected' : '' }}>Jantan</option>
                                             <option value="betina" {{ old('jenis_kelamin_penjualan', $defaultJenisKelaminPenjualan ?? null) === 'betina' ? 'selected' : '' }}>Betina</option>
+                                            <option value="campuran" {{ old('jenis_kelamin_penjualan', $defaultJenisKelaminPenjualan ?? null) === 'campuran' ? 'selected' : '' }}>Campuran</option>
                                         </select>
                                     </div>
                                     <div class="form-hint">Tentukan jenis kelamin puyuh yang dijual.</div>
                                 </div>
-                                <div class="col-12 col-md-4">
+                                <div class="col-12 col-md-4 total-penjualan-wrapper">
                                     <label for="penjualan_puyuh_ekor" class="form-label">Jumlah Terjual (ekor)</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fa-solid fa-dove"></i></span>
                                         <input type="number" name="penjualan_puyuh_ekor" id="penjualan_puyuh_ekor" class="form-control" min="1" value="{{ old('penjualan_puyuh_ekor', $defaultPenjualanPuyuh) }}" placeholder="Masukkan jumlah">
                                     </div>
-                                    <div class="form-hint">Masukkan jumlah puyuh yang terjual.</div>
+                                    <div class="form-hint">Masukkan total puyuh terjual.</div>
+                                </div>
+
+                                <div class="col-12 col-md-4 campuran-only d-none">
+                                    <label for="penjualan_puyuh_jantan" class="form-label">Jumlah Jantan</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-mars"></i></span>
+                                        <input type="number" name="penjualan_puyuh_jantan" id="penjualan_puyuh_jantan" class="form-control" min="0" value="{{ old('penjualan_puyuh_jantan', $defaultPenjualanJantanCampuran ?? null) }}" placeholder="Jantan terjual" autocomplete="off">
+                                    </div>
+                                    <div class="form-hint">Tulis jumlah jantan untuk penjualan campuran.</div>
+                                </div>
+
+                                <div class="col-12 col-md-4 campuran-only d-none">
+                                    <label for="penjualan_puyuh_betina" class="form-label">Jumlah Betina</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-venus"></i></span>
+                                        <input type="number" name="penjualan_puyuh_betina" id="penjualan_puyuh_betina" class="form-control" min="0" value="{{ old('penjualan_puyuh_betina', $defaultPenjualanBetinaCampuran ?? null) }}" placeholder="Betina terjual" autocomplete="off">
+                                    </div>
+                                    <div class="form-hint">Tulis jumlah betina untuk penjualan campuran.</div>
                                 </div>
                                 <div class="col-12 col-md-4">
                                     <label for="harga_penjualan" class="form-label">Harga per Ekor (Rp)</label>
@@ -625,6 +644,12 @@
                 const trayUpdateUrlTemplate = @json(route('admin.produksi.tray.update', [$produksi->id, '__TRAY__']));
                 const trayDeleteUrlTemplate = @json(route('admin.produksi.tray.destroy', [$produksi->id, '__TRAY__']));
                 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                const jenisKelaminPenjualan = document.getElementById('jenis_kelamin_penjualan');
+                const campuranFields = document.querySelectorAll('.campuran-only');
+                const penjualanTotalInput = document.getElementById('penjualan_puyuh_ekor');
+                const penjualanJantanInput = document.getElementById('penjualan_puyuh_jantan');
+                const penjualanBetinaInput = document.getElementById('penjualan_puyuh_betina');
+                const totalWrapper = document.querySelector('.total-penjualan-wrapper');
                 let currentFilteredEntries = [...originalTrayEntries];
                 const escapeHtml = (unsafe = '') => unsafe
                     .replace(/&/g, '&amp;')
@@ -632,6 +657,43 @@
                     .replace(/>/g, '&gt;')
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, '&#039;');
+
+                const syncCampuranTotal = () => {
+                    const jantanVal = parseInt(penjualanJantanInput?.value || '0', 10) || 0;
+                    const betinaVal = parseInt(penjualanBetinaInput?.value || '0', 10) || 0;
+                    if (penjualanTotalInput) {
+                        penjualanTotalInput.value = jantanVal + betinaVal;
+                    }
+                };
+
+                const toggleCampuranFields = () => {
+                    const isCampuran = jenisKelaminPenjualan && jenisKelaminPenjualan.value === 'campuran';
+                    campuranFields.forEach(el => {
+                        el.classList.toggle('d-none', !isCampuran);
+                    });
+                    if (totalWrapper) {
+                        totalWrapper.classList.toggle('d-none', isCampuran);
+                    }
+
+                    if (isCampuran) {
+                        syncCampuranTotal();
+                    }
+                };
+
+                if (jenisKelaminPenjualan) {
+                    jenisKelaminPenjualan.addEventListener('change', toggleCampuranFields);
+                    toggleCampuranFields();
+                }
+
+                [penjualanJantanInput, penjualanBetinaInput].forEach(inputEl => {
+                    if (!inputEl) return;
+                    inputEl.addEventListener('input', () => {
+                        if (jenisKelaminPenjualan?.value !== 'campuran') {
+                            return;
+                        }
+                        syncCampuranTotal();
+                    });
+                });
 
                 const setupPakvitAutoFill = (selectId, priceInputId, unitLabelId) => {
                     const selectEl = document.getElementById(selectId);

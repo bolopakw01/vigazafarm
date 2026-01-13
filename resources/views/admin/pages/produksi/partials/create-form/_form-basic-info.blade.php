@@ -15,9 +15,9 @@
         @php
           $typeLabel = ucwords(strtolower($kandang->tipe_kandang ?? $kandang->tipe ?? '-'));
           $remainingLabel = number_format((int) $kandang->kapasitas_tersisa);
-            $statusLabel = strtolower($kandang->status_computed ?? ($kandang->status ?? 'aktif'));
-            $isMaintenance = $statusLabel === 'maintenance';
-            $isFull = $statusLabel === 'full';
+          $statusLabel = strtolower($kandang->status_computed ?? ($kandang->status ?? 'aktif'));
+          $isMaintenance = $statusLabel === 'maintenance';
+          $isFull = $statusLabel === 'penuh';
           $isSelected = (string) $selectedKandangId === (string) $kandang->id;
         @endphp
         <option
@@ -33,7 +33,7 @@
           @if($isMaintenance)
             &ndash; Maintenance
             @elseif($isFull)
-              &ndash; Full
+              &ndash; Penuh
           @endif
         </option>
         @endforeach

@@ -107,13 +107,13 @@
     }
 
     if (kapasitasSisaSaatIni <= 0) {
-      if (showAlert && lastCapacityAlertValue !== 'full') {
+      if (showAlert && lastCapacityAlertValue !== 'penuh') {
         Swal.fire({
           icon: 'warning',
           title: 'Kapasitas penuh',
           text: 'Kandang yang dipilih sudah penuh. Pilih kandang lain atau selesaikan batch aktif.',
         });
-        lastCapacityAlertValue = 'full';
+        lastCapacityAlertValue = 'penuh';
       }
       jumlahField.value = '';
       validateCampuranCountsRealtime();
