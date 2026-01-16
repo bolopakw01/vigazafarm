@@ -492,7 +492,7 @@
 @endsection
 
 @push('scripts')
-<script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"></script>
+<script src="{{ asset('bolopa/plugin/cropperjs/cropper.min.js') }}"></script>
 <script src="{{ asset('bolopa/plugin/sweetalert2/sweetalert2.all.min.js') }}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
@@ -601,6 +601,13 @@
 
     if (cropperImage) {
       cropperImage.addEventListener('load', function () {
+        if (typeof Cropper === 'undefined') {
+          console.error('CropperJS gagal dimuat.');
+          alert('Gagal memuat CropperJS. Pastikan koneksi stabil, lalu coba lagi.');
+          closeCropper();
+          return;
+        }
+
         if (cropperInstance) {
           cropperInstance.destroy();
         }

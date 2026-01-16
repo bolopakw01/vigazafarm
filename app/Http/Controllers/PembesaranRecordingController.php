@@ -966,8 +966,9 @@ class PembesaranRecordingController extends Controller
 
         $kesehatanList = $kesehatanQuery->get();
 
-        // Hitung umur batch
-        $umurHari = Carbon::parse($pembesaran->tanggal_masuk)->diffInDays(Carbon::now());
+        // Hitung umur batch: umur awal input + selisih hari sejak tanggal masuk
+        $umurAwal = (int) ($pembesaran->umur_hari ?? 0);
+        $umurHari = $umurAwal + Carbon::parse($pembesaran->tanggal_masuk)->diffInDays(Carbon::now());
         
         // Generate pengingat vaksinasi
         $reminders = Kesehatan::generateReminder($pembesaran->batch_produksi_id, $umurHari);

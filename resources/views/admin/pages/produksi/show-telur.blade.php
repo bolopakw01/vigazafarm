@@ -71,7 +71,6 @@
 
         $trayEntries = ($laporanHarian ?? collect())
             ->filter(fn ($item) => ($item->produksi_telur ?? 0) > 0 && !empty($item->nama_tray))
-            ->filter(fn ($item) => !$soldTrayIds->contains($item->id))
             ->map(function ($item) use ($eggsPerTray, $soldTrayIds) {
                 $trayEstimate = $eggsPerTray > 0 ? ($item->produksi_telur / $eggsPerTray) : 0;
 

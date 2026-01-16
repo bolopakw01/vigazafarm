@@ -325,10 +325,10 @@ class ProduksiController extends Controller
         // Dapatkan pembesaran dengan stok breeding yang tersedia dan muat relasi kandang
         // Hanya dapat pembesaran yang telah selesai dengan stok tersedia
         $pembesaranList = Pembesaran::with('kandang')
-                                    ->where('status_batch', 'selesai')
-                                    ->whereRaw('(COALESCE(jumlah_siap, 0) - COALESCE(indukan_ditransfer, 0)) > 0')
-                                    ->orderBy('tanggal_siap', 'desc')
-                                    ->get();
+            ->whereRaw("LOWER(COALESCE(status_batch, '')) = ?", ['selesai'])
+            ->whereRaw('(COALESCE(jumlah_siap, 0) - COALESCE(indukan_ditransfer, 0)) > 0')
+            ->orderBy('tanggal_siap', 'desc')
+            ->get();
 
         $produksiSumberList = $this->loadProduksiSumberList();
         
@@ -851,9 +851,18 @@ class ProduksiController extends Controller
 
         $summary['total_tray'] = $activeTrayCount;
 
-        // Hitung sisa telur: total telur awal produksi - telur yang sudah dimasukkan ke tray
+        // Hitung total telur yang sudah pernah dimasukkan ke tray (termasuk yang sudah dihapus)
+        // Telur yang sudah masuk tray tidak bisa kembali ke sisa telur
+        $totalTelurCommitted = 0;
+        if (Schema::hasTable('vf_tray_histories')) {
+            $totalTelurCommitted = $produksi->trayHistories()
+                ->where('action', 'created')
+                ->sum('jumlah_telur');
+        }
+
+        // Hitung sisa telur: total telur awal produksi - telur yang sudah dimasukkan ke tray (termasuk yang sudah dihapus)
         $totalTelurAwal = $produksi->jumlah_telur ?? 0;
-        $summary['sisa_telur'] = max(0, $totalTelurAwal - $totalTelurAktif);
+        $summary['sisa_telur'] = max(0, $totalTelurAwal - $totalTelurCommitted);
 
         // Death impact per gender to update population and ratio in KAI
         $deathByGender = [
@@ -1379,7 +1388,11 @@ class ProduksiController extends Controller
                     $hasExistingForTab = false; // Allow multiple trays per day
                     break;
                 case 'penjualan':
-                    $hasExistingForTab = !$isHidden && (($laporan->penjualan_telur_butir ?? 0) > 0 || ($laporan->penjualan_puyuh_ekor ?? 0) > 0);
+                    if ($isTelurBatch) {
+                        $hasExistingForTab = false; // Allow multiple tray sales per day
+                    } else {
+                        $hasExistingForTab = !$isHidden && (($laporan->penjualan_telur_butir ?? 0) > 0 || ($laporan->penjualan_puyuh_ekor ?? 0) > 0);
+                    }
                     break;
                 case 'pakan':
                     // Hanya anggap ada data jika nilai konsumsi sudah terisi > 0
@@ -1449,6 +1462,7 @@ class ProduksiController extends Controller
                         $newLaporan->save();
                         $newLaporan->nama_tray = $this->generateDefaultTrayName($newLaporan);
                         $newLaporan->save();
+                        $this->logTrayHistory($produksi, $newLaporan, 'created');
                     }
                     $message = "Berhasil membuat {$numTrays} tray dengan total {$totalEggs} telur.";
                 } else {
@@ -1462,6 +1476,7 @@ class ProduksiController extends Controller
                     $laporan->save();
                     $laporan->nama_tray = $this->generateDefaultTrayName($laporan);
                     $laporan->save();
+                    $this->logTrayHistory($produksi, $laporan, 'created');
                     $message = 'Tray berhasil ditambahkan.';
                 }
             } else {
@@ -1489,11 +1504,23 @@ class ProduksiController extends Controller
                             return redirect()->back()->withErrors(['jumlah_telur_terjual' => "Jumlah telur terjual tidak boleh melebihi stok tray ({$availableEggs} butir)."]);
                         }
 
-                        $updateData['tray_penjualan_id'] = $validated['tray_penjualan'];
-                        $updateData['penjualan_telur_butir'] = $validated['jumlah_telur_terjual'];
-                        $updateData['harga_per_butir'] = $validated['harga_penjualan'];
-                        $updateData['pendapatan_harian'] = $validated['jumlah_telur_terjual'] * $validated['harga_penjualan'];
-                        $updateData['nama_tray_penjualan'] = $selectedTray->nama_tray;
+                        // Create new record for each tray sale (allow multiple sales per day)
+                        $newLaporan = new LaporanHarian([
+                            'batch_produksi_id' => $produksi->batch_produksi_id,
+                            'tanggal' => $validated['tanggal'],
+                            'pengguna_id' => Auth::id(),
+                            'tampilkan_di_histori' => true,
+                            'tray_penjualan_id' => $validated['tray_penjualan'],
+                            'penjualan_telur_butir' => $validated['jumlah_telur_terjual'],
+                            'harga_per_butir' => $validated['harga_penjualan'],
+                            'pendapatan_harian' => $validated['jumlah_telur_terjual'] * $validated['harga_penjualan'],
+                            'nama_tray_penjualan' => $selectedTray->nama_tray,
+                            'jumlah_burung' => $produksi->jumlah_indukan ?? 0,
+                        ]);
+                        $newLaporan->save();
+
+                        $message = "Tray '{$selectedTray->nama_tray}' berhasil dijual ({$validated['jumlah_telur_terjual']} butir).";
+                        return redirect()->route('admin.produksi.show', $produksi->id)->with('success', $message);
                     }
                 } else {
                     $jumlahTerjual = isset($validated['penjualan_puyuh_ekor']) ? (int) $validated['penjualan_puyuh_ekor'] : 0;

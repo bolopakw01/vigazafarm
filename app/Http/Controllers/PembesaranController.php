@@ -75,7 +75,7 @@ class PembesaranController extends Controller
         // Ambil kandang pembesaran aktif atau maintenance saja (nonaktif disembunyikan)
         $kandangList = Kandang::query()
             ->typeIs('pembesaran')
-            ->statusIn(['aktif', 'maintenance'])
+            ->statusIn(['aktif', 'maintenance', 'penuh'])
             ->orderBy('nama_kandang')
             ->get();
 
@@ -162,7 +162,7 @@ class PembesaranController extends Controller
          */
         $kandangList = Kandang::query()
             ->typeIs('pembesaran')
-            ->statusIn(['aktif', 'maintenance'])
+            ->statusIn(['aktif', 'maintenance', 'penuh'])
             ->orderBy('nama_kandang')
             ->get();
 
@@ -286,8 +286,11 @@ class PembesaranController extends Controller
         // Hitung total biaya kesehatan & vaksinasi
         $totalBiayaKesehatan = \App\Models\Kesehatan::getTotalBiayaKesehatan($pembesaran->batch_produksi_id);
         
-        // Hitung umur hari (menggunakan startOfDay agar hasilnya integer)
-        $umurHari = \Carbon\Carbon::parse($pembesaran->tanggal_masuk)->startOfDay()->diffInDays(\Carbon\Carbon::now()->startOfDay());
+        // Hitung umur hari aktual: umur awal input + selisih hari sejak tanggal masuk
+        $umurAwal = (int) ($pembesaran->umur_hari ?? 0);
+        $umurHari = $umurAwal + \Carbon\Carbon::parse($pembesaran->tanggal_masuk)
+            ->startOfDay()
+            ->diffInDays(\Carbon\Carbon::now()->startOfDay());
         
         // Get stok pakan untuk dropdown legacy
         $stokPakanList = \App\Models\StokPakan::where('stok_kg', '>', 0)
@@ -314,11 +317,13 @@ class PembesaranController extends Controller
                 $query->whereRaw('LOWER(COALESCE(tipe_kandang, "")) LIKE ?', ['%karantina%'])
                     ->orWhereRaw('LOWER(COALESCE(nama_kandang, "")) LIKE ?', ['%karantina%']);
             })
+            ->statusIn(['aktif', 'maintenance', 'penuh'])
             ->orderBy('nama_kandang')
             ->get(['id', 'nama_kandang', 'kode_kandang', 'kapasitas_maksimal', 'tipe_kandang', 'status']);
 
         if ($kandangKarantinaOptions->isEmpty()) {
             $kandangKarantinaOptions = Kandang::query()
+                ->statusIn(['aktif', 'maintenance', 'penuh'])
                 ->orderBy('nama_kandang')
                 ->limit(25)
                 ->get(['id', 'nama_kandang', 'kode_kandang', 'kapasitas_maksimal', 'tipe_kandang', 'status']);
@@ -386,8 +391,11 @@ class PembesaranController extends Controller
         // Hitung total biaya kesehatan & vaksinasi
         $totalBiayaKesehatan = \App\Models\Kesehatan::getTotalBiayaKesehatan($pembesaran->batch_produksi_id);
 
-        // Hitung umur hari
-        $umurHari = \Carbon\Carbon::parse($pembesaran->tanggal_masuk)->startOfDay()->diffInDays(\Carbon\Carbon::now()->startOfDay());
+        // Hitung umur hari aktual: umur awal input + selisih hari sejak tanggal masuk
+        $umurAwal = (int) ($pembesaran->umur_hari ?? 0);
+        $umurHari = $umurAwal + \Carbon\Carbon::parse($pembesaran->tanggal_masuk)
+            ->startOfDay()
+            ->diffInDays(\Carbon\Carbon::now()->startOfDay());
 
         return view('admin.pages.pembesaran.detail-biaya', compact(
             'pembesaran',
@@ -411,7 +419,8 @@ class PembesaranController extends Controller
         $kandangList = Kandang::query()
             ->where(function ($query) use ($pembesaran) {
                 $query->where(function ($available) {
-                    $available->typeIs('pembesaran')->statusIn(['aktif', 'maintenance']);
+                        $available->typeIs('pembesaran')->statusIn(['aktif', 'maintenance', 'penuh']);
+                    
                 });
 
                 if ($pembesaran->kandang_id) {
@@ -478,7 +487,8 @@ class PembesaranController extends Controller
         
         if (!$isOwnerOrSuperAdmin) {
             // Jika bukan owner, cek apakah target sudah tercapai
-            $umurHari = \Carbon\Carbon::parse($pembesaran->tanggal_masuk)->diffInDays(\Carbon\Carbon::now());
+            $umurAwal = (int) ($pembesaran->umur_hari ?? 0);
+            $umurHari = $umurAwal + \Carbon\Carbon::parse($pembesaran->tanggal_masuk)->diffInDays(\Carbon\Carbon::now());
             $targetUmur = 35; // Target umur minimal untuk pembesaran
             
             if ($umurHari < $targetUmur) {

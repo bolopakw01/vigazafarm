@@ -25,7 +25,7 @@ class PenetasanController extends Controller
          */
         $kandang = Kandang::query()
             ->typeIs('penetasan')
-            ->statusIn(['aktif', 'maintenance'])
+            ->statusIn(['aktif', 'maintenance', 'penuh'])
             ->orderBy('nama_kandang')
             ->get();
         return view('admin.pages.penetasan.create-penetasan', compact('kandang'));
@@ -134,7 +134,7 @@ class PenetasanController extends Controller
         $kandang = Kandang::query()
             ->where(function ($query) use ($penetasan) {
                 $query->where(function ($available) {
-                    $available->typeIs('penetasan')->statusIn(['aktif', 'maintenance']);
+                    $available->typeIs('penetasan')->statusIn(['aktif', 'maintenance', 'penuh']);
                 });
 
                 if ($penetasan->kandang_id) {

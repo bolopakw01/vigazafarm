@@ -243,7 +243,7 @@
                                 <div id="trayListView" class="tray-view d-none">
                                     <div class="tray-list-cards">
                                         @foreach ($trayEntries as $entry)
-                                            <div class="tray-card" data-tray-id="{{ $entry['id'] }}">
+                                            <div class="tray-card{{ $entry['is_sold'] ? ' tray-card-sold' : '' }}" data-tray-id="{{ $entry['id'] }}">
                                                 <div class="tray-card-header">
                                                     <div class="tray-card-title-section">
                                                         <div class="tray-card-title">
@@ -255,18 +255,24 @@
                                                         </div>
                                                     </div>
                                                     <div class="tray-card-actions">
-                                                        <button type="button" class="btn btn-sm btn-outline-light me-1 tray-edit-btn" data-id="{{ $entry['id'] }}">
-                                                            <i class="fa-solid fa-edit"></i> Edit
-                                                        </button>
-                                                        <button type="button" class="btn btn-sm btn-primary me-1 tray-save-btn d-none" data-id="{{ $entry['id'] }}">
-                                                            <i class="fa-solid fa-save"></i> Save
-                                                        </button>
-                                                        <button type="button" class="btn btn-sm btn-secondary me-1 tray-cancel-btn d-none" data-id="{{ $entry['id'] }}">
-                                                            <i class="fa-solid fa-times"></i> Cancel
-                                                        </button>
-                                                        <button type="button" class="btn btn-sm btn-danger tray-delete-btn" data-id="{{ $entry['id'] }}">
-                                                            <i class="fa-solid fa-trash"></i> Hapus
-                                                        </button>
+                                                        @if($entry['is_sold'])
+                                                            <button type="button" class="btn btn-sm btn-danger tray-delete-btn" data-id="{{ $entry['id'] }}">
+                                                                <i class="fa-solid fa-trash"></i> Hapus
+                                                            </button>
+                                                        @else
+                                                            <button type="button" class="btn btn-sm btn-outline-light me-1 tray-edit-btn" data-id="{{ $entry['id'] }}">
+                                                                <i class="fa-solid fa-edit"></i> Edit
+                                                            </button>
+                                                            <button type="button" class="btn btn-sm btn-primary me-1 tray-save-btn d-none" data-id="{{ $entry['id'] }}">
+                                                                <i class="fa-solid fa-save"></i> Save
+                                                            </button>
+                                                            <button type="button" class="btn btn-sm btn-secondary me-1 tray-cancel-btn d-none" data-id="{{ $entry['id'] }}">
+                                                                <i class="fa-solid fa-times"></i> Cancel
+                                                            </button>
+                                                            <button type="button" class="btn btn-sm btn-danger tray-delete-btn" data-id="{{ $entry['id'] }}">
+                                                                <i class="fa-solid fa-trash"></i> Hapus
+                                                            </button>
+                                                        @endif
                                                     </div>
                                                 </div>
                                                 <div class="tray-card-body">
@@ -1210,7 +1216,9 @@
                     const cancelBtn = card.querySelector('.tray-cancel-btn');
                     const deleteBtn = card.querySelector('.tray-delete-btn');
 
-                    if (e.target.closest('.tray-edit-btn')) {
+                    const isSold = card.classList.contains('tray-card-sold');
+
+                    if (e.target.closest('.tray-edit-btn') && !isSold) {
                         // Enter edit mode
                         nameInput.disabled = false;
                         telurInput.disabled = false;
@@ -1223,7 +1231,7 @@
                         nameInput.focus();
                     }
 
-                    if (e.target.closest('.tray-save-btn')) {
+                    if (e.target.closest('.tray-save-btn') && !isSold) {
                         if (!csrfToken) {
                             alert('Token keamanan tidak ditemukan. Segarkan halaman dan coba lagi.');
                             return;
@@ -1276,7 +1284,7 @@
                         });
                     }
 
-                    if (e.target.closest('.tray-cancel-btn')) {
+                    if (e.target.closest('.tray-cancel-btn') && !isSold) {
                         // Cancel changes - reset to original values
                         nameInput.value = nameInput.getAttribute('data-original');
                         telurInput.value = telurInput.getAttribute('data-original');

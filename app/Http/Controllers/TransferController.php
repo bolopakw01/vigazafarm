@@ -106,8 +106,9 @@ class TransferController extends Controller
             // Buat batch produksi ID
             $batchId = 'PROD-' . date('Ymd') . '-' . str_pad($pembesaran->id, 4, '0', STR_PAD_LEFT);
 
-            // Hitung umur burung
-            $umurHari = $pembesaran->umur_hari ?? Carbon::parse($pembesaran->tanggal_masuk)->diffInDays(Carbon::now());
+            // Hitung umur burung: umur awal input + selisih hari sejak tanggal masuk
+            $umurAwal = (int) ($pembesaran->umur_hari ?? 0);
+            $umurHari = $umurAwal + Carbon::parse($pembesaran->tanggal_masuk)->diffInDays(Carbon::now());
 
             // Buat record produksi
             $produksi = Produksi::create([
@@ -202,7 +203,7 @@ class TransferController extends Controller
          */
         $penetasan = Penetasan::with('kandang')->findOrFail($penetasanId);
         $kandangList = Kandang::query()
-            ->statusIn(['aktif', 'maintenance'])
+            ->statusIn(['aktif', 'maintenance', 'penuh'])
             ->orderBy('nama_kandang')
             ->get();
         
@@ -219,7 +220,7 @@ class TransferController extends Controller
          */
         $pembesaran = Pembesaran::with('kandang', 'penetasan')->findOrFail($pembesaranId);
         $kandangList = Kandang::query()
-            ->statusIn(['aktif', 'maintenance'])
+            ->statusIn(['aktif', 'maintenance', 'penuh'])
             ->typeIs('produksi')
             ->orderBy('nama_kandang')
             ->get();

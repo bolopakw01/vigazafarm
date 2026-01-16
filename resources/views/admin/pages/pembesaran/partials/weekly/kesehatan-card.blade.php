@@ -64,10 +64,24 @@
                 <select class="form-select" name="kandang_tujuan_id" disabled {{ $disabledAttr }} @if($disabledAttr) data-form-locked="true" @endif>
                     <option value="">-- Pilih Kandang --</option>
                     @forelse($kandangKarantinaOptions as $kandang)
-                        <option value="{{ $kandang->id }}">
+                        @php
+                            $statusLabel = strtolower($kandang->status_computed ?? ($kandang->status ?? 'aktif'));
+                            $isMaintenance = $statusLabel === 'maintenance';
+                            $isFull = $statusLabel === 'penuh';
+                            $isInactive = in_array($statusLabel, ['kosong', 'tidak_aktif', 'inactive', 'nonaktif', 'non-aktif']);
+                            if ($isInactive) {
+                                continue;
+                            }
+                        @endphp
+                        <option value="{{ $kandang->id }}" @disabled($isMaintenance || $isFull)>
                             {{ $kandang->nama_kandang }}
                             @if($kandang->tipe_kandang)
                                 ({{ ucwords($kandang->tipe_kandang) }})
+                            @endif
+                            @if($isMaintenance)
+                                &ndash; Maintenance
+                            @elseif($isFull)
+                                &ndash; Penuh
                             @endif
                         </option>
                     @empty

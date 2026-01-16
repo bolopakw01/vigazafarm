@@ -136,9 +136,12 @@
                                     $remainingLabel = number_format((int) $k->kapasitas_tersisa);
                                     $statusLabel = strtolower($k->status_computed ?? ($k->status ?? 'aktif'));
                                     $isMaintenance = $statusLabel === 'maintenance';
-                                    $isFull = $statusLabel === 'full';
+                                    $isFull = $statusLabel === 'penuh';
                                     $isInactive = in_array($statusLabel, ['kosong', 'tidak_aktif', 'inactive', 'nonaktif', 'non-aktif']);
                                     $isSelected = (string) $selectedKandangId === (string) $k->id;
+                                    if ($isInactive && !$isSelected) {
+                                        continue;
+                                    }
                                 @endphp
                                 <option
                                     value="{{ $k->id }}"
@@ -153,7 +156,7 @@
                                     @if($isMaintenance)
                                         &ndash; Maintenance
                                     @elseif($isFull)
-                                        &ndash; Full
+                                        &ndash; Penuh
                                     @endif
                                 </option>
                                 @endforeach
@@ -427,13 +430,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (kapasitasSisaSaatIni <= 0) {
-            if (showAlert && lastCapacityAlertValue !== 'full') {
+            if (showAlert && lastCapacityAlertValue !== 'penuh') {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Kapasitas penuh',
                     text: 'Kandang yang dipilih sudah penuh. Pilih kandang lain atau akhiri batch yang berjalan.',
                 });
-                lastCapacityAlertValue = 'full';
+                lastCapacityAlertValue = 'penuh';
             }
             jumlahInput.value = '';
             return false;

@@ -327,8 +327,11 @@
 				</thead>
 				<tbody>
 					@forelse($karyawan as $i => $user)
+					@php
+						$rowNumber = method_exists($karyawan, 'firstItem') ? ($karyawan->firstItem() + $i) : ($i + 1);
+					@endphp
 					<tr>
-						<td class="bolopa-tabel-text-center" style="text-align: center;">{{ $karyawan->firstItem() + $i }}</td>
+						<td class="bolopa-tabel-text-center" style="text-align: center;">{{ $rowNumber }}</td>
 						@php
 							$employeeNameSource = $user->nama ?: $user->nama_pengguna ?: 'A';
 							$employeeInitial = mb_strtoupper(mb_substr($employeeNameSource, 0, 1));
@@ -388,9 +391,17 @@
 		</div>
 
 		<div class="bolopa-tabel-pagination">
+			@php
+				$isPaginator = $karyawan instanceof \Illuminate\Pagination\LengthAwarePaginator || $karyawan instanceof \Illuminate\Pagination\Paginator;
+				$firstItem = $isPaginator ? ($karyawan->firstItem() ?? 0) : ($karyawan->count() ? 1 : 0);
+				$lastItem = $isPaginator ? ($karyawan->lastItem() ?? 0) : $karyawan->count();
+				$totalItems = $isPaginator ? $karyawan->total() : $karyawan->count();
+			@endphp
+
 			<div class="bolopa-tabel-pagination-info">
-				Menampilkan {{ $karyawan->firstItem() ?? 0 }} sampai {{ $karyawan->lastItem() ?? 0 }} dari {{ $karyawan->total() }} entri
+				Menampilkan {{ $firstItem }} sampai {{ $lastItem }} dari {{ $totalItems }} entri
 			</div>
+			@if($isPaginator)
 			<div class="bolopa-tabel-pagination-buttons">
 				<a href="{{ $karyawan->previousPageUrl() }}" class="bolopa-tabel-pagination-btn {{ $karyawan->onFirstPage() ? 'disabled' : '' }}">
 					<img src="{{ asset('bolopa/img/icon/line-md--chevron-small-left.svg') }}" alt="Previous" width="18" height="18">
@@ -406,6 +417,7 @@
 					<img src="{{ asset('bolopa/img/icon/line-md--chevron-small-right.svg') }}" alt="Next" width="18" height="18">
 				</a>
 			</div>
+			@endif
 		</div>
 	</div>
 

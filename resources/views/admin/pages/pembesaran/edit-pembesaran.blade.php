@@ -1,12 +1,12 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Edit Pembesaran Puyuh - ' . $pembesaran->batch_produksi_id)
+@section('title', 'Edit Pembesaran Puyuh - ' . $pembesaran->batch_label)
 
 @php
     $breadcrumbs = [
         ['label' => 'Backoffice', 'link' => route('admin.dashboard')],
         ['label' => 'Pembesaran', 'link' => route('admin.pembesaran')],
-        ['label' => 'Detail Batch', 'link' => route('admin.pembesaran.show', $pembesaran->id), 'badge' => $pembesaran->batch_produksi_id],
+        ['label' => 'Detail Batch', 'link' => route('admin.pembesaran.show', $pembesaran->id), 'badge' => $pembesaran->batch_label],
         ['label' => 'Edit Data'],
     ];
 @endphp
@@ -163,9 +163,12 @@
                                 @php
                                     $statusLabel = strtolower($k->status_computed ?? ($k->status ?? 'aktif'));
                                     $isMaintenance = $statusLabel === 'maintenance';
-                                    $isFull = $statusLabel === 'full';
+                                    $isFull = $statusLabel === 'penuh';
                                     $isInactive = in_array($statusLabel, ['kosong', 'tidak_aktif', 'inactive', 'nonaktif', 'non-aktif']);
                                     $isSelected = (string) old('kandang_id', $pembesaran->kandang_id) === (string) $k->id;
+                                    if ($isInactive && !$isSelected) {
+                                        continue;
+                                    }
                                 @endphp
                                 <option
                                     value="{{ $k->id }}"
@@ -177,7 +180,7 @@
                                     @if($isMaintenance)
                                         &ndash; Maintenance
                                     @elseif($isFull)
-                                        &ndash; Full
+                                        &ndash; Penuh
                                     @endif
                                 </option>
                                 @endforeach

@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Detail Pembesaran Puyuh - ' . $pembesaran->batch_produksi_id)
+@section('title', 'Detail Pembesaran Puyuh - ' . $pembesaran->batch_label)
 
 @php
                                 if ($totalBiayaPakan >= 1000000000) {

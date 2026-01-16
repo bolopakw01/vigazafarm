@@ -114,8 +114,12 @@
 				</thead>
 				<tbody>
 					@forelse($kandang as $i => $row)
+					@php
+						$isPaginator = $kandang instanceof \Illuminate\Pagination\LengthAwarePaginator || $kandang instanceof \Illuminate\Pagination\Paginator;
+						$rowNumber = $isPaginator ? (($kandang->firstItem() ?? 1) + $i) : ($i + 1);
+					@endphp
 					<tr>
-						<td class="bolopa-tabel-text-center" style="text-align: center;">{{ $kandang->firstItem() + $i }}</td>
+						<td class="bolopa-tabel-text-center" style="text-align: center;">{{ $rowNumber }}</td>
 						<td class="bolopa-tabel-text-left" style="text-align: left;">{{ $row->nama_kandang ?? '-' }}</td>
 						<td class="bolopa-tabel-text-left" style="text-align: left;">{{ $row->tipe_kandang ?? $row->tipe ?? '-' }}</td>
 						<td class="bolopa-tabel-text-right" style="text-align: right;">{{ number_format($row->kapasitas_maksimal ?? $row->kapasitas ?? 0) }}</td>
@@ -167,10 +171,18 @@
 			</table>
 		</div>
 
+		@php
+			$isPaginator = $kandang instanceof \Illuminate\Pagination\LengthAwarePaginator || $kandang instanceof \Illuminate\Pagination\Paginator;
+			$firstItem = $isPaginator ? ($kandang->firstItem() ?? 0) : ($kandang->count() ? 1 : 0);
+			$lastItem = $isPaginator ? ($kandang->lastItem() ?? 0) : $kandang->count();
+			$totalItems = $isPaginator ? $kandang->total() : $kandang->count();
+		@endphp
+
 		<div class="bolopa-tabel-pagination">
 			<div class="bolopa-tabel-pagination-info">
-				Menampilkan {{ $kandang->firstItem() ?? 0 }} sampai {{ $kandang->lastItem() ?? 0 }} dari {{ $kandang->total() }} entri
+				Menampilkan {{ $firstItem }} sampai {{ $lastItem }} dari {{ $totalItems }} entri
 			</div>
+			@if($isPaginator)
 			<div class="bolopa-tabel-pagination-buttons">
 				<a href="{{ $kandang->previousPageUrl() }}" class="bolopa-tabel-pagination-btn {{ $kandang->onFirstPage() ? 'disabled' : '' }}">
 					<img src="{{ asset('bolopa/img/icon/line-md--chevron-small-left.svg') }}" alt="Previous" width="18" height="18">
@@ -186,6 +198,7 @@
 					<img src="{{ asset('bolopa/img/icon/line-md--chevron-small-right.svg') }}" alt="Next" width="18" height="18">
 				</a>
 			</div>
+			@endif
 		</div>
 	</div>
 

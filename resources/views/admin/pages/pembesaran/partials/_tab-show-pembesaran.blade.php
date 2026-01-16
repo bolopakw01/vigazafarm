@@ -512,7 +512,7 @@
                             <h5 class="mb-3 fw-bold">Detail Batch</h5>
                             <dl class="row kv mb-0 lopa-kv" style="font-size: 0.95rem;">
                                 <dt class="col-sm-5">ID Batch:</dt>
-                                <dd class="col-sm-7">{{ $pembesaran->batch_produksi_id }}</dd>
+                                <dd class="col-sm-7">{{ $pembesaran->batch_label }}</dd>
 
                                 <dt class="col-sm-5">Kandang:</dt>
                                 <dd class="col-sm-7">{{ $pembesaran->kandang->nama_kandang ?? '-' }}</dd>
@@ -644,7 +644,7 @@
                     </div>
 
                     <div class="col-lg-3 mb-3">
-                        <div class="note-panel alt h-100 lopa-note-panel lopa-alt" id="ringkasan-biaya-panel" data-populasi="{{ $populasiSaatIni }}" data-batch="{{ $pembesaran->batch_produksi_id }}">
+                        <div class="note-panel alt h-100 lopa-note-panel lopa-alt" id="ringkasan-biaya-panel" data-populasi="{{ $populasiSaatIni }}" data-batch="{{ $pembesaran->batch_label }}">
                             <h5 class="mb-3 fw-bold">Ringkasan Biaya</h5>
                             <div style="font-size: 0.9rem;">
                                 <!-- Total Konsumsi Pakan -->

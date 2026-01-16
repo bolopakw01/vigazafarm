@@ -227,8 +227,12 @@
 											@php
 												$statusLabel = strtolower($kandang->status_computed ?? ($kandang->status ?? 'aktif'));
 												$isMaintenance = $statusLabel === 'maintenance';
-												$isFull = $statusLabel === 'full';
+												$isFull = $statusLabel === 'penuh';
+												$isInactive = in_array($statusLabel, ['kosong', 'tidak_aktif', 'inactive', 'nonaktif', 'non-aktif']);
 												$isSelected = (string) $selectedKandangId === (string) $kandang->id;
+												if ($isInactive && !$isSelected) {
+													continue;
+												}
 											@endphp
 											<option
 												value="{{ $kandang->id }}"
@@ -240,7 +244,7 @@
 												@if($isMaintenance)
 													&ndash; Maintenance
 												@elseif($isFull)
-													&ndash; Full
+													&ndash; Penuh
 												@endif
 											</option>
 										@endforeach

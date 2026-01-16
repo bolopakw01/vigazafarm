@@ -74,9 +74,14 @@
                                 @php
                                     $typeLabel = ucwords(strtolower($k->tipe_kandang ?? $k->tipe ?? '-'));
                                     $remainingLabel = number_format((int) $k->kapasitas_tersisa);
-                                        $statusLabel = strtolower($k->status_computed ?? ($k->status ?? 'aktif'));
+                                    $statusLabel = strtolower($k->status_computed ?? ($k->status ?? 'aktif'));
                                     $isMaintenance = $statusLabel === 'maintenance';
-                                        $isFull = $statusLabel === 'full'; $isSelected = (string) $selectedKandangId === (string) $k->id;
+                                    $isFull = $statusLabel === 'penuh';
+                                    $isInactive = in_array($statusLabel, ['kosong', 'tidak_aktif', 'inactive', 'nonaktif', 'non-aktif']);
+                                    $isSelected = (string) $selectedKandangId === (string) $k->id;
+                                    if ($isInactive && !$isSelected) {
+                                        continue;
+                                    }
                                 @endphp
                                 <option
                                     value="{{ $k->id }}"
@@ -90,8 +95,8 @@
                                     {{ $k->nama_kandang }} ({{ $typeLabel }}, {{ $remainingLabel }})
                                     @if($isMaintenance)
                                         &ndash; Maintenance
-                                        @elseif($isFull)
-                                            &ndash; Full
+                                    @elseif($isFull)
+                                        &ndash; Penuh
                                     @endif
                                 </option>
                                 @endforeach
@@ -754,13 +759,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (kapasitasSisaSaatIni <= 0) {
-            if (showAlert && lastCapacityAlertValue !== 'full') {
+            if (showAlert && lastCapacityAlertValue !== 'penuh') {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Kapasitas penuh',
                     text: 'Kandang yang dipilih sudah penuh. Pilih kandang lain atau selesaikan batch yang berjalan.',
                 });
-                lastCapacityAlertValue = 'full';
+                lastCapacityAlertValue = 'penuh';
             }
             jumlahTelurInput.value = '';
             return false;
