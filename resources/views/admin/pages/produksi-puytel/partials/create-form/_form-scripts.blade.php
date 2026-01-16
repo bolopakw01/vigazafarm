@@ -188,17 +188,8 @@
   // Save form state to localStorage (only control states, not input values)
   function saveFormState() {
     const state = {
-      // Radio buttons (control states)
       jenis_input: document.querySelector('input[name="jenis_input"]:checked')?.value || 'manual',
       fokus_manual: document.querySelector('input[name="fokus_manual"]:checked')?.value || 'burung',
-      jenis_kelamin: document.querySelector('input[name="jenis_kelamin"]:checked')?.value || 'jantan',
-
-      // Select dropdowns (control states)
-      kandang_id: document.getElementById('kandang_id')?.value || '',
-      pembesaran_id: document.getElementById('pembesaran_id')?.value || '',
-      produksi_sumber_id: document.getElementById('produksi_sumber_id')?.value || '',
-      status: document.getElementById('status')?.value || 'aktif',
-
       timestamp: Date.now()
     };
 
@@ -235,28 +226,6 @@
         if (fokusManualRadio) fokusManualRadio.checked = true;
       }
 
-      if (state.jenis_kelamin) {
-        const jenisKelaminRadio = document.querySelector(`input[name="jenis_kelamin"][value="${state.jenis_kelamin}"]`);
-        if (jenisKelaminRadio) jenisKelaminRadio.checked = true;
-      }
-
-      // Restore select values (control states)
-      if (state.kandang_id && document.getElementById('kandang_id')) {
-        document.getElementById('kandang_id').value = state.kandang_id;
-      }
-
-      if (state.pembesaran_id && document.getElementById('pembesaran_id')) {
-        document.getElementById('pembesaran_id').value = state.pembesaran_id;
-      }
-
-      if (state.produksi_sumber_id && document.getElementById('produksi_sumber_id')) {
-        document.getElementById('produksi_sumber_id').value = state.produksi_sumber_id;
-      }
-
-      if (state.status && document.getElementById('status')) {
-        document.getElementById('status').value = state.status;
-      }
-
       // Input fields are NOT restored - they will be reset on page refresh
 
       return true;
@@ -264,6 +233,35 @@
       console.warn('Failed to restore form state from localStorage:', e);
       return false;
     }
+  }
+
+  // Clear all user-entered values but keep control state (radio toggles)
+  function clearInputValuesKeepState() {
+    const form = document.getElementById('produksiForm');
+    if (!form) return;
+
+    const preserveNames = new Set(['jenis_input', 'fokus_manual', 'jenis_kelamin', '_token', '_method']);
+
+    form.querySelectorAll('input, textarea, select').forEach(el => {
+      const name = el.name || '';
+      const type = (el.type || '').toLowerCase();
+
+      if (preserveNames.has(name)) return;
+      if (['button', 'submit', 'reset', 'hidden'].includes(type)) return;
+
+      if (type === 'radio' || type === 'checkbox') {
+        el.checked = false;
+        return;
+      }
+
+      if (el.tagName === 'SELECT') {
+        el.value = '';
+        return;
+      }
+
+      el.value = '';
+      el.classList.remove('auto-filled', 'is-valid', 'is-invalid');
+    });
   }
 
   function generateBatchId(force = false) {
@@ -451,6 +449,30 @@
         // Regenerate batch ID with new date
         generateBatchId(true);
       }
+
+      // Auto-fill jumlah puyuh, umur, dan berat rata-rata dari pembesaran terpilih
+      const stokTersedia = parseInt(selectedOption.dataset.stokTersedia || '0', 10);
+      const umurHari = parseInt(selectedOption.dataset.umurHari || '0', 10);
+      const beratRata = parseFloat(selectedOption.dataset.beratRata || '0');
+
+      const jumlahBurungField = document.getElementById('jumlah_burung');
+      const umurField = document.getElementById('umur_hari');
+      const beratField = document.getElementById('berat_rata');
+
+      if (jumlahBurungField) {
+        jumlahBurungField.value = Number.isFinite(stokTersedia) && stokTersedia > 0 ? stokTersedia : '';
+        jumlahBurungField.classList.toggle('auto-filled', !!jumlahBurungField.value);
+      }
+
+      if (umurField) {
+        umurField.value = Number.isFinite(umurHari) && umurHari > 0 ? umurHari : '';
+        umurField.classList.toggle('auto-filled', !!umurField.value);
+      }
+
+      if (beratField) {
+        beratField.value = Number.isFinite(beratRata) && beratRata > 0 ? beratRata : '';
+        beratField.classList.toggle('auto-filled', !!beratField.value);
+      }
     }
   }
 
@@ -593,6 +615,9 @@
       fieldFertilTelur.style.display = 'none';
       fieldBeratRataTelur.style.display = 'none';
       if (fieldInfoPembesaran) fieldInfoPembesaran.style.display = 'block';
+
+      // Auto-fill values from selected pembesaran
+      autoFillFromPembesaran();
 
       // Set required attributes
       jumlahBurungField.required = true;
@@ -1009,6 +1034,11 @@
 
     // Initialize UI state after a short delay to ensure radio buttons are set
     setTimeout(function() {
+      // For fresh loads without validation errors, clear all input values but keep tab selection state
+      if (!hasValidationErrors) {
+        clearInputValuesKeepState();
+      }
+
       // First try to restore from localStorage (only control states)
       const restoredFromStorage = !hasValidationErrors && restoreFormState();
 

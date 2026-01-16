@@ -326,7 +326,7 @@
                                             <img src="{{ asset('bolopa/img/icon/el--eye-open.svg') }}" alt="View"
                                                 class="bolopa-icon-svg">
                                         </button>
-                                        <a href="{{ route('admin.produksi.show', $row->id) }}"
+                                        <a href="{{ $row->tipe_produksi === 'telur' ? route('admin.produksi.telur.show', $row->id) : route('admin.produksi.puyuh.show', $row->id) }}"
                                             class="bolopa-tabel-btn bolopa-tabel-btn-action bolopa-tabel-btn-success"
                                             title="Pencatatan Produksi">
                                             <img src="{{ asset('bolopa/img/icon/icon-park-outline--view-grid-detail.svg') }}" alt="Record"
@@ -455,7 +455,7 @@
                                 // Create and submit form
                                 const form = document.createElement('form');
                                 form.method = 'POST';
-                                form.action = '{{ route('admin.produksi.show', ':id') }}'
+                                form.action = '{{ route('admin.produksi.destroy', ':id') }}'
                                     .replace(':id', id);
 
                                 const csrfToken = document.createElement('input');

@@ -6,7 +6,7 @@
 	$breadcrumbs = [
 		['label' => 'Backoffice', 'link' => route('admin.dashboard')],
 		['label' => 'Produksi', 'link' => route('admin.produksi')],
-		['label' => 'Detail Batch', 'link' => route('admin.produksi.show', $produksi->id)],
+		['label' => 'Detail Batch', 'link' => $produksi->tipe_produksi === 'telur' ? route('admin.produksi.telur.show', $produksi->id) : route('admin.produksi.puyuh.show', $produksi->id)],
 		['label' => 'Edit Data'],
 	];
 @endphp

@@ -319,7 +319,7 @@
                 }
             @endphp
 
-            @include('admin.pages.produksi.partials.show-form.daily-report-form', [
+            @include('admin.pages.produksi-puytel.partials.show-form.daily-report-form', [
                 'produksi' => $produksi,
                 'defaultTanggal' => old(
                     'tanggal',
@@ -408,12 +408,51 @@
                                     return function_exists('mb_strtolower') ? mb_strtolower($trimmed) : strtolower($trimmed);
                                 };
                                 $visibleLaporan = $laporanHarian->filter(fn ($item) => $item->tampilkan_di_histori !== false);
+                                $hasHiddenWithData = $laporanHarian->contains(function ($item) {
+                                    return ($item->tampilkan_di_histori === false) && (
+                                        ($item->produksi_telur ?? 0) > 0 ||
+                                        ($item->konsumsi_pakan_kg ?? 0) > 0 ||
+                                        ($item->vitamin_terpakai ?? 0) > 0 ||
+                                        ($item->jumlah_kematian ?? 0) > 0 ||
+                                        ($item->penjualan_telur_butir ?? 0) > 0 ||
+                                        ($item->penjualan_puyuh_ekor ?? 0) > 0 ||
+                                        !empty($item->catatan_kejadian)
+                                    );
+                                });
+                                $hiddenTypes = [];
+                                foreach ($laporanHarian as $hidden) {
+                                    if ($hidden->tampilkan_di_histori !== false) {
+                                        continue;
+                                    }
+                                    if (($hidden->produksi_telur ?? 0) > 0) {
+                                        $hiddenTypes[] = 'telur';
+                                    }
+                                    if (($hidden->konsumsi_pakan_kg ?? 0) > 0) {
+                                        $hiddenTypes[] = 'pakan';
+                                    }
+                                    if (($hidden->vitamin_terpakai ?? 0) > 0) {
+                                        $hiddenTypes[] = 'vitamin';
+                                    }
+                                    if (($hidden->jumlah_kematian ?? 0) > 0) {
+                                        $hiddenTypes[] = 'kematian';
+                                    }
+                                    if (($hidden->penjualan_telur_butir ?? 0) > 0 || ($hidden->penjualan_puyuh_ekor ?? 0) > 0) {
+                                        $hiddenTypes[] = 'penjualan';
+                                    }
+                                    if (!empty($hidden->catatan_kejadian)) {
+                                        $hiddenTypes[] = 'laporan';
+                                    }
+                                }
+                                $hiddenTypes = array_values(array_unique($hiddenTypes));
+                                $defaultHistoryState = null;
+                                if ($visibleLaporan->isEmpty() && $trayHistoryCollection->isEmpty()) {
+                                    $defaultHistoryState = $hasHiddenWithData ? 'hidden' : 'empty';
+                                }
                             @endphp
-                            @if ($laporanHarian->isEmpty() && $trayHistoryCollection->isEmpty())
-                                <div class="text-muted small"><i class="fa-solid fa-clipboard-list me-1"></i>Belum ada pencatatan.</div>
-                            @elseif ($visibleLaporan->isEmpty() && $trayHistoryCollection->isEmpty())
-                                <div class="text-muted small"><i class="fa-solid fa-eye-slash me-1"></i>Data pernah dicatat namun disembunyikan. Input ulang untuk menampilkan kembali.</div>
-                            @else
+                            <div id="history-hidden-state" class="text-muted small {{ $defaultHistoryState === 'hidden' ? '' : 'd-none' }}"><i class="fa-solid fa-eye-slash me-1"></i>Data pernah dicatat namun disembunyikan. Input ulang untuk menampilkan kembali.</div>
+                            <div id="history-empty-state" class="text-muted small {{ $defaultHistoryState === 'empty' ? '' : 'd-none' }}"><i class="fa-solid fa-clipboard-list me-1"></i>Belum ada pencatatan.</div>
+
+                            @if (!($visibleLaporan->isEmpty() && $trayHistoryCollection->isEmpty()))
                                 <div class="list-timeline">
                                     @foreach ($trayHistoryCollection as $trayHistory)
                                         @php
@@ -1037,6 +1076,9 @@
             const collapseElement = document.getElementById('history-collapse');
             const historyTitle = document.getElementById('history-title');
             const historyEntries = document.querySelectorAll('.list-timeline .entry');
+            const historyEmptyState = document.getElementById('history-empty-state');
+            const historyHiddenState = document.getElementById('history-hidden-state');
+            const hiddenTypes = @json($hiddenTypes);
 
             if (toggleButton && collapseElement) {
                 collapseElement.addEventListener('hide.bs.collapse', function () {
@@ -1077,11 +1119,31 @@
                     historyTitle.innerHTML = '(<span class="text-muted">Semua</span>)';
                 }
 
+                let visibleCount = 0;
                 historyEntries.forEach(entry => {
                     const entryType = entry.dataset.entryType || '';
                     const shouldShow = !activeTabId || activeTabId === 'analytics' || entryType === activeTabId;
                     entry.style.display = shouldShow ? 'flex' : 'none';
+                    if (shouldShow) {
+                        visibleCount += 1;
+                    }
                 });
+
+                if (historyEmptyState || historyHiddenState) {
+                    if (visibleCount > 0) {
+                        historyEmptyState?.classList.add('d-none');
+                        historyHiddenState?.classList.add('d-none');
+                    } else {
+                        let showHidden = false;
+                        if (!activeTabId || activeTabId === 'analytics') {
+                            showHidden = hiddenTypes.length > 0;
+                        } else {
+                            showHidden = hiddenTypes.includes(activeTabId);
+                        }
+                        historyHiddenState?.classList.toggle('d-none', !showHidden);
+                        historyEmptyState?.classList.toggle('d-none', showHidden);
+                    }
+                }
             }
 
             function updateActiveTabInput(tabId) {

@@ -286,6 +286,10 @@ Route::middleware('auth')->group(function () {
     // MODUL PRODUKSI
     // ==============================
     Route::get('/admin/produksi', [AdminController::class, 'produksi'])->name('admin.produksi'); // List produksi
+
+    // Detail Produksi berdasarkan tipe
+    Route::get('/admin/produksi/puyuh/{produksi}', [App\Http\Controllers\ProduksiPuyuhController::class, 'show'])->name('admin.produksi.puyuh.show');
+    Route::get('/admin/produksi/telur/{produksi}', [App\Http\Controllers\ProduksiTelurController::class, 'show'])->name('admin.produksi.telur.show');
     
     // CRUD Produksi
     Route::get('/admin/produksi/create', [App\Http\Controllers\ProduksiController::class, 'create'])->name('admin.produksi.create');                 // Form tambah produksi

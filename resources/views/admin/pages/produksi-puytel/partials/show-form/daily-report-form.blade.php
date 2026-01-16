@@ -51,27 +51,7 @@
             @csrf
             <input type="hidden" name="active_tab" id="activeTabInput" value="telur">
 
-            <ul class="nav nav-tabs mb-3" id="pencatatanTabs" role="tablist">
-                @foreach ($tabs as $index => $tab)
-                    <li class="nav-item" role="presentation">
-                        <button
-                            class="nav-link {{ $index === 0 ? 'active' : '' }}"
-                            id="{{ $tab['id'] }}-tab"
-                            data-bs-toggle="tab"
-                            data-bs-target="#{{ $tab['id'] }}"
-                            type="button"
-                            role="tab"
-                            aria-controls="{{ $tab['id'] }}"
-                            aria-selected="{{ $index === 0 ? 'true' : 'false' }}"
-                        >
-                            @if (!empty($tab['icon']))
-                                <i class="{{ $tab['icon'] }} me-1"></i>
-                            @endif
-                            {{ $tab['label'] }}
-                        </button>
-                    </li>
-                @endforeach
-            </ul>
+            @include('admin.pages.produksi-puytel.partials.tab-menu.' . ($isTelurVariant ? 'telur' : 'puyuh'), ['tabs' => $tabs])
 
             @if (session('success'))
                 <div class="alert alert-success d-flex align-items-center gap-2 mb-3" role="alert">
@@ -178,7 +158,7 @@
                                         id="produksi_telur"
                                         class="form-control"
                                         min="0"
-                                        max="{{ $maxEggs ?? '' }}"
+                                        @if(isset($maxEggs) && $maxEggs > 0) max="{{ $maxEggs }}" @endif
                                         value="{{ $defaultProduksiTelur }}"
                                     >
                                 </div>
@@ -503,14 +483,6 @@
                                     <div class="form-hint">Pilih tanggal kejadian.</div>
                                 </div>
                                 <div class="col-12 col-md-4">
-                                    <label for="jumlah_kematian" class="form-label">Jumlah (ekor)</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fa-solid fa-dove"></i></span>
-                                        <input type="number" name="jumlah_kematian" id="jumlah_kematian" class="form-control" min="1" placeholder="Masukkan jumlah" value="{{ old('jumlah_kematian') }}">
-                                    </div>
-                                    <div class="form-hint">Masukkan jumlah kematian pada hari ini (ekor).</div>
-                                </div>
-                                <div class="col-12 col-md-4">
                                     <label for="jenis_kelamin_kematian" class="form-label">Jenis Kelamin</label>
                                     <div class="input-group">
                                         <span class="input-group-text"><i class="fa-solid fa-venus-mars"></i></span>
@@ -518,9 +490,34 @@
                                             <option value="" disabled {{ old('jenis_kelamin_kematian') ? '' : 'selected' }}>Pilih jenis kelamin</option>
                                             <option value="jantan" {{ old('jenis_kelamin_kematian') === 'jantan' ? 'selected' : '' }}>Jantan</option>
                                             <option value="betina" {{ old('jenis_kelamin_kematian') === 'betina' ? 'selected' : '' }}>Betina</option>
+                                            <option value="campuran" {{ old('jenis_kelamin_kematian') === 'campuran' ? 'selected' : '' }}>Campuran</option>
                                         </select>
                                     </div>
-                                    <div class="form-hint">Pilih jenis kelamin untuk pencatatan kematian.</div>
+                                    <div class="form-hint">Pilih jenis Puyuh yang mati.</div>
+                                </div>
+                                <div class="col-12 col-md-4 kematian-total-wrapper">
+                                    <label for="jumlah_kematian" class="form-label">Jumlah (ekor)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-dove"></i></span>
+                                        <input type="number" name="jumlah_kematian" id="jumlah_kematian" class="form-control" min="1" placeholder="Masukkan jumlah" value="{{ old('jumlah_kematian') }}">
+                                    </div>
+                                    <div class="form-hint">Masukkan jumlah kematian (ekor).</div>
+                                </div>
+                                <div class="col-12 col-md-4 kematian-campuran-only d-none">
+                                    <label for="jumlah_kematian_jantan" class="form-label">Jumlah Jantan</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-mars"></i></span>
+                                        <input type="number" name="jumlah_kematian_jantan" id="jumlah_kematian_jantan" class="form-control" min="0" placeholder="Jantan" value="{{ old('jumlah_kematian_jantan') }}" autocomplete="off">
+                                    </div>
+                                    <div class="form-hint">Masukkan jumlah jantan yang mati.</div>
+                                </div>
+                                <div class="col-12 col-md-4 kematian-campuran-only d-none">
+                                    <label for="jumlah_kematian_betina" class="form-label">Jumlah Betina</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fa-solid fa-venus"></i></span>
+                                        <input type="number" name="jumlah_kematian_betina" id="jumlah_kematian_betina" class="form-control" min="0" placeholder="Betina" value="{{ old('jumlah_kematian_betina') }}" autocomplete="off">
+                                    </div>
+                                    <div class="form-hint">Masukkan jumlah betina yang mati.</div>
                                 </div>
                                 <div class="col-12">
                                     <label for="keterangan_kematian" class="form-label">Keterangan</label>
@@ -553,7 +550,7 @@
                                             <option value="campuran" {{ old('jenis_kelamin_penjualan', $defaultJenisKelaminPenjualan ?? null) === 'campuran' ? 'selected' : '' }}>Campuran</option>
                                         </select>
                                     </div>
-                                    <div class="form-hint">Tentukan jenis kelamin puyuh yang dijual.</div>
+                                    <div class="form-hint">Tentukan jenis puyuh yang akan dijual.</div>
                                 </div>
                                 <div class="col-12 col-md-4 total-penjualan-wrapper">
                                     <label for="penjualan_puyuh_ekor" class="form-label">Jumlah Terjual (ekor)</label>
@@ -570,7 +567,7 @@
                                         <span class="input-group-text"><i class="fa-solid fa-mars"></i></span>
                                         <input type="number" name="penjualan_puyuh_jantan" id="penjualan_puyuh_jantan" class="form-control" min="0" value="{{ old('penjualan_puyuh_jantan', $defaultPenjualanJantanCampuran ?? null) }}" placeholder="Jantan terjual" autocomplete="off">
                                     </div>
-                                    <div class="form-hint">Tulis jumlah jantan untuk penjualan campuran.</div>
+                                    <div class="form-hint">Masukkan jumlah jantan yang akan dijual.</div>
                                 </div>
 
                                 <div class="col-12 col-md-4 campuran-only d-none">
@@ -579,7 +576,7 @@
                                         <span class="input-group-text"><i class="fa-solid fa-venus"></i></span>
                                         <input type="number" name="penjualan_puyuh_betina" id="penjualan_puyuh_betina" class="form-control" min="0" value="{{ old('penjualan_puyuh_betina', $defaultPenjualanBetinaCampuran ?? null) }}" placeholder="Betina terjual" autocomplete="off">
                                     </div>
-                                    <div class="form-hint">Tulis jumlah betina untuk penjualan campuran.</div>
+                                    <div class="form-hint">Masukkan jumlah betina yang akan dijual.</div>
                                 </div>
                                 <div class="col-12 col-md-4">
                                     <label for="harga_penjualan" class="form-label">Harga per Ekor (Rp)</label>
@@ -623,7 +620,7 @@
 
                 @if ($hasAnalyticsTab)
                     <div class="tab-pane fade" id="analytics" role="tabpanel" aria-labelledby="analytics-tab">
-                        @include('admin.pages.produksi.partials.analytics-tab', $analyticsTabPayload)
+                        @include('admin.pages.produksi-puytel.partials.analytics-tab', $analyticsTabPayload)
                     </div>
                 @endif
             </div>
@@ -730,6 +727,12 @@
                 const penjualanJantanInput = document.getElementById('penjualan_puyuh_jantan');
                 const penjualanBetinaInput = document.getElementById('penjualan_puyuh_betina');
                 const totalWrapper = document.querySelector('.total-penjualan-wrapper');
+                const jenisKelaminKematian = document.getElementById('jenis_kelamin_kematian');
+                const kematianCampuranFields = document.querySelectorAll('.kematian-campuran-only');
+                const kematianTotalWrapper = document.querySelector('.kematian-total-wrapper');
+                const kematianTotalInput = document.getElementById('jumlah_kematian');
+                const kematianJantanInput = document.getElementById('jumlah_kematian_jantan');
+                const kematianBetinaInput = document.getElementById('jumlah_kematian_betina');
                 let currentFilteredEntries = [...originalTrayEntries];
                 const escapeHtml = (unsafe = '') => unsafe
                     .replace(/&/g, '&amp;')
@@ -759,6 +762,40 @@
                         syncCampuranTotal();
                     }
                 };
+
+                const syncKematianCampuranTotal = () => {
+                    const jantanVal = parseInt(kematianJantanInput?.value || '0', 10) || 0;
+                    const betinaVal = parseInt(kematianBetinaInput?.value || '0', 10) || 0;
+                    if (kematianTotalInput) {
+                        kematianTotalInput.value = jantanVal + betinaVal;
+                    }
+                };
+
+                const toggleKematianCampuran = () => {
+                    const isCampuran = jenisKelaminKematian && jenisKelaminKematian.value === 'campuran';
+                    kematianCampuranFields.forEach(el => el.classList.toggle('d-none', !isCampuran));
+                    if (kematianTotalWrapper) {
+                        kematianTotalWrapper.classList.toggle('d-none', isCampuran);
+                    }
+                    if (isCampuran) {
+                        syncKematianCampuranTotal();
+                    }
+                };
+
+                if (jenisKelaminKematian) {
+                    jenisKelaminKematian.addEventListener('change', toggleKematianCampuran);
+                    toggleKematianCampuran();
+                }
+
+                [kematianJantanInput, kematianBetinaInput].forEach(inputEl => {
+                    if (!inputEl) return;
+                    inputEl.addEventListener('input', () => {
+                        if (jenisKelaminKematian?.value !== 'campuran') {
+                            return;
+                        }
+                        syncKematianCampuranTotal();
+                    });
+                });
 
                 if (jenisKelaminPenjualan) {
                     jenisKelaminPenjualan.addEventListener('change', toggleCampuranFields);

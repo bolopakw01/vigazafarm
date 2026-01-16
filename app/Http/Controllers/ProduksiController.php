@@ -30,6 +30,16 @@ use Illuminate\Support\Collection;
 class ProduksiController extends Controller
 {
     /**
+     * Resolve show route based on tipe_produksi.
+     */
+    protected function showRouteFor(Produksi $produksi): string
+    {
+        return $produksi->tipe_produksi === 'telur'
+            ? route('admin.produksi.telur.show', $produksi->id)
+            : route('admin.produksi.puyuh.show', $produksi->id);
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
@@ -66,7 +76,7 @@ class ProduksiController extends Controller
             $produksi = $query->orderBy('tanggal_mulai', 'desc')->paginate($perPage);
         }
 
-        return view('admin.pages.produksi.index-produksi', compact('produksi'));
+        return view('admin.pages.produksi-puytel.index-produksi', compact('produksi'));
     }
 
     /**
@@ -90,10 +100,10 @@ class ProduksiController extends Controller
 
             $this->syncTelurTurunanFromPuyuh($produksi);
 
-            return redirect()->route('admin.produksi.show', $produksi->id)
+            return redirect()->to($this->showRouteFor($produksi))
                 ->with('success', 'Histori berhasil disembunyikan tanpa mengubah total KAI.');
         } catch (\Exception $e) {
-            return redirect()->route('admin.produksi.show', $produksi->id)
+            return redirect()->to($this->showRouteFor($produksi))
                 ->with('error', 'Gagal menghapus histori: ' . $e->getMessage());
         }
     }
@@ -104,7 +114,11 @@ class ProduksiController extends Controller
     public function resetLaporan(Request $request, Produksi $produksi, LaporanHarian $laporan)
     {
         try {
-            $resetTab = $request->input('reset_tab', 'all');
+            $resetTab = $request->input('reset_tab');
+            if ($resetTab === null || $resetTab === '') {
+                // Fallback ke tab aktif yang dikirim form; jika tidak ada, asumsi kematian saja
+                $resetTab = $request->input('active_tab', 'kematian');
+            }
 
             $resetTelur = $resetTab === 'telur' || $resetTab === 'all';
             $resetPakan = $resetTab === 'pakan' || $resetTab === 'all';
@@ -159,11 +173,37 @@ class ProduksiController extends Controller
             // Reset kematian jika diminta
             $jumlahKematianSebelumReset = 0;
             $jenisKelaminKematianSebelumReset = null;
+            $kematianCampuranSebelumReset = ['jantan' => 0, 'betina' => 0];
             if ($resetKematian) {
                 $jumlahKematianSebelumReset = $laporan->jumlah_kematian ?? 0;
                 $jenisKelaminKematianSebelumReset = $laporan->jenis_kelamin_kematian ? strtolower((string) $laporan->jenis_kelamin_kematian) : null;
+                if (!$jenisKelaminKematianSebelumReset) {
+                    $jantanBreakdown = (int) ($laporan->jumlah_kematian_jantan ?? 0);
+                    $betinaBreakdown = (int) ($laporan->jumlah_kematian_betina ?? 0);
+                    if ($jantanBreakdown > 0 && $betinaBreakdown > 0) {
+                        $jenisKelaminKematianSebelumReset = 'campuran';
+                        $kematianCampuranSebelumReset = ['jantan' => $jantanBreakdown, 'betina' => $betinaBreakdown];
+                    } elseif ($jantanBreakdown > 0) {
+                        $jenisKelaminKematianSebelumReset = 'jantan';
+                    } elseif ($betinaBreakdown > 0) {
+                        $jenisKelaminKematianSebelumReset = 'betina';
+                    }
+                }
+                if ($jenisKelaminKematianSebelumReset === 'campuran') {
+                    $kematianCampuranSebelumReset['jantan'] = (int) ($laporan->jumlah_kematian_jantan ?? 0);
+                    $kematianCampuranSebelumReset['betina'] = (int) ($laporan->jumlah_kematian_betina ?? 0);
+                }
+                if ($jumlahKematianSebelumReset > 0 && !$jenisKelaminKematianSebelumReset) {
+                    return redirect()->back()->with('error', 'Jenis kelamin kematian belum tercatat. Mohon isi jenis kelamin terlebih dahulu.');
+                }
                 if ($jumlahKematianSebelumReset > 0) {
                     $laporan->jumlah_kematian = 0;
+                    if (Schema::hasColumn('vf_laporan_harian', 'jumlah_kematian_jantan')) {
+                        $laporan->jumlah_kematian_jantan = 0;
+                    }
+                    if (Schema::hasColumn('vf_laporan_harian', 'jumlah_kematian_betina')) {
+                        $laporan->jumlah_kematian_betina = 0;
+                    }
                     $laporan->jenis_kelamin_kematian = null;
                     $laporan->keterangan_kematian = null;
                 }
@@ -173,6 +213,8 @@ class ProduksiController extends Controller
             $penjualanPuyuhSebelumReset = 0;
             $jenisKelaminPenjualanSebelumReset = null;
             $campuranPenjualanSebelumReset = null;
+            $campuranPenjualanJantanSebelumReset = (int) ($laporan->penjualan_puyuh_jantan ?? 0);
+            $campuranPenjualanBetinaSebelumReset = (int) ($laporan->penjualan_puyuh_betina ?? 0);
             if ($resetPenjualan) {
                 $penjualanPuyuhSebelumReset = $laporan->penjualan_puyuh_ekor ?? 0;
                 $jenisKelaminPenjualanSebelumReset = $laporan->jenis_kelamin_penjualan ? strtolower((string) $laporan->jenis_kelamin_penjualan) : null;
@@ -232,66 +274,45 @@ class ProduksiController extends Controller
             $produksi->jumlah_jantan = (int) ($produksi->jumlah_jantan ?? 0);
             $produksi->jumlah_betina = (int) ($produksi->jumlah_betina ?? 0);
 
-            // Jika ada kematian yang direset, tambah kembali ke populasi produksi
-            if ($jumlahKematianSebelumReset > 0 && $produksi->tipe_produksi !== 'telur') {
-                $produksi->increment('jumlah_indukan', $jumlahKematianSebelumReset);
+            // Hitung total pemulihan populasi (kematian/penjualan) lalu set langsung ke stok jantan/betina agar tidak ganda
+            $restoreJantan = 0;
+            $restoreBetina = 0;
 
-                $totalJantan = max(0, $produksi->jumlah_jantan ?? 0);
-                $totalBetina = max(0, $produksi->jumlah_betina ?? 0);
-                $totalPopulasi = $totalJantan + $totalBetina;
-
+            if ($resetKematian && $jumlahKematianSebelumReset > 0 && $produksi->tipe_produksi !== 'telur') {
                 if ($jenisKelaminKematianSebelumReset === 'jantan') {
-                    $produksi->increment('jumlah_jantan', $jumlahKematianSebelumReset);
+                    $restoreJantan += $jumlahKematianSebelumReset;
                 } elseif ($jenisKelaminKematianSebelumReset === 'betina') {
-                    $produksi->increment('jumlah_betina', $jumlahKematianSebelumReset);
+                    $restoreBetina += $jumlahKematianSebelumReset;
+                } elseif ($jenisKelaminKematianSebelumReset === 'campuran') {
+                    $restoreJantan += $kematianCampuranSebelumReset['jantan'];
+                    $restoreBetina += $kematianCampuranSebelumReset['betina'];
                 } else {
-                    // campuran/tidak tercatat: pakai rasio jika ada; jika tidak ada rasio, default ke betina agar tidak membelah jantan/betina secara acak
-                    if ($totalPopulasi > 0) {
-                        $tambahJantan = (int) round($jumlahKematianSebelumReset * ($totalJantan / $totalPopulasi));
-                        $tambahBetina = $jumlahKematianSebelumReset - $tambahJantan;
-                        $produksi->increment('jumlah_jantan', $tambahJantan);
-                        $produksi->increment('jumlah_betina', $tambahBetina);
-                    } else {
-                        $produksi->increment('jumlah_betina', $jumlahKematianSebelumReset);
-                    }
+                    // Harusnya sudah tertangani di atas, tapi guard tambahan
+                    return redirect()->back()->with('error', 'Jenis kelamin kematian belum tercatat. Mohon isi jenis kelamin terlebih dahulu.');
                 }
             }
 
-            // Jika ada penjualan puyuh yang direset, tambah kembali ke populasi produksi
-            if ($penjualanPuyuhSebelumReset > 0 && $produksi->tipe_produksi !== 'telur') {
-                $produksi->increment('jumlah_indukan', $penjualanPuyuhSebelumReset);
+            // Pulihkan stok dari penjualan yang di-reset (khusus puyuh)
+            if ($resetPenjualan && $penjualanPuyuhSebelumReset > 0 && $produksi->tipe_produksi !== 'telur') {
+                $hasCampuranBreakdown = ($campuranPenjualanSebelumReset && (($campuranPenjualanSebelumReset['jantan'] ?? 0) > 0 || ($campuranPenjualanSebelumReset['betina'] ?? 0) > 0))
+                    || ($campuranPenjualanJantanSebelumReset > 0 || $campuranPenjualanBetinaSebelumReset > 0);
 
-                $totalJantan = max(0, $produksi->jumlah_jantan ?? 0);
-                $totalBetina = max(0, $produksi->jumlah_betina ?? 0);
-                $totalPopulasi = $totalJantan + $totalBetina;
-
-                if ($jenisKelaminPenjualanSebelumReset === 'jantan') {
-                    $produksi->increment('jumlah_jantan', $penjualanPuyuhSebelumReset);
+                if ($jenisKelaminPenjualanSebelumReset === 'campuran' && $hasCampuranBreakdown) {
+                    $restoreJantan += $campuranPenjualanSebelumReset['jantan'] ?? $campuranPenjualanJantanSebelumReset;
+                    $restoreBetina += $campuranPenjualanSebelumReset['betina'] ?? $campuranPenjualanBetinaSebelumReset;
+                } elseif ($jenisKelaminPenjualanSebelumReset === 'jantan') {
+                    $restoreJantan += $penjualanPuyuhSebelumReset;
                 } elseif ($jenisKelaminPenjualanSebelumReset === 'betina') {
-                    $produksi->increment('jumlah_betina', $penjualanPuyuhSebelumReset);
-                } elseif ($campuranPenjualanSebelumReset) {
-                    $produksi->increment('jumlah_jantan', $campuranPenjualanSebelumReset['jantan']);
-                    $produksi->increment('jumlah_betina', $campuranPenjualanSebelumReset['betina']);
+                    $restoreBetina += $penjualanPuyuhSebelumReset;
                 } else {
-                    // Jika gender tidak tercatat: jika stok jantan 0, kembalikan seluruhnya ke betina; jika stok betina 0, kembalikan ke jantan; jika keduanya ada, pakai rasio
-                    if ($totalJantan === 0 && $totalBetina > 0) {
-                        $produksi->increment('jumlah_betina', $penjualanPuyuhSebelumReset);
-                    } elseif ($totalBetina === 0 && $totalJantan > 0) {
-                        $produksi->increment('jumlah_jantan', $penjualanPuyuhSebelumReset);
-                    } elseif ($totalPopulasi > 0) {
-                        $tambahJantan = (int) round($penjualanPuyuhSebelumReset * ($totalJantan / $totalPopulasi));
-                        $tambahBetina = $penjualanPuyuhSebelumReset - $tambahJantan;
-                        $produksi->increment('jumlah_jantan', $tambahJantan);
-                        $produksi->increment('jumlah_betina', $tambahBetina);
-                    } else {
-                        $produksi->increment('jumlah_betina', $penjualanPuyuhSebelumReset);
-                    }
+                    // Jika gender tidak tercatat, kembalikan seluruhnya ke betina agar tidak menggandakan stok jantan
+                    $restoreBetina += $penjualanPuyuhSebelumReset;
                 }
             }
 
-            // Simpan perubahan populasi setelah penambahan akibat reset
-            if ($jumlahKematianSebelumReset > 0 || $penjualanPuyuhSebelumReset > 0) {
-                $produksi->save();
+            if (($restoreJantan !== 0 || $restoreBetina !== 0) && $produksi->tipe_produksi !== 'telur') {
+                $produksi->jumlah_jantan = max(0, ($produksi->jumlah_jantan ?? 0) + $restoreJantan);
+                $produksi->jumlah_betina = max(0, ($produksi->jumlah_betina ?? 0) + $restoreBetina);
             }
 
             $this->syncTelurTurunanFromPuyuh($produksi);
@@ -303,10 +324,10 @@ class ProduksiController extends Controller
             // Sinkronisasi status kandang jika kapasitas telah penuh atau tersedia kembali
             Kandang::find($produksi->kandang_id)?->syncMaintenanceStatus();
 
-            return redirect()->route('admin.produksi.show', $produksi->id)
+            return redirect()->to($this->showRouteFor($produksi))
                 ->with('success', 'Histori berhasil di-reset. Menu KAI akan otomatis ter-update.');
         } catch (\Exception $e) {
-            return redirect()->route('admin.produksi.show', $produksi->id)
+            return redirect()->to($this->showRouteFor($produksi))
                 ->with('error', 'Gagal mereset histori: ' . $e->getMessage());
         }
     }
@@ -325,8 +346,10 @@ class ProduksiController extends Controller
         // Dapatkan pembesaran dengan stok breeding yang tersedia dan muat relasi kandang
         // Hanya dapat pembesaran yang telah selesai dengan stok tersedia
         $pembesaranList = Pembesaran::with('kandang')
-            ->whereRaw("LOWER(COALESCE(status_batch, '')) = ?", ['selesai'])
-            ->whereRaw('(COALESCE(jumlah_siap, 0) - COALESCE(indukan_ditransfer, 0)) > 0')
+            ->whereRaw("LOWER(TRIM(COALESCE(status_batch, ''))) = 'selesai'")
+            ->whereRaw('(
+                COALESCE(NULLIF(jumlah_siap, 0), jumlah_anak_ayam, 0) - COALESCE(indukan_ditransfer, 0)
+            ) > 0')
             ->orderBy('tanggal_siap', 'desc')
             ->get();
 
@@ -340,7 +363,7 @@ class ProduksiController extends Controller
             $defaultJenisInput = 'dari_produksi';
         }
         
-        return view('admin.pages.produksi.create-produksi', compact('kandangList', 'pembesaranList', 'produksiSumberList', 'defaultJenisInput'));
+        return view('admin.pages.produksi-puytel.create-produksi', compact('kandangList', 'pembesaranList', 'produksiSumberList', 'defaultJenisInput'));
     }
 
     /**
@@ -689,8 +712,12 @@ class ProduksiController extends Controller
                     }
                 }
                 
-                // Periksa stok tersedia
-                $tersedia = $pembesaran->jumlah_siap - ($pembesaran->indukan_ditransfer ?? 0);
+                // Periksa stok tersedia (fallback ke jumlah_anak_ayam jika jumlah_siap null/0)
+                $stokDasar = $pembesaran->jumlah_siap;
+                if (empty($stokDasar)) {
+                    $stokDasar = $pembesaran->jumlah_anak_ayam ?? 0;
+                }
+                $tersedia = max(0, (int) $stokDasar - (int) ($pembesaran->indukan_ditransfer ?? 0));
                 if ($validated['jumlah_indukan'] > $tersedia) {
                     throw new \Exception("Jumlah indukan melebihi stok tersedia ({$tersedia})");
                 }
@@ -865,16 +892,19 @@ class ProduksiController extends Controller
         $summary['sisa_telur'] = max(0, $totalTelurAwal - $totalTelurCommitted);
 
         // Death impact per gender to update population and ratio in KAI
+        $campuranDeaths = $laporanHarian->where('jenis_kelamin_kematian', 'campuran');
+        $campuranDeathJantan = $campuranDeaths->sum('jumlah_kematian_jantan');
+        $campuranDeathBetina = $campuranDeaths->sum('jumlah_kematian_betina');
+        $campuranDeathTotal = $campuranDeaths->sum('jumlah_kematian');
+
         $deathByGender = [
             'jantan' => $laporanHarian
                 ->where('jenis_kelamin_kematian', 'jantan')
-                ->sum('jumlah_kematian'),
+                ->sum('jumlah_kematian') + $campuranDeathJantan,
             'betina' => $laporanHarian
                 ->where('jenis_kelamin_kematian', 'betina')
-                ->sum('jumlah_kematian'),
-            'campuran' => $laporanHarian
-                ->where('jenis_kelamin_kematian', 'campuran')
-                ->sum('jumlah_kematian'),
+                ->sum('jumlah_kematian') + $campuranDeathBetina,
+            'campuran' => $campuranDeathTotal,
         ];
 
         $salesByGender = [
@@ -892,55 +922,12 @@ class ProduksiController extends Controller
                 ->sum('penjualan_puyuh_betina'),
         ];
 
-        $initialMale = $produksi->jumlah_jantan;
-        $initialFemale = $produksi->jumlah_betina;
-        $jenisKelaminProduksi = strtolower($produksi->jenis_kelamin ?? '');
+        // Rekonstruksi populasi awal berdasarkan stok terkini + total keluaran (kematian/penjualan)
+        $currentMale = max(0, (int) ($produksi->jumlah_jantan ?? 0));
+        $currentFemale = max(0, (int) ($produksi->jumlah_betina ?? 0));
 
-        if ($jenisKelaminProduksi === 'jantan' && $initialMale === null) {
-            $initialMale = $produksi->jumlah_indukan ?? 0;
-            $initialFemale = $initialFemale ?? 0;
-        }
-
-        if ($jenisKelaminProduksi === 'betina' && $initialFemale === null) {
-            $initialFemale = $produksi->jumlah_indukan ?? 0;
-            $initialMale = $initialMale ?? 0;
-        }
-
-        if ($jenisKelaminProduksi === 'campuran') {
-            $fallbackTotal = $produksi->jumlah_indukan ?? 0;
-
-            if ($initialMale === null && $initialFemale === null) {
-                $initialMale = (int) floor($fallbackTotal / 2);
-                $initialFemale = max($fallbackTotal - $initialMale, 0);
-            } elseif ($initialMale === null) {
-                $initialMale = max($fallbackTotal - $initialFemale, 0);
-            } elseif ($initialFemale === null) {
-                $initialFemale = max($fallbackTotal - $initialMale, 0);
-            }
-        }
-
-        $initialMale = $initialMale ?? 0;
-        $initialFemale = $initialFemale ?? 0;
-
-        $currentMale = max($initialMale - $deathByGender['jantan'] - $salesByGender['jantan'], 0);
-        $currentFemale = max($initialFemale - $deathByGender['betina'] - $salesByGender['betina'], 0);
-
-        // Distribute campuran deaths proportionally
-        if ($deathByGender['campuran'] > 0) {
-            $totalCurrent = $currentMale + $currentFemale;
-            if ($totalCurrent > 0) {
-                $campuranMaleDeaths = (int) round($deathByGender['campuran'] * ($currentMale / $totalCurrent));
-                $campuranFemaleDeaths = $deathByGender['campuran'] - $campuranMaleDeaths;
-                $currentMale = max($currentMale - $campuranMaleDeaths, 0);
-                $currentFemale = max($currentFemale - $campuranFemaleDeaths, 0);
-            } else {
-                // If no current population, distribute evenly
-                $campuranMaleDeaths = (int) ceil($deathByGender['campuran'] / 2);
-                $campuranFemaleDeaths = $deathByGender['campuran'] - $campuranMaleDeaths;
-                $currentMale = max($currentMale - $campuranMaleDeaths, 0);
-                $currentFemale = max($currentFemale - $campuranFemaleDeaths, 0);
-            }
-        }
+        $initialMale = $currentMale + $deathByGender['jantan'] + $salesByGender['jantan'];
+        $initialFemale = $currentFemale + $deathByGender['betina'] + $salesByGender['betina'];
 
         $currentPopulationFromGender = max($currentMale + $currentFemale, 0);
 
@@ -1022,8 +1009,8 @@ class ProduksiController extends Controller
         $historyClearRoute = false; // Route not implemented yet
 
         $view = $produksi->tipe_produksi === 'telur'
-            ? 'admin.pages.produksi.show-telur'
-            : 'admin.pages.produksi.show-puyuh';
+            ? 'admin.pages.produksi-puytel.show-telur'
+            : 'admin.pages.produksi-puytel.show-puyuh';
 
         $feedOptions = collect();
         $vitaminOptions = collect();
@@ -1100,6 +1087,8 @@ class ProduksiController extends Controller
             'penjualan_puyuh_jantan',
             'penjualan_puyuh_betina',
             'jumlah_kematian',
+            'jumlah_kematian_jantan',
+            'jumlah_kematian_betina',
             'jumlah_telur_terjual',
             'penjualan_telur_butir',
             'sisa_telur',
@@ -1122,7 +1111,9 @@ class ProduksiController extends Controller
             'active_tab' => 'required|in:telur,penjualan,pakan,vitamin,kematian,laporan',
             'produksi_telur' => 'nullable|integer|min:0|max:100',
             'jumlah_kematian' => 'nullable|integer|min:1',
-            'jenis_kelamin_kematian' => 'nullable|in:jantan,betina',
+            'jumlah_kematian_jantan' => 'nullable|integer|min:0',
+            'jumlah_kematian_betina' => 'nullable|integer|min:0',
+            'jenis_kelamin_kematian' => 'nullable|in:jantan,betina,campuran',
             'keterangan_kematian' => 'nullable|string|max:225',
             'konsumsi_pakan_kg' => 'nullable|numeric|min:0',
             'sisa_pakan_kg' => 'nullable|numeric|min:0',
@@ -1180,8 +1171,16 @@ class ProduksiController extends Controller
                 $rules['vitamin_terpakai'] = 'required|numeric|min:0';
                 break;
             case 'kematian':
-                $rules['jumlah_kematian'] = 'required|integer|min:0';
-                $rules['jenis_kelamin_kematian'] = 'required|in:jantan,betina';
+                $rules['jenis_kelamin_kematian'] = 'required|in:jantan,betina,campuran';
+                if ($request->jenis_kelamin_kematian === 'campuran') {
+                    $rules['jumlah_kematian_jantan'] = 'required|integer|min:0';
+                    $rules['jumlah_kematian_betina'] = 'required|integer|min:0';
+                    $rules['jumlah_kematian'] = 'nullable|integer|min:0';
+                } else {
+                    $rules['jumlah_kematian'] = 'required|integer|min:1';
+                    $rules['jumlah_kematian_jantan'] = 'nullable|integer|min:0';
+                    $rules['jumlah_kematian_betina'] = 'nullable|integer|min:0';
+                }
                 break;
             case 'laporan':
                 $rules['catatan_kejadian'] = 'required|string|max:2500';
@@ -1226,6 +1225,10 @@ class ProduksiController extends Controller
             'penjualan_puyuh_jantan.min' => 'Jumlah jantan tidak boleh kurang dari :min.',
             'penjualan_puyuh_betina.integer' => 'Jumlah betina harus berupa angka bulat.',
             'penjualan_puyuh_betina.min' => 'Jumlah betina tidak boleh kurang dari :min.',
+            'jumlah_kematian_jantan.integer' => 'Jumlah kematian jantan harus berupa angka bulat.',
+            'jumlah_kematian_jantan.min' => 'Jumlah kematian jantan tidak boleh negatif.',
+            'jumlah_kematian_betina.integer' => 'Jumlah kematian betina harus berupa angka bulat.',
+            'jumlah_kematian_betina.min' => 'Jumlah kematian betina tidak boleh negatif.',
             'pendapatan_harian.numeric' => 'Pendapatan harian harus berupa angka.',
             'pendapatan_harian.min' => 'Pendapatan harian tidak boleh negatif.',
             'jenis_kelamin_penjualan.required' => 'Jenis kelamin penjualan harus dipilih.',
@@ -1265,6 +1268,29 @@ class ProduksiController extends Controller
             if (empty($validated['penjualan_puyuh_ekor']) || (int) $validated['penjualan_puyuh_ekor'] < 1) {
                 return redirect()->back()->withErrors([
                     'penjualan_puyuh_ekor' => 'Jumlah puyuh terjual harus diisi minimal 1 ekor.',
+                ])->withInput();
+            }
+        }
+
+        // Validasi tambahan untuk kematian campuran agar total diambil dari pembagiannya
+        if (($validated['active_tab'] ?? null) === 'kematian' && !$isTelurBatch && ($validated['jenis_kelamin_kematian'] ?? null) === 'campuran') {
+            $kematianJantanCampuran = (int) ($validated['jumlah_kematian_jantan'] ?? 0);
+            $kematianBetinaCampuran = (int) ($validated['jumlah_kematian_betina'] ?? 0);
+
+            if (($kematianJantanCampuran + $kematianBetinaCampuran) < 1) {
+                return redirect()->back()->withErrors([
+                    'jumlah_kematian_jantan' => 'Total kematian campuran harus lebih dari 0 ekor.',
+                ])->withInput();
+            }
+
+            $validated['jumlah_kematian'] = $kematianJantanCampuran + $kematianBetinaCampuran;
+        }
+
+        // Validasi kematian jantan/betina tunggal: pastikan total terisi
+        if (($validated['active_tab'] ?? null) === 'kematian' && !$isTelurBatch && ($validated['jenis_kelamin_kematian'] ?? null) !== 'campuran') {
+            if (empty($validated['jumlah_kematian']) || (int) $validated['jumlah_kematian'] < 1) {
+                return redirect()->back()->withErrors([
+                    'jumlah_kematian' => 'Jumlah kematian harus diisi minimal 1 ekor.',
                 ])->withInput();
             }
         }
@@ -1319,6 +1345,8 @@ class ProduksiController extends Controller
         if (($validated['active_tab'] ?? null) === 'kematian' && !$isTelurBatch && isset($validated['jumlah_kematian']) && $validated['jumlah_kematian'] > 0) {
             $jumlahMati = (int) $validated['jumlah_kematian'];
             $jenisKelamin = $validated['jenis_kelamin_kematian'] ?? null;
+            $jumlahMatiJantan = (int) ($validated['jumlah_kematian_jantan'] ?? 0);
+            $jumlahMatiBetina = (int) ($validated['jumlah_kematian_betina'] ?? 0);
 
             $currentIndukan = (int) ($produksi->jumlah_indukan ?? 0);
             $currentJantan = (int) ($produksi->jumlah_jantan ?? 0);
@@ -1342,6 +1370,17 @@ class ProduksiController extends Controller
                 if ($jumlahMati > $currentBetina) {
                     return redirect()->back()->withErrors([
                         'jumlah_kematian' => "Jumlah kematian betina ({$jumlahMati}) melebihi stok betina yang tersedia ({$currentBetina}).",
+                    ])->withInput();
+                }
+            } elseif ($jenisKelamin === 'campuran') {
+                if ($jumlahMatiJantan > $currentJantan) {
+                    return redirect()->back()->withErrors([
+                        'jumlah_kematian_jantan' => "Jumlah kematian jantan ({$jumlahMatiJantan}) melebihi stok jantan yang tersedia ({$currentJantan}).",
+                    ])->withInput();
+                }
+                if ($jumlahMatiBetina > $currentBetina) {
+                    return redirect()->back()->withErrors([
+                        'jumlah_kematian_betina' => "Jumlah kematian betina ({$jumlahMatiBetina}) melebihi stok betina yang tersedia ({$currentBetina}).",
                     ])->withInput();
                 }
             }
@@ -1385,7 +1424,8 @@ class ProduksiController extends Controller
             $hasExistingForTab = false;
             switch ($activeTab) {
                 case 'telur':
-                    $hasExistingForTab = false; // Allow multiple trays per day
+                    // Tampilkan peringatan jika sudah ada pencatatan telur di tanggal itu
+                    $hasExistingForTab = !$isHidden && ($laporan->produksi_telur ?? 0) > 0;
                     break;
                 case 'penjualan':
                     if ($isTelurBatch) {
@@ -1464,7 +1504,9 @@ class ProduksiController extends Controller
                         $newLaporan->save();
                         $this->logTrayHistory($produksi, $newLaporan, 'created');
                     }
-                    $message = "Berhasil membuat {$numTrays} tray dengan total {$totalEggs} telur.";
+                    $message = $isTelurBatch
+                        ? "Berhasil membuat {$numTrays} tray dengan total {$totalEggs} telur."
+                        : "Produksi telur berhasil dicatat ({$totalEggs} butir).";
                 } else {
                     // Single tray
                     $laporan->fill([
@@ -1474,15 +1516,23 @@ class ProduksiController extends Controller
                         'input_telur' => $validated['produksi_telur'],
                     ]);
                     $laporan->save();
-                    $laporan->nama_tray = $this->generateDefaultTrayName($laporan);
-                    $laporan->save();
-                    $this->logTrayHistory($produksi, $laporan, 'created');
-                    $message = 'Tray berhasil ditambahkan.';
+                    if ($isTelurBatch) {
+                        $laporan->nama_tray = $this->generateDefaultTrayName($laporan);
+                        $laporan->save();
+                        $this->logTrayHistory($produksi, $laporan, 'created');
+                        $message = 'Tray berhasil ditambahkan.';
+                    } else {
+                        $message = 'Produksi telur berhasil dicatat.';
+                    }
                 }
             } else {
                 $message = 'Tidak ada telur yang diinput.';
             }
-            return redirect()->route('admin.produksi.show', $produksi->id)->with('success', $message);
+            $showRoute = $isTelurBatch
+                ? route('admin.produksi.telur.show', $produksi->id)
+                : route('admin.produksi.puyuh.show', $produksi->id);
+
+            return redirect()->to($showRoute)->with('success', $message);
         }
 
         switch ($activeTab) {
@@ -1520,7 +1570,7 @@ class ProduksiController extends Controller
                         $newLaporan->save();
 
                         $message = "Tray '{$selectedTray->nama_tray}' berhasil dijual ({$validated['jumlah_telur_terjual']} butir).";
-                        return redirect()->route('admin.produksi.show', $produksi->id)->with('success', $message);
+                        return redirect()->to($this->showRouteFor($produksi))->with('success', $message);
                     }
                 } else {
                     $jumlahTerjual = isset($validated['penjualan_puyuh_ekor']) ? (int) $validated['penjualan_puyuh_ekor'] : 0;
@@ -1589,9 +1639,20 @@ class ProduksiController extends Controller
 
             case 'kematian':
                 if (isset($validated['jumlah_kematian']) && $validated['jumlah_kematian'] !== null && $validated['jumlah_kematian'] !== '') {
-                    $updateData['jumlah_kematian'] = (int) $validated['jumlah_kematian'];
-                    $updateData['jenis_kelamin_kematian'] = $validated['jenis_kelamin_kematian'] ?? null;
+                    $jumlahKematianBaru = (int) $validated['jumlah_kematian'];
+                    $jenisKelaminKematian = $validated['jenis_kelamin_kematian'] ?? null;
+                    $kematianCampuranJantan = (int) ($validated['jumlah_kematian_jantan'] ?? 0);
+                    $kematianCampuranBetina = (int) ($validated['jumlah_kematian_betina'] ?? 0);
+
+                    if ($jenisKelaminKematian === 'campuran') {
+                        $jumlahKematianBaru = $kematianCampuranJantan + $kematianCampuranBetina;
+                    }
+
+                    $updateData['jumlah_kematian'] = $jumlahKematianBaru;
+                    $updateData['jenis_kelamin_kematian'] = $jenisKelaminKematian;
                     $updateData['keterangan_kematian'] = $validated['keterangan_kematian'] ?? null;
+                    $updateData['jumlah_kematian_jantan'] = $jenisKelaminKematian === 'campuran' ? $kematianCampuranJantan : ($jenisKelaminKematian === 'jantan' ? $jumlahKematianBaru : 0);
+                    $updateData['jumlah_kematian_betina'] = $jenisKelaminKematian === 'campuran' ? $kematianCampuranBetina : ($jenisKelaminKematian === 'betina' ? $jumlahKematianBaru : 0);
                 }
                 break;
 
@@ -1602,28 +1663,43 @@ class ProduksiController extends Controller
                 break;
         }
 
+        $originalKematian = (int) ($laporan->getOriginal('jumlah_kematian') ?? 0);
+        $originalJenisKelaminKematian = strtolower((string) ($laporan->getOriginal('jenis_kelamin_kematian') ?? ''));
+        $originalKematianJantan = (int) ($laporan->getOriginal('jumlah_kematian_jantan') ?? 0);
+        $originalKematianBetina = (int) ($laporan->getOriginal('jumlah_kematian_betina') ?? 0);
+
+        $originalPenjualan = (int) ($laporan->getOriginal('penjualan_puyuh_ekor') ?? 0);
+        $originalJenisKelaminPenjualan = strtolower((string) ($laporan->getOriginal('jenis_kelamin_penjualan') ?? ''));
+        $originalPenjualanJantan = (int) ($laporan->getOriginal('penjualan_puyuh_jantan') ?? 0);
+        $originalPenjualanBetina = (int) ($laporan->getOriginal('penjualan_puyuh_betina') ?? 0);
+
         $laporan->fill($updateData);
 
         // For existing laporan, reset population changes from previous data
         if ($laporan->exists && !$isTelurBatch) {
-            if ($activeTab === 'penjualan' && $laporan->penjualan_puyuh_ekor > 0) {
-                $jenis = strtolower($laporan->jenis_kelamin_penjualan ?? '');
+            if ($activeTab === 'penjualan' && $originalPenjualan > 0) {
+                $jenis = $originalJenisKelaminPenjualan;
                 if ($jenis === 'campuran') {
-                    $jantan = $laporan->penjualan_puyuh_jantan ?? 0;
-                    $betina = $laporan->penjualan_puyuh_betina ?? 0;
-                    $produksi->increment('jumlah_jantan', $jantan);
-                    $produksi->increment('jumlah_betina', $betina);
+                    $produksi->increment('jumlah_jantan', $originalPenjualanJantan);
+                    $produksi->increment('jumlah_betina', $originalPenjualanBetina);
                 } elseif ($jenis === 'jantan') {
-                    $produksi->increment('jumlah_jantan', $laporan->penjualan_puyuh_ekor);
+                    $produksi->increment('jumlah_jantan', $originalPenjualan);
                 } elseif ($jenis === 'betina') {
-                    $produksi->increment('jumlah_betina', $laporan->penjualan_puyuh_ekor);
+                    $produksi->increment('jumlah_betina', $originalPenjualan);
                 }
-            } elseif ($activeTab === 'kematian' && $laporan->jumlah_kematian > 0) {
-                $jenis = strtolower($laporan->jenis_kelamin_kematian ?? '');
-                if ($jenis === 'jantan') {
-                    $produksi->increment('jumlah_jantan', $laporan->jumlah_kematian);
+            } elseif ($activeTab === 'kematian' && $originalKematian > 0) {
+                $jenis = $originalJenisKelaminKematian;
+                if ($jenis === 'campuran') {
+                    if ($originalKematianJantan > 0) {
+                        $produksi->increment('jumlah_jantan', $originalKematianJantan);
+                    }
+                    if ($originalKematianBetina > 0) {
+                        $produksi->increment('jumlah_betina', $originalKematianBetina);
+                    }
+                } elseif ($jenis === 'jantan') {
+                    $produksi->increment('jumlah_jantan', $originalKematian);
                 } elseif ($jenis === 'betina') {
-                    $produksi->increment('jumlah_betina', $laporan->jumlah_kematian);
+                    $produksi->increment('jumlah_betina', $originalKematian);
                 }
             }
         }
@@ -1643,7 +1719,17 @@ class ProduksiController extends Controller
                 }
             } elseif ($activeTab === 'kematian' && isset($validated['jumlah_kematian']) && $validated['jumlah_kematian'] > 0) {
                 $jenisKelamin = $validated['jenis_kelamin_kematian'];
-                if ($jenisKelamin === 'jantan') {
+                $kematianJantanBaru = isset($kematianCampuranJantan) ? (int) $kematianCampuranJantan : (int) ($validated['jumlah_kematian_jantan'] ?? 0);
+                $kematianBetinaBaru = isset($kematianCampuranBetina) ? (int) $kematianCampuranBetina : (int) ($validated['jumlah_kematian_betina'] ?? 0);
+
+                if ($jenisKelamin === 'campuran') {
+                    if ($kematianJantanBaru > 0) {
+                        $produksi->decrement('jumlah_jantan', $kematianJantanBaru);
+                    }
+                    if ($kematianBetinaBaru > 0) {
+                        $produksi->decrement('jumlah_betina', $kematianBetinaBaru);
+                    }
+                } elseif ($jenisKelamin === 'jantan') {
                     $produksi->decrement('jumlah_jantan', $validated['jumlah_kematian']);
                 } elseif ($jenisKelamin === 'betina') {
                     $produksi->decrement('jumlah_betina', $validated['jumlah_kematian']);
@@ -1686,7 +1772,7 @@ class ProduksiController extends Controller
         $message = "Laporan harian {$tabName} berhasil {$action}.";
 
         return redirect()
-            ->route('admin.produksi.show', $produksi->id)
+            ->to($this->showRouteFor($produksi))
             ->with('success', $message);
     }
 
@@ -2062,11 +2148,11 @@ class ProduksiController extends Controller
                                   ->get();
         
         $pembesaranList = Pembesaran::with('kandang')
-                                    ->whereIn('status_batch', ['aktif', 'Aktif', 'selesai'])
-                                    ->orderBy('tanggal_masuk', 'desc')
-                                    ->get();
+            ->whereIn(DB::raw("LOWER(TRIM(COALESCE(status_batch, '')))"), ['aktif', 'selesai'])
+            ->orderBy('tanggal_masuk', 'desc')
+            ->get();
         
-        return view('admin.pages.produksi.edit-produksi', compact('produksi', 'kandangList', 'penetasanList', 'pembesaranList'));
+        return view('admin.pages.produksi-puytel.edit-produksi', compact('produksi', 'kandangList', 'penetasanList', 'pembesaranList'));
     }
 
     /**
@@ -2530,8 +2616,11 @@ class ProduksiController extends Controller
                     $stokBetina = max(0, $initialBetina - $totalPenjualanBetina - $totalKematianBetina);
                     $totalStok = $stokJantan + $stokBetina;
                     if ($totalStok > 0) {
-                        $totalKematianJantan += (int) round($laporan->jumlah_kematian * ($stokJantan / $totalStok));
-                        $totalKematianBetina += $laporan->jumlah_kematian - $totalKematianJantan;
+                        $kematianJantan = (int) round($laporan->jumlah_kematian * ($stokJantan / $totalStok));
+                        $kematianBetina = $laporan->jumlah_kematian - $kematianJantan;
+
+                        $totalKematianJantan += $kematianJantan;
+                        $totalKematianBetina += $kematianBetina;
                     } else {
                         $totalKematianBetina += $laporan->jumlah_kematian;
                     }

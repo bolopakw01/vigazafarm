@@ -248,27 +248,27 @@
   <div class="row justify-content-center">
     <div class="col-12">
       <div class="card">
-  @include('admin.pages.produksi.partials.create-form._form-header')
+  @include('admin.pages.produksi-puytel.partials.create-form._form-header')
 
         <div class="card-body p-4">
           <form id="produksiForm" action="{{ route('admin.produksi.store') }}" method="POST" onsubmit="return validateForm()">
             @csrf
 
-            @include('admin.pages.produksi.partials.create-form._form-errors')
+            @include('admin.pages.produksi-puytel.partials.create-form._form-errors')
 
-            @include('admin.pages.produksi.partials.create-form._form-basic-info')
+            @include('admin.pages.produksi-puytel.partials.create-form._form-basic-info')
 
-            @include('admin.pages.produksi.partials.create-form._form-manual-section')
+            @include('admin.pages.produksi-puytel.partials.create-form._form-manual-section')
 
-            @include('admin.pages.produksi.partials.create-form._form-pembesaran-section')
+            @include('admin.pages.produksi-puytel.partials.create-form._form-pembesaran-section')
 
-            @include('admin.pages.produksi.partials.create-form._form-penetasan-section')
+            @include('admin.pages.produksi-puytel.partials.create-form._form-penetasan-section')
 
-            @include('admin.pages.produksi.partials.create-form._form-production-details')
+            @include('admin.pages.produksi-puytel.partials.create-form._form-production-details')
 
-            @include('admin.pages.produksi.partials.create-form._form-notes')
+            @include('admin.pages.produksi-puytel.partials.create-form._form-notes')
 
-            @include('admin.pages.produksi.partials.create-form._form-actions')
+            @include('admin.pages.produksi-puytel.partials.create-form._form-actions')
           </form>
         </div>
       </div>
@@ -277,7 +277,7 @@
 </div>
 
 @push('scripts')
-@include('admin.pages.produksi.partials.create-form._form-scripts')
+@include('admin.pages.produksi-puytel.partials.create-form._form-scripts')
 @endpush
 
 @endsection

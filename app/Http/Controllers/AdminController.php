@@ -270,7 +270,7 @@ class AdminController extends Controller
 
         $kandangList = \App\Models\Kandang::orderBy('nama_kandang')->get();
 
-        return view('admin.pages.produksi.index-produksi', compact(
+        return view('admin.pages.produksi-puytel.index-produksi', compact(
             'produksi',
             'kandangList',
             'totalTelur',
@@ -288,7 +288,7 @@ class AdminController extends Controller
     public function produksiCreate()
     {
         // Untuk saat ini, tampilkan halaman placeholder pembuatan sederhana atau redirect kembali
-        return view('admin.pages.produksi.create-produksi');
+        return view('admin.pages.produksi-puytel.create-produksi');
     }
 
     // Placeholder minimal untuk menampilkan record produksi
@@ -300,7 +300,7 @@ class AdminController extends Controller
     // Placeholder minimal untuk mengedit record produksi
     public function produksiEdit($id)
     {
-        return view('admin.pages.produksi.edit-produksi', ['id' => $id]);
+        return view('admin.pages.produksi-puytel.edit-produksi', ['id' => $id]);
     }
 
     protected function prepareActivityDatasets(): array
