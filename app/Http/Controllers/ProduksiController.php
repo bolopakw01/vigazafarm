@@ -116,8 +116,9 @@ class ProduksiController extends Controller
         try {
             $resetTab = $request->input('reset_tab');
             if ($resetTab === null || $resetTab === '') {
-                // Fallback ke tab aktif yang dikirim form; jika tidak ada, asumsi kematian saja
-                $resetTab = $request->input('active_tab', 'kematian');
+                // Fallback ke tab aktif yang dikirim form; jika kosong, default tergantung tipe produksi
+                $defaultTab = ($produksi->tipe_produksi ?? 'puyuh') === 'telur' ? 'telur' : 'kematian';
+                $resetTab = $request->input('active_tab', $defaultTab);
             }
 
             $resetTelur = $resetTab === 'telur' || $resetTab === 'all';
@@ -133,12 +134,27 @@ class ProduksiController extends Controller
 
             // Reset data produksi telur jika diminta
             if ($resetTelur && ($laporan->produksi_telur > 0 || (Schema::hasColumn('vf_laporan_harian', 'input_telur') && $laporan->input_telur > 0))) {
+                $oldTrayValues = [
+                    'nama_tray' => $laporan->nama_tray ?? null,
+                    'jumlah_telur' => $laporan->produksi_telur ?? null,
+                    'keterangan_tray' => $laporan->keterangan_tray ?? null,
+                ];
+
+                // Catat histori tray (deleted) agar KAI telur ikut ter-rollback
+                $this->logTrayHistory($produksi, $laporan, 'deleted', $oldTrayValues);
+
                 $laporan->produksi_telur = 0;
                 if (Schema::hasColumn('vf_laporan_harian', 'input_telur')) {
                     $laporan->input_telur = 0;
                 }
                 if (Schema::hasColumn('vf_laporan_harian', 'sisa_telur')) {
                     $laporan->sisa_telur = null;
+                }
+                if (Schema::hasColumn('vf_laporan_harian', 'nama_tray')) {
+                    $laporan->nama_tray = null;
+                }
+                if (Schema::hasColumn('vf_laporan_harian', 'keterangan_tray')) {
+                    $laporan->keterangan_tray = null;
                 }
             }
 
@@ -812,13 +828,34 @@ class ProduksiController extends Controller
                 ->get();
         }
 
-        $soldTrayIds = $laporanHarian->whereNotNull('tray_penjualan_id')
-            ->pluck('tray_penjualan_id')
+        $trayProductions = $laporanHarian
+            ->filter(function ($item) {
+                return ($item->produksi_telur ?? 0) > 0 && !empty($item->nama_tray);
+            });
+
+        $traySalesById = $laporanHarian
+            ->whereNotNull('tray_penjualan_id')
+            ->groupBy('tray_penjualan_id')
+            ->map(function ($items) {
+                return (int) $items->sum('penjualan_telur_butir');
+            });
+
+        $soldTrayIds = $trayProductions
+            ->mapWithKeys(function ($item) use ($traySalesById) {
+                $initial = (int) ($item->produksi_telur ?? 0);
+                $sold = (int) ($traySalesById[$item->id] ?? 0);
+                $isSold = $initial > 0 && $sold >= $initial && $sold > 0;
+                return [$item->id => $isSold];
+            })
             ->filter()
-            ->unique()
+            ->keys()
             ->values();
 
-        $soldTrayNames = $laporanHarian->whereNotNull('nama_tray_penjualan')
+        $soldTrayNames = $laporanHarian
+            ->whereNotNull('nama_tray_penjualan')
+            ->filter(function ($laporan) use ($soldTrayIds) {
+                return $laporan->tray_penjualan_id !== null && $soldTrayIds->contains($laporan->tray_penjualan_id);
+            })
             ->pluck('nama_tray_penjualan')
             ->filter()
             ->map(function ($name) {
@@ -882,12 +919,18 @@ class ProduksiController extends Controller
         // Telur yang sudah masuk tray tidak bisa kembali ke sisa telur
         $totalTelurCommitted = 0;
         if (Schema::hasTable('vf_tray_histories')) {
-            $totalTelurCommitted = $produksi->trayHistories()
+            $totalTelurCreated = $produksi->trayHistories()
                 ->where('action', 'created')
                 ->sum('jumlah_telur');
+
+            $totalTelurDeleted = $produksi->trayHistories()
+                ->where('action', 'deleted')
+                ->sum('old_jumlah_telur');
+
+            $totalTelurCommitted = max(0, $totalTelurCreated - $totalTelurDeleted);
         }
 
-        // Hitung sisa telur: total telur awal produksi - telur yang sudah dimasukkan ke tray (termasuk yang sudah dihapus)
+        // Hitung sisa telur: total telur awal produksi - telur yang sudah dimasukkan ke tray (net of deleted)
         $totalTelurAwal = $produksi->jumlah_telur ?? 0;
         $summary['sisa_telur'] = max(0, $totalTelurAwal - $totalTelurCommitted);
 
@@ -1039,6 +1082,7 @@ class ProduksiController extends Controller
             'existingEntriesByTab',
             'soldTrayIds',
             'soldTrayNames',
+            'traySalesById',
             'feedOptions',
             'vitaminOptions'
         ));
@@ -1549,12 +1593,15 @@ class ProduksiController extends Controller
                             return redirect()->back()->withErrors(['tray_penjualan' => 'Tray yang dipilih tidak valid atau tidak tersedia.']);
                         }
 
-                        $availableEggs = $selectedTray->produksi_telur ?? 0;
+                        $totalSoldBefore = LaporanHarian::where('batch_produksi_id', $produksi->batch_produksi_id)
+                            ->where('tray_penjualan_id', $selectedTray->id)
+                            ->sum('penjualan_telur_butir');
+
+                        $availableEggs = max(0, (int) ($selectedTray->produksi_telur ?? 0) - (int) $totalSoldBefore);
                         if ($validated['jumlah_telur_terjual'] > $availableEggs) {
                             return redirect()->back()->withErrors(['jumlah_telur_terjual' => "Jumlah telur terjual tidak boleh melebihi stok tray ({$availableEggs} butir)."]);
                         }
 
-                        // Create new record for each tray sale (allow multiple sales per day)
                         $newLaporan = new LaporanHarian([
                             'batch_produksi_id' => $produksi->batch_produksi_id,
                             'tanggal' => $validated['tanggal'],
@@ -1838,7 +1885,8 @@ class ProduksiController extends Controller
             'keterangan_tray' => $laporan->keterangan_tray,
         ];
 
-        $history = $this->logTrayHistory($produksi, $laporan, 'deleted', $oldValues);
+        // Log as removed so stok telur tidak dikembalikan ketika tray dihapus manual
+        $history = $this->logTrayHistory($produksi, $laporan, 'removed', $oldValues);
         $laporanId = $laporan->id;
         $laporan->delete();
 
@@ -2449,7 +2497,7 @@ class ProduksiController extends Controller
 
     protected function logTrayHistory(Produksi $produksi, LaporanHarian $laporan, string $action, array $oldValues = []): ?TrayHistory
     {
-        if (!in_array($action, ['created', 'updated', 'deleted'], true)) {
+        if (!in_array($action, ['created', 'updated', 'deleted', 'removed'], true)) {
             return null;
         }
 

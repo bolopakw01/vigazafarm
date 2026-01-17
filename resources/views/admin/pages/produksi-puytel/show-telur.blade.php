@@ -69,10 +69,16 @@
                 ?? ('#' . $produksi->produksi_sumber_id);
         }
 
+        $traySalesById = collect($traySalesById ?? []);
+
         $trayEntries = ($laporanHarian ?? collect())
             ->filter(fn ($item) => ($item->produksi_telur ?? 0) > 0 && !empty($item->nama_tray))
-            ->map(function ($item) use ($eggsPerTray, $soldTrayIds) {
-                $trayEstimate = $eggsPerTray > 0 ? ($item->produksi_telur / $eggsPerTray) : 0;
+            ->map(function ($item) use ($eggsPerTray, $traySalesById) {
+                $initialEggs = (int) ($item->produksi_telur ?? 0);
+                $soldEggs = (int) $traySalesById->get($item->id, 0);
+                $remainingEggs = max(0, $initialEggs - $soldEggs);
+                $trayEstimate = $eggsPerTray > 0 ? ($remainingEggs / $eggsPerTray) : 0;
+                $isSold = $remainingEggs <= 0 && $soldEggs > 0;
 
                 return [
                     'id' => $item->id,
@@ -80,7 +86,7 @@
                         ? $item->tanggal->locale('id')->translatedFormat('d M Y')
                         : '-',
                     'nama_tray' => $item->nama_tray,
-                    'jumlah_telur' => (int) ($item->produksi_telur ?? 0),
+                    'jumlah_telur' => $remainingEggs,
                     'estimasi_tray' => $trayEstimate,
                     'keterangan_tray' => $item->keterangan_tray,
                     'dibuat_pada' => $item->dibuat_pada
@@ -89,7 +95,7 @@
                     'diperbarui_pada' => $item->diperbarui_pada
                         ? $item->diperbarui_pada->locale('id')->format('d/m/Y, g:i:s A')
                         : '—',
-                    'is_sold' => $soldTrayIds->contains($item->id),
+                    'is_sold' => $isSold,
                 ];
             })
             ->values();
@@ -456,13 +462,18 @@
                                 <div class="list-timeline">
                                     @foreach ($trayHistoryCollection as $trayHistory)
                                         @php
-                                            $trayActionLabelMap = ['created' => 'Ditambahkan', 'updated' => 'Diedit', 'deleted' => 'Dihapus'];
+                                            $trayActionLabelMap = [
+                                                'created' => 'Ditambahkan',
+                                                'updated' => 'Diedit',
+                                                'deleted' => 'Dihapus (Reset Telur)',
+                                                'removed' => 'Dihapus (Menu Tray)',
+                                            ];
                                             $actionLabel = $trayActionLabelMap[$trayHistory->action] ?? ucfirst($trayHistory->action);
                                             $trayHistoryTitle = ($trayHistory->nama_tray ?? 'Tray tanpa nama') . ' — ' . $actionLabel;
                                             $trayHistoryDate = optional($trayHistory->tanggal)->locale('id')->translatedFormat('d F Y') ?? '-';
                                             $trayHistoryTimestamp = optional($trayHistory->created_at)->locale('id')->format('d/m/Y, g:i:s A') ?? '-';
                                             $trayHistoryAmount = $trayHistory->jumlah_telur ? number_format($trayHistory->jumlah_telur, 0, ',', '.') . ' butir' : null;
-                                            $trayActionClass = $trayHistory->action === 'deleted' ? 'text-danger' : 'text-info';
+                                            $trayActionClass = in_array($trayHistory->action, ['deleted', 'removed'], true) ? 'text-danger' : 'text-info';
                                             $trayHistoryUser = optional($trayHistory->pengguna)->nama_pengguna ?? '—';
 
                                             // Determine icon and color based on action
@@ -489,6 +500,9 @@
                                                 $trayIcon = 'fa-edit';
                                                 $trayColorClass = 'entry-tray-updated';
                                             } elseif ($trayHistory->action === 'deleted') {
+                                                $trayIcon = 'fa-rotate-left';
+                                                $trayColorClass = $wasSoldTray ? 'entry-tray-deleted-sold' : 'entry-tray-deleted';
+                                            } elseif ($trayHistory->action === 'removed') {
                                                 $trayIcon = 'fa-trash';
                                                 $trayColorClass = $wasSoldTray ? 'entry-tray-deleted-sold' : 'entry-tray-deleted';
                                             }
@@ -520,7 +534,7 @@
                                                     : '(' . ($currentAmount !== '—' ? $currentAmount : $oldAmount) . ')';
 
                                                 $trayHistoryTitle = $nameSegment . $pipeStyled . $amountSegment;
-                                            } elseif ($trayHistory->action === 'deleted') {
+                                            } elseif (in_array($trayHistory->action, ['deleted', 'removed'], true)) {
                                                 $pipeStyled = ' <span class="text-connector">|</span> ';
 
                                                 $formatAmount = function ($value) {
@@ -541,7 +555,13 @@
                                                 if ($trayHistory->action === 'updated') {
                                                     $keteranganText = 'diubah';
                                                 } elseif ($trayHistory->action === 'deleted') {
-                                                    $keteranganText = 'di Hapus';
+                                                    $keteranganText = $wasSoldTray
+                                                        ? 'tray terjual yang dihapus melalui reset di Telur'
+                                                        : 'dihapus melalui reset di Telur';
+                                                } elseif ($trayHistory->action === 'removed') {
+                                                    $keteranganText = $wasSoldTray
+                                                        ? 'tray terjual yang dihapus dari menu Tray'
+                                                        : 'dihapus dari menu Tray';
                                                 }
                                             }
                                         @endphp
@@ -551,8 +571,8 @@
                                                     <i class="fa-solid {{ $trayIcon }}"></i>
                                                 </div>
                                                 <div class="entry-body">
-                                                    <div class="title {{ $trayHistory->action === 'deleted' ? 'text-danger' : '' }}">
-                                                        @if(in_array($trayHistory->action, ['updated', 'deleted']))
+                                                    <div class="title {{ in_array($trayHistory->action, ['deleted', 'removed'], true) ? 'text-danger' : '' }}">
+                                                        @if(in_array($trayHistory->action, ['updated', 'deleted', 'removed'], true))
                                                             {!! $trayHistoryTitle !!}
                                                         @else
                                                             {{ $trayHistoryDate }} — <span class="{{ $trayActionClass }}">{{ $trayHistoryTitle }}</span>
@@ -1219,9 +1239,15 @@
                     })();
                     tabInput.value = getActiveTabId();
                     
+                    const activeTab = getActiveTabId();
+                    const isTelurTab = activeTab === 'telur';
+                    const warningText = isTelurTab
+                        ? 'Mereset telur akan menghapus tray terkait dan mengembalikan stok telur ke sisa semula. Lanjutkan?'
+                        : 'Yakin ingin mereset entri ini? Nilai pada entri ini akan dikembalikan.';
+
                     Swal.fire({
                         title: 'Konfirmasi Reset',
-                        text: 'Yakin ingin mereset entri ini? Nilai pada entri ini akan dikembalikan.',
+                        text: warningText,
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonColor: '#ffc107',
