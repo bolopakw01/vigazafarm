@@ -1836,28 +1836,64 @@ class ProduksiController extends Controller
             'jumlah_telur.min' => 'Jumlah telur minimal 1 butir.',
         ]);
 
-        // Capture old values before updating
+        $soldEggs = LaporanHarian::where('batch_produksi_id', $produksi->batch_produksi_id)
+            ->where('tray_penjualan_id', $laporan->id)
+            ->sum('penjualan_telur_butir');
+
+        $soldEggs = (int) $soldEggs;
+
+        $oldTotalEggs = (int) ($laporan->produksi_telur ?? 0);
+        $oldRemainingEggs = max(0, $oldTotalEggs - $soldEggs);
+
         $oldValues = [
             'nama_tray' => $laporan->nama_tray,
-            'jumlah_telur' => $laporan->produksi_telur,
+            'jumlah_telur' => $oldRemainingEggs,
             'keterangan_tray' => $laporan->keterangan_tray,
         ];
 
-        // Periksa apakah jumlah telur dikurangi - tambahkan selisih ke telur_rusak
-        if ($validated['jumlah_telur'] < $oldValues['jumlah_telur']) {
-            $difference = $oldValues['jumlah_telur'] - $validated['jumlah_telur'];
+        $newRemainingEggs = (int) ($validated['jumlah_telur'] ?? 0);
+        $newTotalEggs = $newRemainingEggs + $soldEggs;
+
+        if ($newTotalEggs > $oldTotalEggs && Schema::hasTable('vf_tray_histories')) {
+            $totalTelurAwal = (int) ($produksi->jumlah_telur ?? 0);
+            $totalTelurCommitted = 0;
+
+            $totalTelurCreated = $produksi->trayHistories()
+                ->where('action', 'created')
+                ->sum('jumlah_telur');
+
+            $totalTelurDeleted = $produksi->trayHistories()
+                ->where('action', 'deleted')
+                ->sum('old_jumlah_telur');
+
+            $totalTelurCommitted = max(0, $totalTelurCreated - $totalTelurDeleted);
+            $sisaTelur = max(0, $totalTelurAwal - $totalTelurCommitted);
+
+            $diffIncrease = $newTotalEggs - $oldTotalEggs;
+            if ($diffIncrease > $sisaTelur) {
+                return response()->json([
+                    'message' => "Penambahan telur melebihi stok tersedia di KAI (sisa {$sisaTelur} butir).",
+                ], 422);
+            }
+        }
+
+        if ($newTotalEggs < $oldTotalEggs) {
+            $difference = $oldTotalEggs - $newTotalEggs;
             $laporan->telur_rusak = ($laporan->telur_rusak ?? 0) + $difference;
         }
 
         $laporan->nama_tray = $validated['nama_tray'] ?: $laporan->nama_tray;
         $laporan->keterangan_tray = $validated['keterangan_tray'] ?? null;
-        $laporan->produksi_telur = $validated['jumlah_telur'];
+        $laporan->produksi_telur = $newTotalEggs;
         if (Schema::hasColumn('vf_laporan_harian', 'input_telur')) {
-            $laporan->input_telur = $validated['jumlah_telur'];
+            $laporan->input_telur = $newTotalEggs;
         }
         $laporan->save();
 
-        $history = $this->logTrayHistory($produksi, $laporan, 'updated', $oldValues);
+        $historyLaporan = clone $laporan;
+        $historyLaporan->produksi_telur = $newRemainingEggs;
+
+        $history = $this->logTrayHistory($produksi, $historyLaporan, 'updated', $oldValues);
 
         $this->syncTelurTurunanFromPuyuh($produksi);
 

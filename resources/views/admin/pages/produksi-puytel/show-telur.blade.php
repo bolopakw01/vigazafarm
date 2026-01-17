@@ -507,7 +507,6 @@
                                                 $trayColorClass = $wasSoldTray ? 'entry-tray-deleted-sold' : 'entry-tray-deleted';
                                             }
 
-                                            // Build title based on action
                                             if ($trayHistory->action === 'updated') {
                                                 $namaChanged = $trayHistory->old_nama_tray !== $trayHistory->nama_tray;
                                                 $jumlahChanged = $trayHistory->old_jumlah_telur !== $trayHistory->jumlah_telur;
@@ -527,11 +526,18 @@
                                                         : '—';
                                                 };
 
-                                                $oldAmount = $formatAmount($trayHistory->old_jumlah_telur);
-                                                $currentAmount = $formatAmount($trayHistory->jumlah_telur);
-                                                $amountSegment = $jumlahChanged
-                                                    ? '(' . $oldAmount . $arrowStyled . '<span class="text-changed">' . $currentAmount . '</span>)'
-                                                    : '(' . ($currentAmount !== '—' ? $currentAmount : $oldAmount) . ')';
+                                                $oldRaw = $trayHistory->old_jumlah_telur;
+                                                $newRaw = $trayHistory->jumlah_telur;
+                                                $oldAmount = $formatAmount($oldRaw);
+                                                $currentAmount = $formatAmount($newRaw);
+
+                                                if ($oldRaw === null && $newRaw === null) {
+                                                    $amountSegment = '';
+                                                } elseif ($oldRaw === null || $oldRaw == $newRaw) {
+                                                    $amountSegment = '(' . ($currentAmount !== '—' ? $currentAmount : $oldAmount) . ')';
+                                                } else {
+                                                    $amountSegment = '(' . $oldAmount . $arrowStyled . '<span class="text-changed">' . $currentAmount . '</span>)';
+                                                }
 
                                                 $trayHistoryTitle = $nameSegment . $pipeStyled . $amountSegment;
                                             } elseif (in_array($trayHistory->action, ['deleted', 'removed'], true)) {
@@ -549,11 +555,30 @@
                                             } else {
                                                 $trayHistoryTitle = ($trayHistory->nama_tray ?? 'Tray tanpa nama') . ' — Ditambahkan';
                                             }
-
+                                            
                                             $keteranganText = trim($trayHistory->keterangan ?? '');
                                             if ($keteranganText === '') {
                                                 if ($trayHistory->action === 'updated') {
-                                                    $keteranganText = 'diubah';
+                                                    $namaChanged = $trayHistory->old_nama_tray !== $trayHistory->nama_tray;
+                                                    $oldJumlah = (int) ($trayHistory->old_jumlah_telur ?? 0);
+                                                    $newJumlah = (int) ($trayHistory->jumlah_telur ?? 0);
+                                                    $jumlahChanged = $oldJumlah !== $newJumlah;
+
+                                                    if ($namaChanged && $jumlahChanged) {
+                                                        $keteranganText = 'nama dan jumlah diubah';
+                                                    } elseif ($namaChanged) {
+                                                        $keteranganText = 'nama diubah';
+                                                    } elseif ($jumlahChanged) {
+                                                        if ($newJumlah > $oldJumlah) {
+                                                            $keteranganText = 'jumlah ditambah';
+                                                        } elseif ($newJumlah < $oldJumlah) {
+                                                            $keteranganText = 'jumlah dikurangi';
+                                                        } else {
+                                                            $keteranganText = 'diubah';
+                                                        }
+                                                    } else {
+                                                        $keteranganText = 'diubah';
+                                                    }
                                                 } elseif ($trayHistory->action === 'deleted') {
                                                     $keteranganText = $wasSoldTray
                                                         ? 'tray terjual yang dihapus melalui reset di Telur'
