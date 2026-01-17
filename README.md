@@ -41,4 +41,4 @@ Aplikasi manajemen peternakan unggas berbasis Laravel untuk mencatat aktivitas k
 - Lihat panduan lengkap di [ml/README.md](ml/README.md) untuk alur eksperimen, training, dan serving.
 
 ## Lisensi
-Proyek ini menggunakan lisensi MIT sebagaimana didefinisikan pada metadata Laravel skeleton..
+Proyek ini menggunakan lisensi MIT sebagaimana didefinisikan pada metadata Laravel skeleton.
