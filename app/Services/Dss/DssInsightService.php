@@ -65,7 +65,7 @@ class DssInsightService
                 $status = $this->evaluateEggStatus($daysToHatcher, $hatchRate);
 
                 return [
-                    'batch' => $record->batch ?? ('Batch #' . $record->id),
+                    'batch' => $record->batch_label ?? ('Batch #' . $record->id),
                     'kandang' => optional($record->kandang)->nama_kandang ?? '-',
                     'fase' => $record->fase_penetasan ?? '-',
                     'jumlah_telur' => (int) ($record->jumlah_telur ?? 0),
@@ -99,6 +99,7 @@ class DssInsightService
         $produksiRecords = Produksi::query()
             ->with(['kandang', 'pembesaran.kandang'])
             ->whereNotNull('batch_produksi_id')
+            ->where('tipe_produksi', 'puyuh')
             ->where(function ($query) {
                 $query->whereNull('status')
                     ->orWhereNotIn('status', ['selesai', 'closed']);
@@ -271,7 +272,7 @@ class DssInsightService
             $status = $this->evaluateFeedStatus($targetTotal, $delta);
 
             return [
-                'batch' => $batchId,
+                'batch' => optional($record->batchProduksi)->kode_batch ?? $batchId,
                 'kandang' => optional($record->kandang)->nama_kandang
                     ?? optional(optional($fallbackRecord)->kandang)->nama_kandang
                     ?? 'Kandang ' . ($record->kandang_id ?? optional($fallbackRecord)->kandang_id ?? '?'),
@@ -312,6 +313,7 @@ class DssInsightService
             ? Produksi::query()
                 ->with(['kandang', 'pembesaran.kandang'])
                 ->whereIn('id', $productionIds)
+                ->where('tipe_produksi', 'puyuh')
                 ->get()
                 ->keyBy('id')
             : collect();
@@ -423,6 +425,7 @@ class DssInsightService
                     $query->orWhereIn('id', $productionIds);
                 }
             })
+            ->where('tipe_produksi', 'puyuh')
             ->get();
 
         $produksiMapByBatch = $produksiCollection->filter(fn ($item) => !empty($item->batch_produksi_id))
@@ -632,7 +635,7 @@ class DssInsightService
                 }
 
                 return [
-                    'batch' => $batchLabel,
+                    'batch' => optional($batch->batchProduksi)->kode_batch ?? $batchLabel,
                     'kandang' => optional($batch->kandang)->nama_kandang
                         ?? optional(optional($fallbackBatch)->kandang)->nama_kandang
                         ?? 'Kandang ' . ($batch->kandang_id ?? optional($fallbackBatch)->kandang_id ?? '?'),

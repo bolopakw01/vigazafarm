@@ -420,16 +420,22 @@
 		.action-item.warning { border-color: #b45309 !important; }
 		.action-item.ok { border-color: #15803d !important; }
 		.action-item.info { border-color: #0369a1 !important; }
-		.table-wrap table { font-size: 0.92rem; }
+		.table-wrap table { font-size: 0.85rem; table-layout: fixed; max-width: none; min-width: 1500px; }
+		.table-wrap .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 		.table-wrap th { background: #f8fafc; font-weight: 600; }
-		.table-wrap td { vertical-align: middle; }
-		.table-wrap .table th:nth-child(1) { width: 12%; min-width: 80px; } /* Batch */
-		.table-wrap .table th:nth-child(2) { width: 18%; min-width: 120px; } /* Kandang/Fase */
-		.table-wrap .table th:nth-child(3) { width: 20%; min-width: 140px; } /* Jadwal Hatcher / Target vs Aktual / Rentang Tanggal */
-		.table-wrap .table th:nth-child(4) { width: 18%; min-width: 120px; } /* Rasio Tetas / Selisih / Mortalitas */
-		.table-wrap .table th:nth-child(5) { width: 12%; min-width: 100px; } /* Risiko */
-		.table-wrap .table th:nth-child(6) { width: 20%; min-width: 150px; } /* Tindakan / Rekomendasi */
-		.table-wrap .table td:nth-child(6) { word-wrap: break-word; white-space: normal; }
+		.table-wrap td { vertical-align: middle; white-space: nowrap; overflow: visible; text-overflow: clip; }
+		.table-wrap .table th:nth-child(1) { width: 80px; text-align: left; } /* Batch */
+		.table-wrap .table td:nth-child(1) { text-align: left; }
+		.table-wrap .table th:nth-child(2) { width: 60px; text-align: left; } /* Kandang/Fase */
+		.table-wrap .table td:nth-child(2) { text-align: left; }
+		.table-wrap .table th:nth-child(3) { width: 80px; text-align: left; } /* Jadwal Hatcher / Target vs Aktual / Rentang Tanggal */
+		.table-wrap .table td:nth-child(3) { text-align: left; }
+		.table-wrap .table th:nth-child(4) { width: 50px; text-align: right; } /* Rasio Tetas / Selisih / Mortalitas */
+		.table-wrap .table td:nth-child(4) { text-align: right; }
+		.table-wrap .table th:nth-child(5) { width: 50px; text-align: center; } /* Status */
+		.table-wrap .table td:nth-child(5) { text-align: center; }
+		.table-wrap .table th:nth-child(6) { width: 100px; text-align: left; } /* Tindakan / Rekomendasi */
+		.table-wrap .table td:nth-child(6) { text-align: left; white-space: normal; word-wrap: break-word; overflow: visible; text-overflow: clip; }
 		.empty-state {
 			padding: 32px;
 			text-align: center;
@@ -514,7 +520,7 @@
 				$todayActions = [];
 				foreach ($eggInsights as $item) {
 					$level = data_get($item, 'status.level', 'info');
-					if (($priorityMap[$level] ?? 0) > 0) {
+					if (($priorityMap[$level] ?? 0) >= 2) {
 						$todayActions[] = [
 							'level' => $level,
 							'icon' => 'fa-egg',
@@ -526,7 +532,7 @@
 				}
 				foreach ($feedInsights as $item) {
 					$level = data_get($item, 'status.level', 'info');
-					if (($priorityMap[$level] ?? 0) > 0) {
+					if (($priorityMap[$level] ?? 0) >= 2) {
 						$todayActions[] = [
 							'level' => $level,
 							'icon' => 'fa-wheat-awn',
@@ -538,7 +544,7 @@
 				}
 				foreach ($mortalityAlerts as $item) {
 					$level = data_get($item, 'status.level', 'info');
-					if (($priorityMap[$level] ?? 0) > 0) {
+					if (($priorityMap[$level] ?? 0) >= 2) {
 						$todayActions[] = [
 							'level' => $level,
 							'icon' => 'fa-skull-crossbones',
@@ -655,7 +661,7 @@
 			<div class="section-card chart-card">
 				<div class="card-head">
 					<div>
-						<h2 class="card-title mb-0">Tren Produksi & Risiko</h2>
+						<h2 class="card-title mb-0">Tren Produksi & Status</h2>
 						<small class="text-muted">
 							{{ $trendRangeLabel ? 'Rentang ' . $trendRangeLabel : 'Rentang 7 hari terakhir' }}
 						</small>
@@ -696,8 +702,8 @@
 										<th>Kandang / Fase</th>
 										<th>Jadwal Hatcher</th>
 										<th>Rasio Tetas</th>
-										<th>Risiko</th>
-										<th>Tindakan</th>
+										<th>Status</th>
+										<th>Rekomendasi</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -769,7 +775,7 @@
 										<th>Kandang / Fase</th>
 										<th>Target vs Aktual</th>
 										<th>Selisih</th>
-										<th>Risiko</th>
+										<th>Status</th>
 										<th>Rekomendasi</th>
 									</tr>
 								</thead>
@@ -833,7 +839,7 @@
 										<th>Kandang / Fase</th>
 										<th>Rentang Tanggal</th>
 										<th>Mortalitas</th>
-										<th>Risiko</th>
+										<th>Status</th>
 										<th>Rekomendasi</th>
 									</tr>
 								</thead>
