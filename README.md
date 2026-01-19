@@ -1,54 +1,119 @@
-# VigazaFarm
+# VigazaFarm  quail-agribusiness-dss
 
-Platform manajemen peternakan unggas berbasis Laravel yang membantu mencatat aktivitas kandang, produksi, pakan, kesehatan, serta menyediakan kerangka Decision Support System (DSS) untuk rekomendasi berbasis data.
+![Laravel](https://img.shields.io/badge/Laravel-12.0-red?style=flat&logo=laravel)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.0-38B2AC?style=flat&logo=tailwind-css)
+![Python](https://img.shields.io/badge/Python-3.x-blue?style=flat&logo=python)
+![Status](https://img.shields.io/badge/Status-Active-success)
 
-## Fitur singkat
-- Pencatatan batch pembesaran, penetasan, produksi, dan stok pakan
-- Monitor kesehatan, kematian, lingkungan, serta histori pakan/vitamin
-- Alur kerja ML/DSS disiapkan di folder `ml/` untuk rekomendasi berbasis data
-- Skrip terpadu `composer dev` menyalakan server, queue listener, log stream, dan Vite sekaligus
+**VigazaFarm** adalah platform **Decision Support System (DSS)** terintegrasi berbasis web yang dirancang untuk mendukung operasional agribisnis peternakan burung puyuh. Sistem ini mendigitalkan pencatatan (recording), memonitor kondisi kandang secara real-time, dan memberikan rekomendasi keputusan berbasis data menggunakan pendekatan *Config-Driven Rule-Based* dan *Machine Learning*.
 
-## Stack
-- Backend: Laravel 12 (PHP 8.2) – lihat [composer.json](composer.json)
-- Frontend: Vite 7, Tailwind CSS 3 + Forms, Alpine.js, Axios – lihat [package.json](package.json)
-- Database: SQLite (default dev) atau MySQL/MariaDB/PostgreSQL/SQL Server via [config/database.php](config/database.php)
-- Tooling: Laravel Pail (live log), Laravel Pint (format), PHPUnit 11 (test), Laravel Breeze (auth scaffolding)
+Project ini dikembangkan sebagai Tugas Akhir Program Diploma Universitas Amikom Yogyakarta.
 
-## Prasyarat
-- PHP 8.2+, Composer
-- Node.js 18+ dan npm
-- SQLite file local (default) atau kredensial DB server sesuai kebutuhan
+---
 
-## Setup cepat
+## 🚀 Fitur Utama
+
+### 1. Manajemen Operasional Terintegrasi
+* **Penetasan (Hatching):** Pencatatan batch telur masuk, update status (incubating/hatching), dan transfer DOQ.
+* **Pembesaran (Brooding):** Recording harian pakan, kematian (mortalitas), dan kondisi lingkungan untuk fase 0-42 hari.
+* **Produksi (Laying):** Monitoring harian produksi telur, hitung *Hen Day Production* (HDP), dan deteksi puyuh afkir.
+
+### 2. Decision Support System (DSS)
+* **Rule-Based Logic:** Memberikan status kandang otomatis (**Normal**, **Warning**, **Critical**) berdasarkan threshold yang bisa dikonfigurasi (misal: batas kematian > 1%).
+* **Smart Recommendations:** Saran tindakan teknis otomatis saat kondisi kandang memburuk.
+
+### 3. Machine Learning Integration
+* **Prediksi Produksi:** Estimasi hasil telur di masa depan menggunakan model regresi berbasis data historis.
+* **Optimasi Pakan:** Rekomendasi takaran pakan ideal untuk efisiensi biaya (FCR).
+* *(Script Python tersedia di folder `ml/`)*
+
+### 4. Dashboard & Reporting
+* **Visualisasi Data:** Grafik tren interaktif (ApexCharts) untuk produksi, mortalitas, dan pakan.
+* **Laporan Otomatis:** Generate laporan harian/bulanan siap cetak (PDF/Excel).
+* **Role Management:** Akses khusus untuk **Owner** (Full Access + Config) dan **Operator** (Input Data Harian).
+
+---
+
+## 🛠️ Teknologi yang Digunakan
+
+**Backend:**
+* Laravel 12 (PHP ^8.2)
+* MySQL Database
+
+**Frontend:**
+* Vite 7
+* Tailwind CSS 3 (+ Forms Plugin)
+* Alpine.js (Interaktivitas ringan)
+* ApexCharts (Visualisasi Grafik)
+
+**Data Science & ML:**
+* Python 3.x
+* Pandas, Scikit-learn
+* Jupyter Notebooks
+
+---
+
+## 👥 Tim Pengembang
+
+Project ini disusun oleh tim mahasiswa D3 Manajemen Informatika, Universitas Amikom Yogyakarta (2025):
+
+| NIM | Nama | Peran |
+| :--- | :--- | :--- |
+| **23.02.1020** | **Bolopa Kakungnge Walinono** | Fullstack Developer & System Analyst |
+| **23.02.1034** | **Muhammad Fathurrizqi** | Backend & Database Engineer |
+| **23.02.0954** | **Laurel Nanda Bintaryan** | Frontend & UI/UX Designer |
+
+---
+
+## ⚙️ Instalasi & Menjalankan Project
+
+Ikuti langkah berikut untuk menjalankan project di lokal komputer:
+
+### Prasyarat
+* PHP >= 8.2
+* Composer
+* Node.js & NPM
+* Python 3 (untuk fitur ML)
+* MySQL
+
+### Langkah Instalasi
+
+1.  **Clone Repositori**
+    ```bash
+    git clone [https://github.com/username/vigazafarm.git](https://github.com/username/vigazafarm.git)
+    cd vigazafarm
+    ```
+
+2.  **Install Dependensi (Backend & Frontend)**
+    ```bash
+    composer install
+    npm install
+    ```
+
+3.  **Setup Environment**
+    Salin file `.env.example` menjadi `.env` dan sesuaikan konfigurasi database.
+    ```bash
+    cp .env.example .env
+    php artisan key:generate
+    ```
+
+4.  **Database Migration & Seeding**
+    Buat database di MySQL, lalu jalankan migrasi dan seeder untuk data awal (Akun Admin & Konfigurasi Dasar).
+    ```bash
+    php artisan migrate --seed
+    ```
+
+5.  **Setup Python (Opsional untuk ML)**
+    Masuk ke folder `ml/` dan install requirements.
+    ```bash
+    cd ml
+    pip install -r requirements.txt
+    cd ..
+    ```
+
+### Menjalankan Aplikasi
+
+Gunakan perintah kustom yang telah disiapkan untuk menjalankan server Laravel, Queue, dan Vite secara bersamaan:
+
 ```bash
-cp .env.example .env            # atau salin manual di Windows
-composer install
-npm install
-php artisan key:generate
-php artisan migrate             # siapkan database
-```
-
-### Menjalankan mode pengembangan
-- Satu perintah terpadu: `composer run dev`
-- Manual: jalankan `php artisan serve` dan `npm run dev` di terminal terpisah; queue listener dan pail log dapat dijalankan via `php artisan queue:listen --tries=1` dan `php artisan pail --timeout=0`
-
-### Testing dan kualitas kode
-- Jalankan test: `composer test`
-- Format PHP: `./vendor/bin/pint`
-
-### Build frontend produksi
-- `npm run build` akan menghasilkan aset Vite produksi yang dilayani Laravel
-
-## Struktur ringkas
-- [app](app): domain logic (model, controller, DTO, service, middleware)
-- [database](database): migrasi, factory, seeder, dan skema SQL
-- [resources](resources): Blade view, aset Tailwind/Vite, komponen UI
-- [routes](routes): definisi route web, auth, dan console
-- [ml](ml): notebook, data, artifacts, scripts, dan stub serving DSS
-- [config](config): konfigurasi aplikasi, database, cache, queue, mail, dsb.
-
-## Catatan ML/DSS
-Panduan workflow eksperimen, training, dan serving tersedia di [ml/README.md](ml/README.md). Endpoint inferensi dapat diarahkan ke artefak produksi setelah pipeline siap.
-
-## Lisensi
-MIT sesuai lisensi Laravel skeleton.
+composer dev
