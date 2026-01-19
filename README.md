@@ -59,9 +59,9 @@ Project ini disusun oleh tim mahasiswa D3 Manajemen Informatika, Universitas Ami
 
 | NIM | Nama | Peran |
 | :--- | :--- | :--- |
-| **23.02.1020** | **Bolopa Kakungnge Walinono** | **Fullstack Developer**, System Analyst, Backend, Frontend & Database Engineer |
-| **23.02.1034** | **Muhammad Fathurrizqi** | UI/UX Designer, Frontend & Database Engineer |
-| **23.02.0954** | **Laurel Nanda Bintaryan** | QA Engineer & Documentation (Laporan) |
+| **23.02.1020** | **Bolopa Kakungnge Walinono** | **Fullstack Developer**, System Analyst & Database Engineer |
+| **23.02.1034** | **Muhammad Fathurrizqi** | UI/UX Designer, Frontend & Database Support |
+| **23.02.0954** | **Laurel Nanda Bintaryan** | QA Engineer, & Technical Writer & Documentation |
 
 ---
 
