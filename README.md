@@ -1,4 +1,4 @@
-# VigazaFarm  quail-agribusiness-dss
+# VigazaFarm — Integrated Quail Agribusiness DSS
 
 ![Laravel](https://img.shields.io/badge/Laravel-12.0-red?style=flat&logo=laravel)
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.0-38B2AC?style=flat&logo=tailwind-css)
@@ -36,7 +36,7 @@ Project ini dikembangkan sebagai Tugas Akhir Program Diploma Universitas Amikom 
 
 ## 🛠️ Teknologi yang Digunakan
 
-**Backend:**
+**Backend & Database:**
 * Laravel 12 (PHP ^8.2)
 * MySQL Database
 
@@ -59,9 +59,9 @@ Project ini disusun oleh tim mahasiswa D3 Manajemen Informatika, Universitas Ami
 
 | NIM | Nama | Peran |
 | :--- | :--- | :--- |
-| **23.02.1020** | **Bolopa Kakungnge Walinono** | Fullstack Developer & System Analyst |
-| **23.02.1034** | **Muhammad Fathurrizqi** | Backend & Database Engineer |
-| **23.02.0954** | **Laurel Nanda Bintaryan** | Frontend & UI/UX Designer |
+| **23.02.1020** | **Bolopa Kakungnge Walinono** | **Fullstack Developer**, System Analyst, Backend, Frontend & Database Engineer |
+| **23.02.1034** | **Muhammad Fathurrizqi** | UI/UX Designer, Frontend & Database Engineer |
+| **23.02.0954** | **Laurel Nanda Bintaryan** | QA Engineer & Documentation (Laporan) |
 
 ---
 
