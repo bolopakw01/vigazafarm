@@ -53,10 +53,11 @@ class AdminUserSeeder extends Seeder
             DB::table('vf_pengguna')->where('id', $existingOperator->id)->update([
                 'nama_pengguna' => $operatorUsername,
                 'kata_sandi' => Hash::make($operatorPassword),
-                'nama' => 'Operator',
+                'nama' => 'Operator Cokro Sutisno Hadikusumo Mangunkarso TitisanDewo Mangku wanitolimo tanpobusono',
                 'nomor_telepon' => '081111111111',
                 'peran' => 'operator',
-            ]);
+                'alamat' => 'Jl.Inajasi apata hucocok. Lorem ipsum dolor sit amet consectetur adipisicing elit. Alias necessitatibus blanditiis cum dolorum nihil vitae porro, ab ex. Repellendus molestias tenetur porro aut distinctio totam ipsa ducimus est magnam reprehenderit!',
+            ]); 
         } else {
             DB::table('vf_pengguna')->insert([
                 'nama' => 'Operator Cokro Sutisno Hadikusumo Mangunkarso TitisanDewo Mangku wanitolimo tanpobusono',
@@ -65,6 +66,7 @@ class AdminUserSeeder extends Seeder
                 'nomor_telepon' => '081111111111',
                 'kata_sandi' => Hash::make($operatorPassword),
                 'peran' => 'operator',
+                'alamat' => 'Jl.Inajasi apata hucocok. Lorem ipsum dolor sit amet consectetur adipisicing elit. Alias necessitatibus blanditiis cum dolorum nihil vitae porro, ab ex. Repellendus molestias tenetur porro aut distinctio totam ipsa ducimus est magnam reprehenderit!',
                 'surel_terverifikasi_pada' => now(),
                 'dibuat_pada' => now(),
                 'diperbarui_pada' => now(),

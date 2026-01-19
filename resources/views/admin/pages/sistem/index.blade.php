@@ -94,6 +94,8 @@
     .goals-card-icon.revenue { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
     .goals-card-icon.efficiency { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
     .goals-card-icon.quality { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+    .goals-card-icon.dss { background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%); } /* orange gradient for DSS */
+    .goals-card-icon.export { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); } /* purple gradient for export */
 
     .goals-description {
         font-size: 0.85rem;
@@ -218,22 +220,6 @@
                     </a>
                 </div>
             </div>
-            <!-- Feed/Vitamin Settings Card -->
-            <div class="goals-card">
-                <div class="goals-card-icon efficiency">
-                    <i class="fas fa-leaf"></i>
-                </div>
-                <h3 class="goals-card-title">Pakan & Vitamin</h3>
-                <div class="goals-description">
-                    Buat daftar pakan dan vitamin lengkap dengan harga serta satuan untuk dipakai di form produksi.
-                </div>
-                <div class="goals-card-actions">
-                    <a href="{{ route('admin.sistem.pakanvitamin') }}" class="goals-btn goals-btn-primary">
-                        <i class="fas fa-sliders-h"></i>
-                        Set Pakan/Vitamin
-                    </a>
-                </div>
-            </div>
             <!-- Matrix Settings Card -->
             <div class="goals-card">
                 <div class="goals-card-icon revenue">
@@ -245,7 +231,7 @@
                 </div>
                 <div class="goals-card-actions">
                     <a href="{{ route('admin.sistem.matriks') }}" class="goals-btn goals-btn-primary">
-                        <i class="fas fa-sliders-h"></i>
+                        <i class="fas fa-table"></i>
                         Set Matriks
                     </a>
                 </div>
@@ -262,8 +248,25 @@
                 </div>
                 <div class="goals-card-actions">
                     <a href="{{ route('admin.sistem.performance') }}" class="goals-btn goals-btn-primary">
-                        <i class="fas fa-chart-radar"></i>
+                        <i class="fas fa-chart-bar"></i>
                         Set Performance
+                    </a>
+                </div>
+            </div>
+
+            <!-- Feed/Vitamin Settings Card -->
+            <div class="goals-card">
+                <div class="goals-card-icon efficiency">
+                    <i class="fas fa-leaf"></i>
+                </div>
+                <h3 class="goals-card-title">Pakan & Vitamin</h3>
+                <div class="goals-description">
+                    Buat daftar pakan dan vitamin lengkap dengan harga serta satuan untuk dipakai di form produksi.
+                </div>
+                <div class="goals-card-actions">
+                    <a href="{{ route('admin.sistem.pakanvitamin') }}" class="goals-btn goals-btn-primary">
+                        <i class="fas fa-sliders-h"></i>
+                        Set Pakan/Vitamin
                     </a>
                 </div>
             </div>
@@ -295,7 +298,7 @@
                 </div>
             </div>
             <div class="goals-card">
-                <div class="goals-card-icon production">
+                <div class="goals-card-icon dss">
                     <i class="fas fa-brain"></i>
                 </div>
                 <h3 class="goals-card-title">Decision Support</h3>
@@ -310,7 +313,7 @@
                 </div>
             </div>
             <div class="goals-card">
-                <div class="goals-card-icon production">
+                <div class="goals-card-icon export">
                     <i class="fas fa-file-export"></i>
                 </div>
                 <h3 class="goals-card-title">Export Looker Studio</h3>

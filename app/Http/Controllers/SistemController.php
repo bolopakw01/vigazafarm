@@ -403,7 +403,7 @@ class SistemController extends Controller
         ];
     }
 
-    public function getMatrixSnapshot(): array
+    public function getMatrixSnapshot(?int $month = null, ?int $year = null): array
     {
         $matrixData = $this->loadMatrixData();
 
@@ -412,7 +412,7 @@ class SistemController extends Controller
         }
 
         $targets = $matrixData['targets'];
-        $metrics = $this->calculateFinancialMetrics();
+        $metrics = $this->calculateFinancialMetrics($month, $year);
 
         $snapshot = $this->buildMatrixSnapshot($targets, $metrics);
 
@@ -804,10 +804,30 @@ class SistemController extends Controller
         return max((float) $value, 0);
     }
 
-    protected function calculateFinancialMetrics(): array
+    protected function calculateFinancialMetrics(?int $month = null, ?int $year = null): array
     {
-        $pendapatan = $this->resolvePendapatanAggregate();
-        $pengeluaran = $this->resolvePengeluaranAggregate();
+        $period = $this->resolveMatrixPeriodRange($month, $year);
+
+        if ($period) {
+            [$rangeStart, $rangeEnd] = $period;
+            [$activeBatchIds, $activeProduksiIds] = $this->getActiveBatchAndProduksiIds();
+
+            $pendapatanTotal = $this->resolvePendapatanByPeriod($rangeStart->toDateString(), $rangeEnd->toDateString(), $activeBatchIds, $activeProduksiIds);
+            $pengeluaranTotal = $this->resolvePengeluaranByPeriod($rangeStart->toDateString(), $rangeEnd->toDateString(), $activeBatchIds, $activeProduksiIds);
+        
+            $pendapatan = [
+                'total' => $pendapatanTotal,
+                'breakdown' => ['periode' => $pendapatanTotal],
+            ];
+
+            $pengeluaran = [
+                'total' => $pengeluaranTotal,
+                'breakdown' => ['periode' => $pengeluaranTotal],
+            ];
+        } else {
+            $pendapatan = $this->resolvePendapatanAggregate();
+            $pengeluaran = $this->resolvePengeluaranAggregate();
+        }
 
         $laba = $pendapatan['total'] - $pengeluaran['total'];
 
@@ -820,6 +840,27 @@ class SistemController extends Controller
                 'pengeluaran' => $pengeluaran['breakdown'],
             ],
         ];
+    }
+
+    protected function resolveMatrixPeriodRange(?int $month, ?int $year): ?array
+    {
+        if ($month === null && $year === null) {
+            return null;
+        }
+
+        $now = Carbon::now();
+        $resolvedYear = $year ?? $now->year;
+
+        if ($month === null) {
+            $start = Carbon::create($resolvedYear, 1, 1)->startOfYear();
+            $end = Carbon::create($resolvedYear, 12, 31)->endOfYear();
+        } else {
+            $safeMonth = max(1, min(12, $month));
+            $start = Carbon::create($resolvedYear, $safeMonth, 1)->startOfMonth();
+            $end = $start->copy()->endOfMonth();
+        }
+
+        return [$start, $end];
     }
 
     protected function resolvePendapatanAggregate(): array

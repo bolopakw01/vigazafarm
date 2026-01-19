@@ -29,16 +29,45 @@ class AdminController extends Controller
         Pembesaran::class => ['tanggal_masuk', 'tanggal_siap', Pembesaran::CREATED_AT],
     ];
 
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         /**
          * Menampilkan dashboard admin dengan metrik, goals, dan konfigurasi performa.
          * Menggabungkan snapshot matriks, tujuan dashboard, dan dataset aktivitas.
          */
+        $current = Carbon::now();
+        $selectedMonth = (int) $request->query('month', $current->month);
+        $selectedYear = (int) $request->query('year', $current->year);
+
+        if ($selectedMonth < 1 || $selectedMonth > 12) {
+            $selectedMonth = $current->month;
+        }
+
+        if ($selectedYear < 2000 || $selectedYear > ($current->year + 5)) {
+            $selectedYear = $current->year;
+        }
+
+        $bulan = [
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember'
+        ];
+
+        $periodLabel = $bulan[$selectedMonth] . ' ' . $selectedYear;
+
         // Muat tujuan dashboard dari SistemController
         $sistemController = app(SistemController::class);
         $goals = $sistemController->getDashboardGoals();
-        $matrixCards = $sistemController->getMatrixSnapshot();
+        $matrixCards = $sistemController->getMatrixSnapshot($selectedMonth, $selectedYear);
         $matrixEnabled = $sistemController->isMatrixEnabled();
         $activityDatasets = $this->prepareActivityDatasets();
         $performanceChart = $sistemController->getPerformanceChartConfig();
@@ -46,7 +75,7 @@ class AdminController extends Controller
 
         $lookerEmbed = $this->getLookerEmbedConfig();
 
-        return view('admin.dashboard-admin', compact('goals', 'matrixCards', 'matrixEnabled', 'activityDatasets', 'performanceChart', 'performanceHasData', 'lookerEmbed'));
+        return view('admin.dashboard-admin', compact('goals', 'matrixCards', 'matrixEnabled', 'activityDatasets', 'performanceChart', 'performanceHasData', 'lookerEmbed', 'selectedMonth', 'selectedYear', 'periodLabel'));
     }
 
     protected function hasPerformanceData(array $chart): bool
