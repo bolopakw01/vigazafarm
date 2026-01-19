@@ -706,24 +706,24 @@
                                     <div class="form-help">Jumlah baris telur yang muncul sekaligus.</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Warning (Perlu Perhatian) pindah hatcher (hari)</label>
+                                    <label>Peringatan pindah hatcher (hari)</label>
                                     <input type="number" name="config[eggs][hatcher_warning_days]" class="form-control" min="0" max="14" value="{{ old('config.eggs.hatcher_warning_days', data_get($config, 'eggs.hatcher_warning_days')) }}">
-                                    <div class="form-help">Berapa hari sebelum due date status menjadi kuning. Saran: 2-3 hari.</div>
+                                    <div class="form-help">Hari sebelum jadwal pindah ke hatcher saat status kuning.</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Critical (Darurat) pindah hatcher (hari)</label>
+                                    <label>Darurat pindah hatcher (hari)</label>
                                     <input type="number" name="config[eggs][hatcher_critical_days]" class="form-control" min="0" max="14" value="{{ old('config.eggs.hatcher_critical_days', data_get($config, 'eggs.hatcher_critical_days')) }}">
-                                    <div class="form-help">Lewat angka ini status merah. Saran: 0-1 hari.</div>
+                                    <div class="form-help">Lewat angka ini status merah (darurat).</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Warning (Perlu Perhatian) hatch rate (%)</label>
+                                    <label>Peringatan hatch rate min (%)</label>
                                     <input type="number" step="0.1" name="config[eggs][hatch_rate_warning]" class="form-control" min="0" max="100" value="{{ old('config.eggs.hatch_rate_warning', data_get($config, 'eggs.hatch_rate_warning')) }}">
-                                    <div class="form-help">Persentase tetas minimum sebelum muncul peringatan. Saran: 85-88%.</div>
+                                    <div class="form-help">Di bawah angka ini hatch rate dianggap perlu perhatian (kuning).</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Critical (Darurat) hatch rate (%)</label>
+                                    <label>Darurat hatch rate min (%)</label>
                                     <input type="number" step="0.1" name="config[eggs][hatch_rate_critical]" class="form-control" min="0" max="100" value="{{ old('config.eggs.hatch_rate_critical', data_get($config, 'eggs.hatch_rate_critical')) }}">
-                                    <div class="form-help">Di bawah angka ini dianggap gawat. Saran: 80-82%.</div>
+                                    <div class="form-help">Di bawah angka ini hatch rate dianggap darurat (merah).</div>
                                 </div>
                             </div>
                             <div class="config-card-foot">Ideal untuk menyelaraskan SOP pindah setter → hatcher dengan indikator di DSS.</div>
@@ -749,14 +749,14 @@
                                     <div class="form-help">Dipakai untuk rata-rata konsumsi harian. Saran: 7 hari.</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Batas Warning (Perlu Perhatian) — rasio</label>
+                                    <label>Peringatan selisih pakan (rasio)</label>
                                     <input type="number" step="0.01" name="config[feed][warning_ratio]" class="form-control" min="0" max="1" value="{{ old('config.feed.warning_ratio', data_get($config, 'feed.warning_ratio')) }}">
-                                    <div class="form-help">Masukkan 0.10 untuk toleransi ±10%. Saran: 0.10.</div>
+                                    <div class="form-help">Contoh 0.10 berarti konsumsi boleh beda sekitar 10% dari normal.</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Batas Critical (Darurat) — rasio</label>
+                                    <label>Darurat selisih pakan (rasio)</label>
                                     <input type="number" step="0.01" name="config[feed][critical_ratio]" class="form-control" min="0" max="1" value="{{ old('config.feed.critical_ratio', data_get($config, 'feed.critical_ratio')) }}">
-                                    <div class="form-help">Di atas angka ini dianggap sangat janggal. Saran: 0.20.</div>
+                                    <div class="form-help">Di atas angka ini selisih dianggap tidak wajar (merah). Saran: 0.20.</div>
                                 </div>
                             </div>
                             <div class="config-card-foot">Parameter ini memengaruhi target vs aktual pada widget pakan.</div>
@@ -782,14 +782,14 @@
                                     <div class="form-help">Batasi jumlah kartu agar mudah dipantau.</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Batas Warning (Perlu Perhatian) — % populasi</label>
+                                    <label>Peringatan kematian (% populasi)</label>
                                     <input type="number" step="0.1" name="config[mortality][warning_pct]" class="form-control" min="0" max="100" value="{{ old('config.mortality.warning_pct', data_get($config, 'mortality.warning_pct')) }}">
-                                    <div class="form-help">Persentase mortalitas yang menyalakan warna kuning. Saran: 0.3-0.5%.</div>
+                                    <div class="form-help">Melebihi persentase ini status kuning. Saran: 0.3-0.5%.</div>
                                 </div>
                                 <div class="form-group compact">
-                                    <label>Batas Critical (Darurat) — % populasi</label>
+                                    <label>Darurat kematian (% populasi)</label>
                                     <input type="number" step="0.1" name="config[mortality][critical_pct]" class="form-control" min="0" max="100" value="{{ old('config.mortality.critical_pct', data_get($config, 'mortality.critical_pct')) }}">
-                                    <div class="form-help">Persentase mortalitas yang dianggap gawat. Saran: 0.8-1%.</div>
+                                    <div class="form-help">Melebihi persentase ini dianggap gawat (merah). Saran: 0.8-1%.</div>
                                 </div>
                             </div>
                             <div class="config-card-foot">Gunakan angka ini untuk menyelaraskan SOP penanganan kematian produksi & pembesaran.</div>
@@ -800,8 +800,8 @@
                 <div class="settings-section mode-panel mode-ml {{ $currentMode === 'ml' ? 'active' : '' }}" data-panel="ml">
                     <h4><i class="fas fa-robot"></i> Parameter Machine Learning</h4>
                     <p class="section-hint">
-                        <strong>Semua prediksi memakai data yang sudah dicatat di sistem.</strong><br>
-                        Tidak ada parameter tambahan yang perlu diisi ketika mode ML aktif.
+                        <strong>Prediksi utama memakai data historis yang sudah dicatat di sistem.</strong><br>
+                        Simulasi produksi tambahan menggunakan dataset paket di <code>ml/data/dataset_puyuh_180_hari.csv</code> dan input yang Anda isi di halaman DSS. Tidak ada parameter khusus yang perlu diatur di halaman ini saat mode ML aktif.
                     </p>
 
                     <div class="ml-features-grid">
@@ -811,7 +811,7 @@
                             </div>
                             <div class="ml-feature-content">
                                 <h5>Produksi Telur</h5>
-                                <p>Forecasting harian dari histori pencatatan produksi untuk memprediksi output telur per hari.</p>
+                                <p>Prediksi produksi harian dari histori pencatatan. Dipakai juga sebagai basis simulasi Dataset-KNN di halaman DSS.</p>
                             </div>
                         </div>
                         <div class="ml-feature-card">
@@ -829,7 +829,7 @@
                             </div>
                             <div class="ml-feature-content">
                                 <h5>Mortalitas / Outbreak</h5>
-                                <p>Deteksi anomali menggunakan log kematian untuk mengidentifikasi pola outbreak dini.</p>
+                                <p>Deteksi anomali sederhana dari log kematian untuk mengidentifikasi pola outbreak dini.</p>
                             </div>
                         </div>
                         <div class="ml-feature-card">
@@ -838,7 +838,7 @@
                             </div>
                             <div class="ml-feature-content">
                                 <h5>Optimasi Harga</h5>
-                                <p>Rekomendasi harga jual berdasarkan forecast produksi dan analisis biaya pakan.</p>
+                                <p>Rekomendasi harga jual berdasarkan biaya produksi dan target margin, selaras dengan simulasi harga di halaman DSS.</p>
                             </div>
                         </div>
                         <div class="ml-feature-card">
@@ -857,9 +857,9 @@
                             <i class="fas fa-info-circle"></i>
                             <h5>Status Model</h5>
                         </div>
-                        <p>Model ML akan otomatis menggunakan data terbaru dari sistem. Pastikan data historis pencatatan produksi, pakan, dan kematian sudah tercatat dengan baik untuk akurasi prediksi yang optimal.</p>
+                        <p>Modul ML dan simulasi akan otomatis menggunakan data terbaru yang tercatat serta dataset paket puyuh 180 hari. Pastikan pencatatan produksi, pakan, dan kematian rutin diisi agar insight dan simulasi tetap relevan.</p>
                         <div class="ml-status-note">
-                            <strong>Catatan:</strong> Aktifkan mode ML, simpan pengaturan, dan halaman DSS akan langsung menampilkan insight prediktif tersebut.
+                            <strong>Catatan:</strong> Mode ML saat ini menggabungkan insight berbasis data historis dan simulasi Dataset-KNN (tampilan: Mode Dataset-KNN di halaman DSS). Artefak model lanjutan dapat ditambahkan di folder <code>ml/artifacts</code> tanpa mengubah pengaturan di sini.
                         </div>
                     </div>
                 </div>

@@ -231,6 +231,9 @@ class AdminController extends Controller
                 'id' => $kandang->id,
                 'label' => $kandang->nama_dengan_detail,
                 'tipe' => $kandang->tipe_kandang,
+                'kapasitas_total' => $kandang->kapasitas_total,
+                'kapasitas_terpakai' => $kandang->kapasitas_terpakai,
+                'kapasitas_tersisa' => $kandang->kapasitas_tersisa,
             ])
             ->values();
 

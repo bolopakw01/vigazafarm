@@ -6,8 +6,8 @@ return [
         'max_batches' => 5,
         'hatcher_warning_days' => 2,
         'hatcher_critical_days' => 0,
-        'hatch_rate_warning' => 85,
-        'hatch_rate_critical' => 70,
+        'hatch_rate_warning' => 87,
+        'hatch_rate_critical' => 80,
     ],
 
     'feed' => [
@@ -42,8 +42,8 @@ return [
 
     'mortality' => [
         'window_days' => 3,
-        'warning_pct' => 3,
-        'critical_pct' => 5,
+        'warning_pct' => 0.5,
+        'critical_pct' => 1.0,
         'max_items' => 4,
     ],
 

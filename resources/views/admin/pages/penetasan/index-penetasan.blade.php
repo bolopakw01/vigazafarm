@@ -11,6 +11,42 @@
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('bolopa/css/admin-penetasan.css?v=' . time()) }}">
+<style>
+.capacity-info-card {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 13px;
+}
+
+.capacity-info-card.capacity-warning {
+    border-color: #f97316;
+    background: #fff7ed;
+    color: #9a3412;
+}
+
+.capacity-info-icon {
+    color: #64748b;
+    font-size: 16px;
+}
+
+.capacity-info-title {
+    font-weight: 600;
+    font-size: 12px;
+    color: #374151;
+    margin-bottom: 2px;
+}
+
+.capacity-info-text {
+    color: #6b7280;
+    font-size: 13px;
+}
+</style>
 @endpush
 
 @section('content')
@@ -525,13 +561,16 @@
         hatcherKandangOptions.forEach(option => {
             const value = option?.id ?? '';
             const labelRaw = option?.label ?? `Kandang #${value}`;
+            const kapasitasTotal = option?.kapasitas_total ?? 0;
+            const kapasitasTerpakai = option?.kapasitas_terpakai ?? 0;
+            const kapasitasTersisa = option?.kapasitas_tersisa ?? 0;
             const safeLabel = String(labelRaw)
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;');
             const isSelected = selectedStr !== '' && String(value) === selectedStr ? 'selected' : '';
-            options.push(`<option value="${value}" ${isSelected}>${safeLabel}</option>`);
+            options.push(`<option value="${value}" data-kapasitas-total="${kapasitasTotal}" data-kapasitas-terpakai="${kapasitasTerpakai}" data-kapasitas-tersisa="${kapasitasTersisa}" ${isSelected}>${safeLabel}</option>`);
         });
 
         return options.join('');
@@ -1251,6 +1290,17 @@
                             <select id="sw-hatcher-select" class="form-control" style="width:100%;padding:12px 10px;font-size:1rem;border-radius:10px;border:1px solid #dbeafe;${hasOptions ? '' : 'background:#f3f4f6;'}" ${hasOptions ? '' : 'disabled'}>
                                 ${selectOptions}
                             </select>
+                            <div id="sw-hatcher-capacity-info" class="capacity-info-card" style="margin-top:8px;display:none;">
+                                <div class="capacity-info-icon">
+                                    <i class="fa-solid fa-battery-half"></i>
+                                </div>
+                                <div>
+                                    <div class="capacity-info-title">Sisa Kapasitas</div>
+                                    <div id="sw-hatcher-capacity-text" class="capacity-info-text">
+                                        Pilih kandang untuk melihat stok tersisa.
+                                    </div>
+                                </div>
+                            </div>
                             <small style="display:block;margin-top:6px;color:#64748b;">Pilih kandang Hatcher yang tersedia.</small>
                         </div>
 
@@ -1307,6 +1357,33 @@
                     },
                     moveUrl
                 };
+            },
+            didOpen: () => {
+                const selectEl = document.getElementById('sw-hatcher-select');
+                const capacityInfo = document.getElementById('sw-hatcher-capacity-info');
+                const capacityText = document.getElementById('sw-hatcher-capacity-text');
+
+                if (selectEl && capacityInfo && capacityText) {
+                    const updateCapacityDisplay = () => {
+                        const selectedOption = selectEl.options[selectEl.selectedIndex];
+                        if (!selectedOption || !selectedOption.value) {
+                            capacityInfo.style.display = 'none';
+                            return;
+                        }
+
+                        const total = parseInt(selectedOption.getAttribute('data-kapasitas-total') || '0', 10);
+                        const terpakai = parseInt(selectedOption.getAttribute('data-kapasitas-terpakai') || '0', 10);
+                        const tersisa = parseInt(selectedOption.getAttribute('data-kapasitas-tersisa') || '0', 10);
+
+                        capacityText.innerHTML = `Sisa <strong>${new Intl.NumberFormat('id-ID').format(tersisa)}</strong> dari ${new Intl.NumberFormat('id-ID').format(total)} slot (terpakai ${new Intl.NumberFormat('id-ID').format(terpakai)})`;
+                        capacityInfo.style.display = 'flex';
+                        capacityInfo.classList.toggle('capacity-warning', tersisa <= 0);
+                    };
+
+                    selectEl.addEventListener('change', updateCapacityDisplay);
+                    // Initial update
+                    updateCapacityDisplay();
+                }
             }
         }).then(result => {
             if (result.isConfirmed && result.value) {

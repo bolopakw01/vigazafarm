@@ -112,13 +112,34 @@ class DssMlService
         };
 
         $predEggs = round($weightedAvg('produksi_telur_butir'), 0);
-        $predCostPerEgg = round($weightedAvg('biaya_per_butir'), 2);
-        $suggestedPrice = round($predCostPerEgg * (1 + $margin), 2);
-        $feedCostPerDay = round(($pakan / 1000) * $hargaPakan, 2);
-        $profitPerDay = round(($suggestedPrice - $predCostPerEgg) * $predEggs, 2);
+        $predCostPerEggRaw = $weightedAvg('biaya_per_butir');
+        $predCostPerEgg = $this->roundRupiahNominal($predCostPerEggRaw);
+        $suggestedPriceRaw = $predCostPerEgg * (1 + $margin);
+        $suggestedPrice = $this->roundRupiahNominal($suggestedPriceRaw);
+        $feedCostPerDayRaw = ($pakan / 1000) * $hargaPakan;
+        $feedCostPerDay = $this->roundRupiahNominal($feedCostPerDayRaw);
+        $profitPerDayRaw = ($suggestedPrice - $predCostPerEgg) * $predEggs;
+        $profitPerDay = $this->roundRupiahNominal($profitPerDayRaw);
 
         $chartSeries = $dataset->sortBy('tanggal')->values();
         $chartSlice = $chartSeries->take(30);
+
+        $eggValues = $dataset->pluck('produksi_telur_butir')->map(fn ($v) => (float) $v)->values();
+        $maxEggs = $eggValues->max() ?? 0;
+        $minEggs = $eggValues->min() ?? 0;
+        $avgEggs = $eggValues->avg() ?? 0;
+        $okThreshold = $maxEggs > 0 ? $maxEggs * 0.8 : null;
+        $warningThreshold = $maxEggs > 0 ? $maxEggs * 0.6 : null;
+
+        $feedValues = $dataset->pluck('pakan_g_per_hari')->map(fn ($v) => (float) $v)->values();
+        $minFeed = $feedValues->min() ?? null;
+        $maxFeed = $feedValues->max() ?? null;
+        $avgFeed = $feedValues->avg() ?? null;
+
+        $proteinValues = $dataset->pluck('protein_persen')->map(fn ($v) => (float) $v)->values();
+        $minProtein = $proteinValues->min() ?? null;
+        $maxProtein = $proteinValues->max() ?? null;
+        $avgProtein = $proteinValues->avg() ?? null;
 
         return [
             'input' => [
@@ -152,6 +173,25 @@ class DssMlService
                 'eggs' => $chartSlice->pluck('produksi_telur_butir')->map(fn ($v) => (float) $v)->values()->all(),
                 'cost' => $chartSlice->pluck('biaya_per_butir')->map(fn ($v) => (float) $v)->values()->all(),
             ],
+            'meta' => [
+                'eggs' => [
+                    'min' => $minEggs,
+                    'max' => $maxEggs,
+                    'avg' => $avgEggs,
+                    'ok_threshold' => $okThreshold,
+                    'warning_threshold' => $warningThreshold,
+                ],
+                'feed' => [
+                    'min' => $minFeed,
+                    'max' => $maxFeed,
+                    'avg' => $avgFeed,
+                ],
+                'protein' => [
+                    'min' => $minProtein,
+                    'max' => $maxProtein,
+                    'avg' => $avgProtein,
+                ],
+            ],
         ];
     }
 
@@ -180,6 +220,15 @@ class DssMlService
                 }
                 return $item;
             });
+    }
+
+    protected function roundRupiahNominal(float $value, int $step = 100): float
+    {
+        if ($step <= 0) {
+            return round($value);
+        }
+
+        return (float) (round($value / $step) * $step);
     }
 
     protected function euclideanDistance(array $a, array $b): float

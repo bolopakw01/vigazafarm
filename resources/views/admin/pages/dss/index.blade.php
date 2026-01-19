@@ -329,6 +329,33 @@
 			flex-direction: column;
 			gap: 6px;
 		}
+		.sim-reco-box {
+			display: flex;
+			align-items: flex-start;
+			gap: 12px;
+			border-radius: 14px;
+			border: 1px solid #e0f2fe;
+			background: #f0f9ff;
+			padding: 12px 14px;
+		}
+		.sim-reco-icon {
+			width: 32px;
+			height: 32px;
+			border-radius: 999px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: #fee2e2;
+			color: #f97316;
+			flex-shrink: 0;
+		}
+		.sim-reco-tag {
+			font-size: 0.75rem;
+			text-transform: uppercase;
+			letter-spacing: 0.08em;
+			color: #64748b;
+			margin-bottom: 2px;
+		}
 		.sim-quick-actions {
 			display: flex;
 			flex-wrap: wrap;
@@ -948,7 +975,7 @@
 					<div class="ml-card eggs">
 						<h3><i class="fa-solid fa-egg"></i> Prediksi Telur</h3>
 						@if($simPred)
-							<div class="ml-value">{{ number_format((float) $simPred['telur_per_hari']) }}<small> butir / hari</small></div>
+							<div class="ml-value">{{ number_format((float) $simPred['telur_per_hari'], 0, ',', '.') }}<small> butir / hari</small></div>
 						@else
 							<div class="ml-value empty">—</div>
 							<small class="text-muted">Isi form untuk melihat prediksi Telur</small>
@@ -957,7 +984,7 @@
 					<div class="ml-card cost">
 						<h3><i class="fa-solid fa-calculator"></i> Biaya Produksi</h3>
 						@if($simPred)
-							<div class="ml-value">{{ number_format((float) $simPred['biaya_per_butir'], 0) }}<small> rupiah / butir</small></div>
+							<div class="ml-value">{{ number_format((float) $simPred['biaya_per_butir'], 0, ',', '.') }}<small> rupiah / butir</small></div>
 						@else
 							<div class="ml-value empty">—</div>
 							<small class="text-muted">Isi form untuk melihat biaya</small>
@@ -966,7 +993,7 @@
 					<div class="ml-card price">
 						<h3><i class="fa-solid fa-tag"></i> Harga Jual Rekomendasi</h3>
 						@if($simPred)
-							<div class="ml-value">{{ number_format((float) $simPred['harga_rekomendasi'], 0) }}<small> rupiah / butir</small></div>
+							<div class="ml-value">{{ number_format((float) $simPred['harga_rekomendasi'], 0, ',', '.') }}<small> rupiah / butir</small></div>
 						@else
 							<div class="ml-value empty">—</div>
 							<small class="text-muted">Isi form untuk melihat rekomendasi harga</small>
@@ -997,11 +1024,14 @@
 							'Protein' => $simInput['protein_persen'] ?? null,
 							'Margin' => $simInput['margin_persen'] ?? null,
 						];
+						$simMetaEggs = $simulation ? data_get($simulation, 'meta.eggs', []) : [];
+						$eggsOkThreshold = $simMetaEggs['ok_threshold'] ?? null;
+						$eggsWarningThreshold = $simMetaEggs['warning_threshold'] ?? null;
 						$simPredMarginPct = null;
 						$statusMarginLevel = 'info';
 						$statusBiayaLevel = 'info';
 						$statusProduksiLevel = 'info';
-						$systemStatusLabel = ($mlStatus === 'ready' && ($modelVersion ?? 'untrained') !== 'untrained') ? 'Ready' : (($mlStatus === 'ready') ? 'Untrained' : 'Not Ready');
+						$systemStatusLabel = 'Dataset-KNN';
 						if($simPred) {
 							$marginNom = ($simPred['harga_rekomendasi'] ?? 0) - ($simPred['biaya_per_butir'] ?? 0);
 							$simPredMarginPct = ($simPred['biaya_per_butir'] ?? 0) > 0
@@ -1013,9 +1043,16 @@
 							$statusBiayaLevel = ($simPred['biaya_per_butir'] ?? 0) <= 350
 								? 'ok'
 								: (($simPred['biaya_per_butir'] ?? 0) <= 450 ? 'warning' : 'critical');
-							$statusProduksiLevel = ($simPred['telur_per_hari'] ?? 0) >= 850
-								? 'ok'
-								: (($simPred['telur_per_hari'] ?? 0) >= 700 ? 'warning' : 'critical');
+							$eggsPerHari = (float) ($simPred['telur_per_hari'] ?? 0);
+							if($eggsOkThreshold && $eggsWarningThreshold) {
+								$statusProduksiLevel = $eggsPerHari >= $eggsOkThreshold
+									? 'ok'
+									: ($eggsPerHari >= $eggsWarningThreshold ? 'warning' : 'critical');
+							} else {
+								$statusProduksiLevel = $eggsPerHari >= 850
+									? 'ok'
+									: ($eggsPerHari >= 700 ? 'warning' : 'critical');
+							}
 						}
 						$actionLine = null;
 						if($statusProduksiLevel === 'critical') {
@@ -1037,8 +1074,11 @@
 					<div class="section-card mt-3">
 						<h2 class="card-title mb-3"><i class="fa-solid fa-lightbulb text-warning"></i> Rekomendasi Tindakan</h2>
 						@if($simPred)
-							<div class="alert alert-info border-0 bg-light">
-								<p class="mb-0">{{ $actionLine }}</p>
+							<div class="sim-reco-box">
+								<div>
+									<div class="sim-reco-tag">Saran berdasarkan simulasi ini</div>
+									<p class="mb-0">{{ $actionLine }}</p>
+								</div>
 							</div>
 						@else
 							<div class="alert alert-secondary border-0">
@@ -1055,8 +1095,8 @@
 										<span class="status-pill {{ $statusProduksiLevel }}">Produksi: {{ $statusProduksiLevel === 'ok' ? 'Sehat' : ($statusProduksiLevel === 'warning' ? 'Waspada' : 'Rendah') }}</span>
 										<span class="status-pill {{ $statusBiayaLevel }}">Biaya: {{ $statusBiayaLevel === 'ok' ? 'Terkendali' : ($statusBiayaLevel === 'warning' ? 'Waspada' : 'Tinggi') }}</span>
 										<span class="status-pill {{ $statusMarginLevel }}">Margin: @if($simPredMarginPct === null) N/A @else {{ number_format($simPredMarginPct, 1) }}% @endif</span>
-										<span class="status-pill {{ $statusClass }}">Status: {{ $systemStatusLabel }}</span>
-										<small class="text-muted">Model: {{ $modelVersion ?? 'untrained' }} • Data: {{ strtoupper($dataSource ?? 'live') }}</small>
+										<span class="status-pill {{ $statusClass }}">Mode: {{ $systemStatusLabel }}</span>
+										<small class="text-muted">Data: dataset_puyuh_180_hari.csv</small>
 									</div>
 								@else
 									<p class="mb-0 text-muted">Status operasional belum tersedia. Jalankan simulasi untuk melihat indikator kondisi sistem berdasarkan prediksi ML.</p>
@@ -1065,8 +1105,9 @@
 							<div class="sim-ops-box">
 								<h6><i class="fa-solid fa-clipboard-list"></i> Catatan Simulasi</h6>
 								@if($simPred)
-									<p>Input: {{ $simInputDisplay['Umur'] ?? '—' }} hari, {{ $simInputDisplay['Pakan'] ?? '—' }} g, protein {{ $simInputDisplay['Protein'] ?? '—' }}%, margin {{ $simInputDisplay['Margin'] ?? '—' }}%</p>
-									<p>Hasil: {{ number_format((float) $simPred['telur_per_hari']) }} butir ({{ $statusProduksiLevel === 'ok' ? 'Sehat' : ($statusProduksiLevel === 'warning' ? 'Waspada' : 'Rendah') }}), biaya {{ number_format((float) $simPred['biaya_per_butir'], 0) }} Rp/butir ({{ $statusBiayaLevel === 'ok' ? 'Terkendali' : ($statusBiayaLevel === 'warning' ? 'Waspada' : 'Tinggi') }}), harga {{ number_format((float) $simPred['harga_rekomendasi'], 0) }} Rp/butir (Margin {{ $simPredMarginPct === null ? 'N/A' : number_format($simPredMarginPct, 1) . '%' }})</p>
+									<div class="alert alert-info border-0">
+										<strong>Simulasi berhasil:</strong> Dengan input umur {{ $simInputDisplay['Umur'] ?? '—' }} hari, pakan {{ $simInputDisplay['Pakan'] ?? '—' }}g/hari, protein {{ $simInputDisplay['Protein'] ?? '—' }}%, dan margin {{ $simInputDisplay['Margin'] ?? '—' }}%, diperkirakan menghasilkan {{ number_format((float) $simPred['telur_per_hari'], 0, ',', '.') }} butir telur per hari dengan biaya {{ number_format((float) $simPred['biaya_per_butir'], 0, ',', '.') }} Rp/butir dan harga rekomendasi {{ number_format((float) $simPred['harga_rekomendasi'], 0, ',', '.') }} Rp/butir.
+									</div>
 								@else
 									<p class="mb-0 text-muted">Belum ada catatan. Jalankan simulasi dulu.</p>
 								@endif
@@ -1095,6 +1136,7 @@
 	<script>
 		document.addEventListener('DOMContentLoaded', function () {
 			const hasChart = typeof Chart !== 'undefined';
+			const simMeta = @json($simulation['meta'] ?? []);
 
 			// ApexChart for simulation
 			@if($simulation)
@@ -1296,9 +1338,24 @@
 				}
 			}
 
-			// Quick scenario buttons: tweak inputs then submit
 			const simForm = document.querySelector('.sim-section-highlight form') || document.querySelector('form.sim-section-highlight');
 			const actionButtons = document.querySelectorAll('.sim-quick-action');
+			const metaFeed = simMeta.feed || {};
+			const metaProtein = simMeta.protein || {};
+			const feedMin = typeof metaFeed.min === 'number' ? metaFeed.min : null;
+			const feedMax = typeof metaFeed.max === 'number' ? metaFeed.max : null;
+			const proteinMin = typeof metaProtein.min === 'number' ? metaProtein.min : null;
+			const proteinMax = typeof metaProtein.max === 'number' ? metaProtein.max : null;
+			const clampValue = (value, min, max) => {
+				let v = value;
+				if (typeof min === 'number') {
+					v = Math.max(v, min);
+				}
+				if (typeof max === 'number') {
+					v = Math.min(v, max);
+				}
+				return v;
+			};
 			actionButtons.forEach((btn) => {
 				btn.addEventListener('click', () => {
 					if (!simForm) return;
@@ -1313,7 +1370,14 @@
 							const input = simForm.querySelector(`[name="${field}"]`);
 							if (!input) return;
 							const current = Number(input.value || 0);
-							const next = Math.max(0, current + Number(delta || 0));
+							let next = current + Number(delta || 0);
+							if (field === 'pakan_g_per_hari') {
+								next = clampValue(next, feedMin ?? 0, feedMax ?? null);
+							} else if (field === 'protein_persen') {
+								next = clampValue(next, proteinMin ?? 0, proteinMax ?? null);
+							} else {
+								next = Math.max(0, next);
+							}
 							input.value = Number.isFinite(next) ? next : current;
 						});
 						simForm.submit();
@@ -1325,7 +1389,14 @@
 					const input = simForm.querySelector(`[name="${field}"]`);
 					if (!input) return;
 					const current = Number(input.value || 0);
-					const next = Math.max(0, current + delta);
+					let next = current + delta;
+					if (field === 'pakan_g_per_hari') {
+						next = clampValue(next, feedMin ?? 0, feedMax ?? null);
+					} else if (field === 'protein_persen') {
+						next = clampValue(next, proteinMin ?? 0, proteinMax ?? null);
+					} else {
+						next = Math.max(0, next);
+					}
 					input.value = Number.isFinite(next) ? next : current;
 					simForm.submit();
 				});

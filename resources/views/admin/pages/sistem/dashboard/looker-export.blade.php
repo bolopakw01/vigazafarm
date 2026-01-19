@@ -182,8 +182,13 @@
     }
 
     .download-hint {
-        font-size: 0.85rem;
-        opacity: 0.9;
+        font-size: 0.75rem !important;
+        opacity: 0.8 !important;
+        font-style: italic !important;
+        text-align: left !important;
+        color: #9f9f9f !important;
+        margin: 8px !important;
+        max-width: none !important;
     }
 
     .file-list {
@@ -442,10 +447,21 @@
                 <div class="download-buttons">
                     <a href="{{ route('admin.sistem.looker.export.download.flat') }}" class="btn-download">
                         <i class="fa-solid fa-file-csv"></i>
-                        Unduh CSV (Looker Ready)
+                        CSV Operasional Harian
+                    </a>
+                    <a href="{{ route('admin.sistem.looker.export.download') }}" class="btn-download btn-download-outline">
+                        <i class="fa-solid fa-box-archive"></i>
+                        Bundle Master (Semua Tabel)
+                    </a>
+                    <a href="{{ route('admin.sistem.looker.export.download.csv') }}" class="btn-download btn-download-outline">
+                        <i class="fa-solid fa-layer-group"></i>
+                        Paket Profesional (3 CSV)
                     </a>
                 </div>
-                <p class="download-hint">CSV ini sudah mencakup kolom meta dan nilai terhitung untuk laporan operasional harian. Langsung sambungkan ke Looker Studio via Google Sheets atau upload file.</p>
+                <p class="download-hint">
+                    <i class="fa-solid fa-lightbulb text-warning me-1"></i>
+                    CSV Operasional Harian berisi laporan harian siap pakai. Bundle Master berisi seluruh tabel mentah (penetasan, pembesaran, produksi, pakan, kematian, kandang, users, dll.) lengkap dengan schema_manifest.json untuk mapping di Looker Studio. Paket Profesional berisi 3 CSV terkurasi: laporan_operasional_harian, master_status_populasi, dan stok_inventaris.
+                </p>
 
             @php $embedEnabled = data_get($embedConfig, 'enabled'); @endphp
             <form action="{{ route('admin.sistem.looker.export.embed') }}" method="POST" class="mt-4">

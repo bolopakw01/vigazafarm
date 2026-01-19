@@ -209,7 +209,7 @@ class LookerExportController extends Controller
     {
         $default = [
             'enabled' => false,
-            'url' => 'https://lookerstudio.google.com/embed/reporting/5bed3c6a-124c-4618-808c-3e8b4844281b/page/IPljF',
+            'url' => 'https://lookerstudio.google.com/embed/reporting/',
         ];
 
         if (!Storage::disk('local')->exists('looker_embed.json')) {
