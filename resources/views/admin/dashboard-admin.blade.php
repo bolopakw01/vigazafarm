@@ -918,7 +918,8 @@ $breadcrumbs = [['label' => 'Backoffice', 'link' => route('admin.dashboard')]];
 <script src="{{ asset('bolopa/plugin/apexcharts/apexcharts.min.js') }}"></script>
 <script>
 	// replicate mainChart + filters and radar chart + export menu and animations from lopadashboard.html
-        document.addEventListener('DOMContentLoaded', function() {
+        (function() {
+            function initializeDashboardCharts() {
             // Check if chart containers exist
             const mainChartContainer = document.querySelector('#mainChart');
             const radarChartContainer = document.querySelector('#radarChart');
@@ -1171,16 +1172,19 @@ $breadcrumbs = [['label' => 'Backoffice', 'link' => route('admin.dashboard')]];
             let mainChart;
             try {
                 mainChart = new ApexCharts(mainChartContainer, mainOpts);
-                mainChart.render();
-
-                // Ensure chart is visible after rendering
                 setTimeout(() => {
-                    if (mainChartContainer.querySelector('svg')) {
-                        console.log('Main chart rendered successfully');
-                    } else {
-                        console.warn('Main chart SVG not found after render');
-                    }
-                }, 100);
+                    mainChart.render();
+                    setTimeout(() => {
+                        if (mainChartContainer.querySelector('svg')) {
+                            console.log('Main chart rendered successfully');
+                        } else {
+                            console.warn('Main chart SVG not found after render');
+                        }
+                        if (typeof mainChart.resize === 'function') {
+                            mainChart.resize();
+                        }
+                    }, 80);
+                }, 120);
             } catch (error) {
                 console.error('Error initializing main chart:', error);
                 // Fallback: show a message in the container
@@ -1448,7 +1452,14 @@ $breadcrumbs = [['label' => 'Backoffice', 'link' => route('admin.dashboard')]];
                 let currentChartType = 'radar';
                 try {
                     radarChart = new ApexCharts(radarChartContainer, radarOptions);
-                    radarChart.render();
+                    setTimeout(() => {
+                        radarChart.render();
+                        setTimeout(() => {
+                            if (typeof radarChart.resize === 'function') {
+                                radarChart.resize();
+                            }
+                        }, 50);
+                    }, 100);
                 } catch (error) {
                     console.error('Error initializing radar chart:', error);
                     // Fallback: show a message in the container
@@ -1634,6 +1645,14 @@ $breadcrumbs = [['label' => 'Backoffice', 'link' => route('admin.dashboard')]];
                         }
                     });
                 })();
+                window.addEventListener('resize', () => {
+                    if (mainChart && typeof mainChart.resize === 'function') {
+                        mainChart.resize();
+                    }
+                    if (typeof radarChart !== 'undefined' && radarChart && typeof radarChart.resize === 'function') {
+                        radarChart.resize();
+                    }
+                });
             } else {
                 if (!radarChartContainer) {
                     console.warn('Radar chart container not found, skipping radar initialization');
@@ -1768,7 +1787,14 @@ $breadcrumbs = [['label' => 'Backoffice', 'link' => route('admin.dashboard')]];
                     setTimeout(() => animate(v, 0, target, 900, currency !== '', currency), i * 140);
                 });
             })();
-        });
+        }
+
+        if (document.readyState !== 'loading') {
+            initializeDashboardCharts();
+        } else {
+            document.addEventListener('DOMContentLoaded', initializeDashboardCharts);
+        }
+        })();
 </script>
 <script src="{{ asset('bolopa/js/bootstrap.bundle.min.js') }}"></script>
 @endpush
