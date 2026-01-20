@@ -10,9 +10,6 @@ class Produksi extends Model
     use SyncsKandangMaintenance;
     protected $table = 'vf_produksi';
 
-    const CREATED_AT = 'dibuat_pada';
-    const UPDATED_AT = 'diperbarui_pada';
-
     protected $fillable = [
         'kandang_id', 
         'batch_produksi_id', 

@@ -24,9 +24,9 @@ use Illuminate\Support\Facades\Storage;
 class AdminController extends Controller
 {
     protected array $activityDateColumns = [
-        Produksi::class => ['tanggal_mulai', 'tanggal', Produksi::CREATED_AT],
-        Penetasan::class => ['tanggal_menetas', 'tanggal_simpan_telur', Penetasan::CREATED_AT],
-        Pembesaran::class => ['tanggal_masuk', 'tanggal_siap', Pembesaran::CREATED_AT],
+        Produksi::class => ['tanggal_mulai', 'tanggal', 'created_at'],
+        Penetasan::class => ['tanggal_menetas', 'tanggal_simpan_telur', 'created_at'],
+        Pembesaran::class => ['tanggal_masuk', 'tanggal_siap', 'created_at'],
     ];
 
     public function dashboard(Request $request)
@@ -171,7 +171,7 @@ class AdminController extends Controller
 
         // Tangani opsi "Semua"
         if ($perPage === 'all') {
-            $penetasan = $query->orderBy('dibuat_pada', 'desc')->get();
+            $penetasan = $query->orderBy('created_at', 'desc')->get();
             // Buat paginator tiruan untuk semua record
             $penetasan = new \Illuminate\Pagination\LengthAwarePaginator(
                 $penetasan,
@@ -181,7 +181,7 @@ class AdminController extends Controller
                 ['path' => $request->url(), 'query' => $request->query()]
             );
         } else {
-            $penetasan = $query->orderBy('dibuat_pada', 'desc')->paginate($perPage);
+            $penetasan = $query->orderBy('created_at', 'desc')->paginate($perPage);
         }
 
         $sistemController = app(SistemController::class);

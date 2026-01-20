@@ -10,9 +10,6 @@ class Pembesaran extends Model
     use SyncsKandangMaintenance;
     protected $table = 'vf_pembesaran';
 
-    const CREATED_AT = 'dibuat_pada';
-    const UPDATED_AT = 'diperbarui_pada';
-
     protected $fillable = [
         'kandang_id',
         'batch_produksi_id',
@@ -38,8 +35,8 @@ class Pembesaran extends Model
         'tanggal_masuk' => 'date',
         'tanggal_siap' => 'date',
         'tanggal_selesai' => 'date',
-        'dibuat_pada' => 'datetime',
-        'diperbarui_pada' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**

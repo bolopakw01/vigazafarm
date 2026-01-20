@@ -7,9 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class BeratSampling extends Model
 {
     protected $table = 'vf_berat_sampling';
-    
-    const CREATED_AT = 'dibuat_pada';
-    const UPDATED_AT = 'diperbarui_pada';
 
     protected $fillable = [
         'batch_produksi_id',

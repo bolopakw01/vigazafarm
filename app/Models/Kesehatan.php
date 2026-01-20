@@ -11,9 +11,6 @@ class Kesehatan extends Model
 {
     protected $table = 'vf_kesehatan';
 
-    const CREATED_AT = 'dibuat_pada';
-    const UPDATED_AT = 'diperbarui_pada';
-
     const TIPE_VAKSINASI = 'vaksinasi';
     const TIPE_PENGOBATAN = 'pengobatan';
     const TIPE_PEMERIKSAAN = 'pemeriksaan_rutin';
@@ -42,8 +39,8 @@ class Kesehatan extends Model
         'karantina_dikembalikan' => 'boolean',
         'karantina_dikembalikan_pada' => 'datetime',
         'biaya' => 'decimal:2',
-        'dibuat_pada' => 'datetime',
-        'diperbarui_pada' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**

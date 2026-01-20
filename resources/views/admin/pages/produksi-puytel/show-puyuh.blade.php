@@ -685,8 +685,8 @@
                                                     'meta' => [
                                                         'catatan' => $laporan->catatan_kejadian,
                                                         'tanggal' => $laporan->tanggal->locale('id')->translatedFormat('d F Y'),
-                                                        'created_at' => $laporan->dibuat_pada
-                                                            ? $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
+                                                        'created_at' => $laporan->created_at
+                                                            ? $laporan->created_at->locale('id')->format('d/m/Y, g:i:s A')
                                                             : '—',
                                                     ]
                                                 ];
@@ -749,8 +749,8 @@
                                                         : 'Laporan';
                                                 }
 
-                                                $createdAtFormatted = $laporan->dibuat_pada
-                                                    ? 'Tercatat ' . $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
+                                                $createdAtFormatted = $laporan->created_at
+                                                    ? 'Tercatat ' . $laporan->created_at->locale('id')->format('d/m/Y, g:i:s A')
                                                     : '—';
 
                                                 // Sertakan informasi jenis kelamin untuk entri penjualan
@@ -826,8 +826,8 @@
                                                                 $namaHari = isset($hariIndonesia[$hariIndex]) ? $hariIndonesia[$hariIndex] : 'Unknown';
                                                                 $tanggalFormatted = $laporan->tanggal ? $laporan->tanggal->locale('id')->translatedFormat('d F Y') : 'Unknown';
                                                                 $catatanTanggal = $namaHari . ', ' . $tanggalFormatted;
-                                                                $catatanCreated = $entry['meta']['created_at'] ?? ($laporan->dibuat_pada
-                                                                    ? $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
+                                                                $catatanCreated = $entry['meta']['created_at'] ?? ($laporan->created_at
+                                                                    ? $laporan->created_at->locale('id')->format('d/m/Y, g:i:s A')
                                                                     : '—');
                                                                 $catatanUser = optional($laporan->pengguna)->username
                                                                     ?? optional($laporan->pengguna)->nama_pengguna
@@ -1402,4 +1402,3 @@
         });
     </script>
 @endpush
-

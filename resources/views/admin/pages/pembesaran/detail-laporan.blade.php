@@ -274,8 +274,8 @@
                 </div>
 
                 <div class="laporan-detail-timestamp">
-                    <div>Dibuat {{ \Carbon\Carbon::parse($laporan->dibuat_pada)->locale('id')->isoFormat('DD MMMM YYYY') }} pukul {{ \Carbon\Carbon::parse($laporan->dibuat_pada)->format('H.i') }}</div>
-                    <div class="text-md-end">Diperbarui {{ \Carbon\Carbon::parse($laporan->diperbarui_pada)->locale('id')->isoFormat('DD MMMM YYYY') }} pukul {{ \Carbon\Carbon::parse($laporan->diperbarui_pada)->format('H.i') }}</div>
+                    <div>Dibuat {{ \Carbon\Carbon::parse($laporan->created_at)->locale('id')->isoFormat('DD MMMM YYYY') }} pukul {{ \Carbon\Carbon::parse($laporan->created_at)->format('H.i') }}</div>
+                    <div class="text-md-end">Diperbarui {{ \Carbon\Carbon::parse($laporan->updated_at)->locale('id')->isoFormat('DD MMMM YYYY') }} pukul {{ \Carbon\Carbon::parse($laporan->updated_at)->format('H.i') }}</div>
                 </div>
             </div>
 

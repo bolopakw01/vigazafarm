@@ -11,9 +11,6 @@ class MonitoringLingkungan extends Model
 {
     protected $table = 'vf_monitoring_lingkungan';
 
-    const CREATED_AT = 'dibuat_pada';
-    const UPDATED_AT = 'diperbarui_pada';
-
     const VENTILASI_BAIK = 'Baik';
     const VENTILASI_CUKUP = 'Cukup';
     const VENTILASI_KURANG = 'Kurang';
@@ -37,8 +34,8 @@ class MonitoringLingkungan extends Model
         'suhu' => 'decimal:2',
         'kelembaban' => 'decimal:2',
         'intensitas_cahaya' => 'decimal:2',
-        'dibuat_pada' => 'datetime',
-        'diperbarui_pada' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**

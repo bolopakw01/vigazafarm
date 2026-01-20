@@ -335,9 +335,9 @@
 						@php
 							$employeeNameSource = $user->nama ?: $user->nama_pengguna ?: 'A';
 							$employeeInitial = mb_strtoupper(mb_substr($employeeNameSource, 0, 1));
-							$employeeJoinedAt = $user->dibuat_pada ?? $user->created_at;
+							$employeeJoinedAt = $user->created_at;
 							$employeeJoinedDate = $employeeJoinedAt ? \Carbon\Carbon::parse($employeeJoinedAt)->format('d/m/Y') : '-';
-							$employeeUpdatedAt = $user->diperbarui_pada ?? $user->updated_at;
+							$employeeUpdatedAt = $user->updated_at;
 							$employeeUpdatedHuman = $employeeUpdatedAt ? \Carbon\Carbon::parse($employeeUpdatedAt)->locale('id')->diffForHumans() : 'Belum diperbarui';
 						@endphp
 						<td class="bolopa-tabel-text-center" style="text-align: center;">

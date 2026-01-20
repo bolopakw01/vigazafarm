@@ -89,11 +89,11 @@
                     'jumlah_telur' => $remainingEggs,
                     'estimasi_tray' => $trayEstimate,
                     'keterangan_tray' => $item->keterangan_tray,
-                    'dibuat_pada' => $item->dibuat_pada
-                        ? $item->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
+                    'created_at' => $item->created_at
+                        ? $item->created_at->locale('id')->format('d/m/Y, g:i:s A')
                         : '—',
-                    'diperbarui_pada' => $item->diperbarui_pada
-                        ? $item->diperbarui_pada->locale('id')->format('d/m/Y, g:i:s A')
+                    'updated_at' => $item->updated_at
+                        ? $item->updated_at->locale('id')->format('d/m/Y, g:i:s A')
                         : '—',
                     'is_sold' => $isSold,
                 ];
@@ -701,8 +701,8 @@
                                                     'meta' => [
                                                         'catatan' => $laporan->catatan_kejadian,
                                                         'tanggal' => $laporan->tanggal->locale('id')->translatedFormat('d F Y'),
-                                                        'created_at' => $laporan->dibuat_pada
-                                                            ? $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
+                                                        'created_at' => $laporan->created_at
+                                                            ? $laporan->created_at->locale('id')->format('d/m/Y, g:i:s A')
                                                             : '—',
                                                     ]
                                                 ];
@@ -745,8 +745,8 @@
                                                         : 'Laporan';
                                                 }
 
-                                                $createdAtFormatted = $laporan->dibuat_pada
-                                                    ? 'Tercatat ' . $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
+                                                $createdAtFormatted = $laporan->created_at
+                                                    ? 'Tercatat ' . $laporan->created_at->locale('id')->format('d/m/Y, g:i:s A')
                                                     : '—';
 
                                                 if ($entry['type'] === 'kematian' && !empty($entry['meta']['keterangan'])) {
@@ -779,14 +779,14 @@
 
                                                         @if ($entry['type'] === 'penjualan')
                                                             <div class="text-end">
-                                                                <div class="small text-muted">{{ $laporan->dibuat_pada ? $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A') : '—' }}</div>
+                                                                <div class="small text-muted">{{ $laporan->created_at ? $laporan->created_at->locale('id')->format('d/m/Y, g:i:s A') : '—' }}</div>
                                                                 <div class="small text-muted">oleh {{ optional($laporan->pengguna)->nama_pengguna ?? '—' }}</div>
                                                             </div>
                                                         @endif
 
                                                         @if ($entry['type'] === 'telur')
                                                             <div class="text-end">
-                                                                <div class="small text-muted">{{ $laporan->dibuat_pada ? $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A') : '—' }}</div>
+                                                                <div class="small text-muted">{{ $laporan->created_at ? $laporan->created_at->locale('id')->format('d/m/Y, g:i:s A') : '—' }}</div>
                                                                 <div class="small text-muted">oleh {{ optional($laporan->pengguna)->nama_pengguna ?? '—' }}</div>
                                                             </div>
                                                         @endif
@@ -799,8 +799,8 @@
                                                                 $namaHari = isset($hariIndonesia[$hariIndex]) ? $hariIndonesia[$hariIndex] : 'Unknown';
                                                                 $tanggalFormatted = $laporan->tanggal ? $laporan->tanggal->locale('id')->translatedFormat('d F Y') : 'Unknown';
                                                                 $catatanTanggal = $namaHari . ', ' . $tanggalFormatted;
-                                                                $catatanCreated = $entry['meta']['created_at'] ?? ($laporan->dibuat_pada
-                                                                    ? $laporan->dibuat_pada->locale('id')->format('d/m/Y, g:i:s A')
+                                                                $catatanCreated = $entry['meta']['created_at'] ?? ($laporan->created_at
+                                                                    ? $laporan->created_at->locale('id')->format('d/m/Y, g:i:s A')
                                                                     : '—');
                                                                 $catatanUser = optional($laporan->pengguna)->username
                                                                     ?? optional($laporan->pengguna)->nama_pengguna

@@ -9,9 +9,6 @@ class PencatatanProduksi extends Model
 {
     protected $table = 'vf_pencatatan_produksi';
 
-    const CREATED_AT = 'dibuat_pada';
-    const UPDATED_AT = 'diperbarui_pada';
-
     protected $fillable = [
         'produksi_id',
         'tanggal',

@@ -43,7 +43,7 @@ class PembesaranController extends Controller
          * Menampilkan daftar pembesaran (batch) dengan relasi dan paginasi.
          */
         $pembesaran = Pembesaran::with(['kandang', 'penetasan', 'creator', 'updater', 'batchProduksi'])
-            ->orderBy('dibuat_pada', 'desc')
+            ->orderBy('created_at', 'desc')
             ->paginate(10);
 
         return view('admin.pages.pembesaran.index-pembesaran', compact('pembesaran'));

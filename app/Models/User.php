@@ -14,9 +14,6 @@ class User extends Authenticatable
 
     protected $table = 'vf_pengguna';
 
-    const CREATED_AT = 'dibuat_pada';
-    const UPDATED_AT = 'diperbarui_pada';
-
     /**
      * The attributes that are mass assignable.
      *

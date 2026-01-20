@@ -313,7 +313,7 @@
 @section('content')
 @php
   $profilePhotoUrl = $user->foto_profil ? asset('foto_profil/' . $user->foto_profil) : '';
-  $lastUpdatedAt = $user->diperbarui_pada ?? $user->updated_at;
+  $lastUpdatedAt = $user->updated_at;
   $lastUpdatedHuman = $lastUpdatedAt ? \Carbon\Carbon::parse($lastUpdatedAt)->locale('id')->diffForHumans() : 'Belum pernah diperbarui';
   $peranLabel = match ($user->peran) {
     'owner' => 'Owner',

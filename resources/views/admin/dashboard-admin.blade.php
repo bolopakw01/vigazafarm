@@ -670,7 +670,7 @@ $breadcrumbs = [['label' => 'Backoffice', 'link' => route('admin.dashboard')]];
 							@php
 							$dateSource =
 							$row->tanggal_mulai ??
-							($row->tanggal ?? ($row->dibuat_pada ?? $row->created_at));
+							($row->tanggal ?? $row->created_at);
 							$batchLabel = $row->batchProduksi?->kode_batch ?? '-';
 							$tipeProduksi = strtolower(
 							$row->tipe_produksi ?? ($row->jenis_input ?? 'telur'),
@@ -799,7 +799,7 @@ $breadcrumbs = [['label' => 'Backoffice', 'link' => route('admin.dashboard')]];
 								@else
 								@foreach ($penetasanData as $r)
 								@php
-								$createdAt = $r->dibuat_pada ?? $r->created_at;
+								$createdAt = $r->created_at;
 								$jumlahTelur = $r->jumlah_telur ?? 0;
 								@endphp
 								<tr>
@@ -877,7 +877,7 @@ $breadcrumbs = [['label' => 'Backoffice', 'link' => route('admin.dashboard')]];
 								@else
 								@foreach ($pembesaranData as $pr)
 								@php
-								$createdAt = $pr->dibuat_pada ?? $pr->created_at;
+								$createdAt = $pr->created_at;
 								$jenisKelamin = $pr->jenis_kelamin ?? ($pr->jenis ?? '-');
 								$jumlahAnak =
 								$pr->jumlah_anak_ayam ??

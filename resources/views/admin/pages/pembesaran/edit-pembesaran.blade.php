@@ -437,8 +437,8 @@
                                 <span>Dibuat</span>
                             </div>
                             <span class="text-muted" style="font-size: 0.85rem;">
-                                @if(isset($pembesaran->dibuat_pada) && $pembesaran->dibuat_pada)
-                                    {{ \Carbon\Carbon::parse($pembesaran->dibuat_pada)->format('d/m/Y') }}, {{ \Carbon\Carbon::parse($pembesaran->dibuat_pada)->format('H:i') }}
+                                @if(isset($pembesaran->created_at) && $pembesaran->created_at)
+                                    {{ \Carbon\Carbon::parse($pembesaran->created_at)->format('d/m/Y') }}, {{ \Carbon\Carbon::parse($pembesaran->created_at)->format('H:i') }}
                                 @else
                                     -
                                 @endif
@@ -452,8 +452,8 @@
                                 <span>Update</span>
                             </div>
                             <span class="text-muted" style="font-size: 0.85rem;">
-                                @if(isset($pembesaran->diperbarui_pada) && $pembesaran->diperbarui_pada)
-                                    {{ \Carbon\Carbon::parse($pembesaran->diperbarui_pada)->format('d/m/Y') }}, {{ \Carbon\Carbon::parse($pembesaran->diperbarui_pada)->format('H:i') }}
+                                @if(isset($pembesaran->updated_at) && $pembesaran->updated_at)
+                                    {{ \Carbon\Carbon::parse($pembesaran->updated_at)->format('d/m/Y') }}, {{ \Carbon\Carbon::parse($pembesaran->updated_at)->format('H:i') }}
                                 @else
                                     -
                                 @endif

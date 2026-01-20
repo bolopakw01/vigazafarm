@@ -45,7 +45,7 @@ class PencatatanProduksiController extends Controller
                     'total_pendapatan' => $item->total_pendapatan,
                     'catatan' => $item->catatan,
                     'dibuat_oleh' => $item->dibuatOleh->nama ?? 'Unknown',
-                    'dibuat_pada' => $item->dibuat_pada->format('d/m/Y H:i')
+                    'dibuat_pada' => $item->created_at->format('d/m/Y H:i')
                 ];
             })
         ]);

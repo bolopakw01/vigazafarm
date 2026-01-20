@@ -11,9 +11,6 @@ class LaporanHarian extends Model
 {
     protected $table = 'vf_laporan_harian';
 
-    const CREATED_AT = 'dibuat_pada';
-    const UPDATED_AT = 'diperbarui_pada';
-
     protected $fillable = [
         'batch_produksi_id',
         'tanggal',
@@ -85,8 +82,8 @@ class LaporanHarian extends Model
         'hen_day_production' => 'decimal:2',
         'mortalitas_kumulatif' => 'decimal:2',
         'tampilkan_di_histori' => 'boolean',
-        'dibuat_pada' => 'datetime',
-        'diperbarui_pada' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**

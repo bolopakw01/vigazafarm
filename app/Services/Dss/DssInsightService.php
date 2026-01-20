@@ -118,7 +118,7 @@ class DssInsightService
             $contexts->put($batch->batch_produksi_id, [
                 'type' => 'pembesaran',
                 'record' => $batch,
-                'sort_key' => $batch->tanggal_masuk ?? $batch->dibuat_pada ?? $this->today,
+                'sort_key' => $batch->tanggal_masuk ?? $batch->created_at ?? $this->today,
             ]);
         }
 
@@ -130,7 +130,7 @@ class DssInsightService
             $contexts->put($production->batch_produksi_id, [
                 'type' => 'produksi',
                 'record' => $production,
-                'sort_key' => $production->tanggal_mulai ?? $production->dibuat_pada ?? $this->today,
+                'sort_key' => $production->tanggal_mulai ?? $production->created_at ?? $this->today,
             ]);
         }
 

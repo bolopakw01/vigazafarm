@@ -11,9 +11,6 @@ class Pakan extends Model
 {
     protected $table = 'vf_pakan';
 
-    const CREATED_AT = 'dibuat_pada';
-    const UPDATED_AT = 'diperbarui_pada';
-
     protected $fillable = [
         'produksi_id',
         'stok_pakan_id',
@@ -35,8 +32,8 @@ class Pakan extends Model
         'jumlah_karung' => 'integer',
         'harga_per_kg' => 'decimal:2',
         'total_biaya' => 'decimal:2',
-        'dibuat_pada' => 'datetime',
-        'diperbarui_pada' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**

@@ -824,7 +824,7 @@ class ProduksiController extends Controller
         if (!empty($produksi->batch_produksi_id)) {
             $laporanHarian = LaporanHarian::where('batch_produksi_id', $produksi->batch_produksi_id)
                 ->orderByDesc('tanggal')
-                ->orderByDesc('dibuat_pada')
+                ->orderByDesc('created_at')
                 ->get();
         }
 
@@ -1957,7 +1957,7 @@ class ProduksiController extends Controller
 
         $laporanHarian = LaporanHarian::where('batch_produksi_id', $produksi->batch_produksi_id)
             ->whereDate('tanggal', $tanggal)
-            ->orderByDesc('dibuat_pada')
+            ->orderByDesc('created_at')
             ->get();
 
         if ($laporanHarian->isEmpty()) {
@@ -2015,7 +2015,7 @@ class ProduksiController extends Controller
 
         $catatanUtama = $laporanHarian
             ->whereNotNull('catatan_kejadian')
-            ->sortByDesc(fn ($item) => $item->dibuat_pada ?? $item->created_at ?? $item->tanggal)
+            ->sortByDesc(fn ($item) => $item->created_at ?? $item->tanggal)
             ->pluck('catatan_kejadian')
             ->map(fn ($note) => trim($note))
             ->first();
@@ -2565,7 +2565,8 @@ class ProduksiController extends Controller
             'jumlah_telur' => $laporan->produksi_telur,
             'nama_tray' => $laporan->nama_tray,
             'keterangan_tray' => $laporan->keterangan_tray,
-            'dibuat_pada' => optional($laporan->dibuat_pada)->locale('id')->format('d/m/Y, g:i:s A') ?? '-',
+            'created_at' => optional($laporan->created_at)->locale('id')->format('d/m/Y, g:i:s A') ?? '-',
+            'updated_at' => optional($laporan->updated_at)->locale('id')->format('d/m/Y, g:i:s A') ?? '-',
         ];
     }
 

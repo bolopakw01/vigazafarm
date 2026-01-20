@@ -38,8 +38,8 @@ class AdminUserSeeder extends Seeder
                 'kata_sandi' => Hash::make($ownerPassword),
                 'peran' => 'owner',
                 'surel_terverifikasi_pada' => now(),
-                'dibuat_pada' => now(),
-                'diperbarui_pada' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
 
@@ -68,8 +68,8 @@ class AdminUserSeeder extends Seeder
                 'peran' => 'operator',
                 'alamat' => 'Jl.Inajasi apata hucocok. Lorem ipsum dolor sit amet consectetur adipisicing elit. Alias necessitatibus blanditiis cum dolorum nihil vitae porro, ab ex. Repellendus molestias tenetur porro aut distinctio totam ipsa ducimus est magnam reprehenderit!',
                 'surel_terverifikasi_pada' => now(),
-                'dibuat_pada' => now(),
-                'diperbarui_pada' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
     }

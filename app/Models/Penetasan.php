@@ -11,10 +11,6 @@ class Penetasan extends Model
     use SyncsKandangMaintenance;
     protected $table = 'vf_penetasan';
 
-    // the migrations renamed created_at/updated_at -> dibuat_pada/diperbarui_pada
-    const CREATED_AT = 'dibuat_pada';
-    const UPDATED_AT = 'diperbarui_pada';
-
     protected $fillable = [
         'batch',
         'kandang_id',
@@ -43,8 +39,8 @@ class Penetasan extends Model
         'estimasi_tanggal_menetas' => 'date',
         'tanggal_masuk_hatcher' => 'date',
         'tanggal_menetas' => 'date',
-        'dibuat_pada' => 'datetime',
-        'diperbarui_pada' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     private const SETTER_DURATION_DAYS = 14;

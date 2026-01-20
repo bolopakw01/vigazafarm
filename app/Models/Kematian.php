@@ -11,9 +11,6 @@ class Kematian extends Model
 {
     protected $table = 'vf_kematian';
 
-    const CREATED_AT = 'dibuat_pada';
-    const UPDATED_AT = 'diperbarui_pada';
-
     const PENYEBAB_PENYAKIT = 'penyakit';
     const PENYEBAB_STRESS = 'stress';
     const PENYEBAB_KECELAKAAN = 'kecelakaan';
@@ -33,8 +30,8 @@ class Kematian extends Model
     protected $casts = [
         'tanggal' => 'date',
         'jumlah' => 'integer',
-        'dibuat_pada' => 'datetime',
-        'diperbarui_pada' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**

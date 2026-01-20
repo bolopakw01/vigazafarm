@@ -436,7 +436,7 @@ class LookerMasterExportBuilder
                     'persentase_tetas' => (float) ($penetasan->persentase_tetas ?? 0),
                     'suhu_penetasan' => (float) ($penetasan->suhu_penetasan ?? 0),
                     'kelembaban_penetasan' => (float) ($penetasan->kelembaban_penetasan ?? 0),
-                    'updated_at' => $this->formatDateTime($penetasan->diperbarui_pada),
+                    'updated_at' => $this->formatDateTime($penetasan->updated_at),
                 ];
             })
             ->toArray();
@@ -463,7 +463,7 @@ class LookerMasterExportBuilder
                     'berat_rata_rata' => (float) ($pembesaran->berat_rata_rata ?? 0),
                     'target_berat_akhir' => (float) ($pembesaran->target_berat_akhir ?? 0),
                     'catatan' => $pembesaran->catatan,
-                    'updated_at' => $this->formatDateTime($pembesaran->diperbarui_pada),
+                    'updated_at' => $this->formatDateTime($pembesaran->updated_at),
                 ];
             })
             ->toArray();
@@ -496,7 +496,7 @@ class LookerMasterExportBuilder
                     'catatan' => $produksi->catatan,
                     'sumber_penetasan' => optional($produksi->penetasan)->batch,
                     'sumber_pembesaran_id' => optional($produksi->pembesaran)->id,
-                    'updated_at' => $this->formatDateTime($produksi->diperbarui_pada),
+                    'updated_at' => $this->formatDateTime($produksi->updated_at),
                 ];
             })
             ->toArray();
@@ -521,7 +521,7 @@ class LookerMasterExportBuilder
                     'harga_per_unit' => (float) ($catat->harga_per_unit ?? 0),
                     'total_pendapatan' => (float) $totalPendapatan,
                     'catatan' => $catat->catatan,
-                    'updated_at' => $this->formatDateTime($catat->diperbarui_pada),
+                    'updated_at' => $this->formatDateTime($catat->updated_at),
                 ];
             })
             ->toArray();
@@ -546,7 +546,7 @@ class LookerMasterExportBuilder
                     'feed_item' => optional($pakan->feedItem)->name,
                     'feed_category' => optional($pakan->feedItem)->category,
                     'kandang' => optional(optional($pakan->produksi)->kandang)->nama_kandang,
-                    'updated_at' => $this->formatDateTime($pakan->diperbarui_pada),
+                    'updated_at' => $this->formatDateTime($pakan->updated_at),
                 ];
             })
             ->toArray();
@@ -567,7 +567,7 @@ class LookerMasterExportBuilder
                     'biaya' => (float) ($kesehatan->biaya ?? 0),
                     'petugas' => $kesehatan->petugas,
                     'catatan' => $kesehatan->catatan,
-                    'updated_at' => $this->formatDateTime($kesehatan->diperbarui_pada),
+                    'updated_at' => $this->formatDateTime($kesehatan->updated_at),
                 ];
             })
             ->toArray();
@@ -586,7 +586,7 @@ class LookerMasterExportBuilder
                     'jumlah' => (int) ($kematian->jumlah ?? 0),
                     'penyebab' => $kematian->penyebab,
                     'keterangan' => $kematian->keterangan,
-                    'updated_at' => $this->formatDateTime($kematian->diperbarui_pada),
+                    'updated_at' => $this->formatDateTime($kematian->updated_at),
                 ];
             })
             ->toArray();
@@ -608,7 +608,7 @@ class LookerMasterExportBuilder
                     'intensitas_cahaya' => (float) ($monitor->intensitas_cahaya ?? 0),
                     'kondisi_ventilasi' => $monitor->kondisi_ventilasi,
                     'catatan' => $monitor->catatan,
-                    'updated_at' => $this->formatDateTime($monitor->diperbarui_pada),
+                    'updated_at' => $this->formatDateTime($monitor->updated_at),
                 ];
             })
             ->toArray();
@@ -638,7 +638,7 @@ class LookerMasterExportBuilder
 
     protected function mapUsers(): array
     {
-        return User::orderByDesc('dibuat_pada')
+        return User::orderByDesc('created_at')
             ->get()
             ->map(function (User $user) {
                 return [
@@ -648,8 +648,8 @@ class LookerMasterExportBuilder
                     'email' => $user->surel,
                     'peran' => $user->peran,
                     'alamat' => $user->alamat,
-                    'created_at' => $this->formatDateTime($user->dibuat_pada ?? $user->created_at),
-                    'updated_at' => $this->formatDateTime($user->diperbarui_pada ?? $user->updated_at),
+                    'created_at' => $this->formatDateTime($user->created_at),
+                    'updated_at' => $this->formatDateTime($user->updated_at),
                 ];
             })
             ->toArray();

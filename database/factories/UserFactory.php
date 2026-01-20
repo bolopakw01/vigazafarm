@@ -32,8 +32,8 @@ class UserFactory extends Factory
             'kata_sandi' => static::$password ??= Hash::make('password'),
             'peran' => 'operator',
             'token_ingat' => Str::random(10),
-            'dibuat_pada' => now(),
-            'diperbarui_pada' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
         ];
     }
 

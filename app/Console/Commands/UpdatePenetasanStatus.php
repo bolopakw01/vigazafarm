@@ -31,7 +31,7 @@ class UpdatePenetasanStatus extends Command
         
         // Update status dari 'proses' ke 'aktif' jika sudah lebih dari 1 hari
         $updated = Penetasan::where('status', 'proses')
-            ->whereDate('dibuat_pada', '<=', $now->copy()->subDay())
+            ->whereDate('created_at', '<=', $now->copy()->subDay())
             ->update(['status' => 'aktif']);
         
         $this->info("✅ Berhasil update {$updated} data penetasan dari status 'proses' ke 'aktif'");

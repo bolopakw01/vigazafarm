@@ -231,7 +231,7 @@
                                                             Tray - {{ $entry['tanggal'] }}
                                                         </div>
                                                         <div class="tray-card-updated">
-                                                            <small class="text-light">Diupdate: {{ $entry['diperbarui_pada'] }}</small>
+                                                            <small class="text-light">Diupdate: {{ $entry['updated_at'] }}</small>
                                                         </div>
                                                     </div>
                                                     <div class="tray-card-actions">
@@ -924,7 +924,7 @@
                                             ${safeName}
                                         </div>
                                         <div class="tray-card-updated">
-                                            <small class="text-light">Diupdate: ${entry.diperbarui_pada}</small>
+                                            <small class="text-light">Diupdate: ${entry.updated_at}</small>
                                         </div>
                                     </div>
                                     <div class="tray-card-actions">
