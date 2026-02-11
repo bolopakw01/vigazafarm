@@ -114,3 +114,4 @@ Ikuti langkah berikut untuk menjalankan project di lokal komputer:
 ## 📄 Lisensi
 
 Project ini bersifat *open-source* di bawah lisensi [MIT](https://opensource.org/licenses/MIT).
+123
