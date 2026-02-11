@@ -460,7 +460,7 @@
 		.table-wrap .table th:nth-child(4) { width: 50px; text-align: right; } /* Rasio Tetas / Selisih / Mortalitas */
 		.table-wrap .table td:nth-child(4) { text-align: right; }
 		.table-wrap .table th:nth-child(5) { width: 50px; text-align: center; } /* Status */
-		.table-wrap .table td:nth-child(5) { text-align: center; }
+		.table-wrap .table td:nth-child(5) { text-align: center; white-space: normal; word-wrap: break-word; overflow: visible; text-overflow: clip; }
 		.table-wrap .table th:nth-child(6) { width: 100px; text-align: left; } /* Tindakan / Rekomendasi */
 		.table-wrap .table td:nth-child(6) { text-align: left; white-space: normal; word-wrap: break-word; overflow: visible; text-overflow: clip; }
 		.empty-state {
