@@ -45,11 +45,8 @@ class AuthenticatedSessionController extends Controller
 
                 $request->session()->regenerate();
 
-                // Determine redirect URL based on role
-                $redirectUrl = 'http://localhost/vigazafarm/public/dashboard';
-                if (Auth::user()->peran === 'operator') {
-                    $redirectUrl = 'http://localhost/vigazafarm/public/admin/dashboard';
-                }
+                // Determine redirect URL based on role using named routes
+                $redirectUrl = route('admin.dashboard');
 
                 return response()->json([
                     'success' => true,
@@ -83,7 +80,7 @@ class AuthenticatedSessionController extends Controller
     public function destroy(Request $request): RedirectResponse
     {
         /**
-         * Menghancurkan sesi autentikasi (logout) dan mengarahkan ke halaman utama.
+         * Menghancurkan sesi autentikasi (logout) dan mengarahkan ke halaman login.
          */
         Auth::guard('web')->logout();
 
@@ -91,6 +88,6 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect()->route('mimin.login');
     }
 }

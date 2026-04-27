@@ -47,7 +47,9 @@ Route::get('/', function () {
         : redirect()->route('mimin.login');
 })->name('home.redirect');
 
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth'])->name('dashboard');
+Route::get('/dashboard', function () {
+    return redirect()->route('admin.dashboard');
+})->middleware(['auth'])->name('dashboard');
 
 // Shortcut agar /admin langsung ke dashboard
 Route::get('/admin', function () {
